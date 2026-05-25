@@ -62,26 +62,30 @@ export function useCallbackDetail(id, navigate) {
 
   // Look up related functional pipeline logs
   const linkedTransfers = useMemo(() => {
+    if (directLinkedTransfer) return [directLinkedTransfer]
+    const exactTransfer = callback?.transferId ? transfers.find((t) => t.id === callback.transferId) : null
+    if (exactTransfer) return [exactTransfer]
+
     const byCallBackId = transfers.filter((t) => t.callBackId === callbackId)
     if (byCallBackId.length > 0) return byCallBackId
+
     const byCustomer = transfers.filter((t) => t.customerId === callback?.customerId)
     if (byCustomer.length > 0) return byCustomer
-    if (directLinkedTransfer) return [directLinkedTransfer]
-    return []
-  }, [transfers, callbackId, callback?.customerId, directLinkedTransfer])
 
-  // If transfers in store don't include the linked transfer but callback has transferId, fetch it
+    return []
+  }, [transfers, callbackId, callback?.customerId, callback?.transferId, directLinkedTransfer])
+
+  // If callback has a linked transfer ID and the store doesn't have it yet, fetch it directly
   useEffect(() => {
     const fetchLinkedTransfer = async () => {
-      if (!callback?.transferId) return
+      if (!callback?.transferId || directLinkedTransfer || fetchingDirectTransfer) return
       const existsInStore = transfers.find((t) => t.id === callback.transferId)
-      if (existsInStore || directLinkedTransfer) return
-      if (fetchingDirectTransfer) return
+      if (existsInStore) return
       setFetchingDirectTransfer(true)
       try {
         const res = await api.get(`/api/transfers/${callback.transferId}`)
         setDirectLinkedTransfer(res.data)
-      } catch (err) {
+      } catch {
         // silent fail; linkedTransfers will remain empty
       } finally {
         setFetchingDirectTransfer(false)

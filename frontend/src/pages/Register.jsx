@@ -1,7 +1,7 @@
 import { useState } from 'react'
-import { useNavigate, Link } from 'react-router-dom'
+import { Link } from 'react-router-dom'
 import { useAuthStore } from '@/store/authStore'
-import { Loader2 } from 'lucide-react'
+import { Loader2, CheckCircle } from 'lucide-react'
 
 export default function Register() {
   const [name, setName] = useState('')
@@ -12,8 +12,8 @@ export default function Register() {
   const [showConfirm, setShowConfirm] = useState(false)
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
+  const [registered, setRegistered] = useState(false)
   const { register } = useAuthStore()
-  const navigate = useNavigate()
 
   const handleSubmit = async (e) => {
     e.preventDefault()
@@ -23,7 +23,7 @@ export default function Register() {
     if (password.length < 6) { setError('Password must be at least 6 characters.'); return }
     setLoading(true)
     const success = await register(name, email, password)
-    if (success) navigate('/')
+    if (success) setRegistered(true)
     else setError(useAuthStore.getState().error || 'Registration failed.')
     setLoading(false)
   }
@@ -189,127 +189,162 @@ export default function Register() {
             <p style={{ fontSize: '14px', color: '#64748b' }}>Fill in your details to get started</p>
           </div>
 
-          {/* Form */}
-          <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+          {registered ? (
+            <>
+              <div style={{
+                display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '16px',
+                padding: '32px 24px', borderRadius: '16px',
+                background: '#f0fdf4', border: '1px solid #bbf7d0',
+                textAlign: 'center',
+              }}>
+                <div style={{
+                  width: '56px', height: '56px', borderRadius: '50%',
+                  background: '#dcfce7', display: 'flex', alignItems: 'center', justifyContent: 'center',
+                }}>
+                  <CheckCircle size={28} color="#16a34a" />
+                </div>
+                <div>
+                  <h2 style={{ fontSize: '18px', fontWeight: 700, color: '#166534', marginBottom: '6px' }}>
+                    Account created!
+                  </h2>
+                  <p style={{ fontSize: '14px', color: '#15803d', lineHeight: 1.6 }}>
+                    Your account is pending admin approval. You will receive access once an admin reviews and approves your account.
+                  </p>
+                </div>
+              </div>
+              <Link to="/login"
+                style={{
+                  display: 'block', textAlign: 'center', width: '100%', padding: '13px',
+                  borderRadius: '12px', textDecoration: 'none',
+                  background: btnGradient, color: '#fff', fontSize: '14px', fontWeight: 700,
+                  boxShadow: '0 4px 18px rgba(99,102,241,0.35)',
+                }}
+              >Sign In</Link>
+            </>
+          ) : (
+            <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
 
-            {fields.map((field, idx) => (
-              <div key={field.label} style={{ display: 'flex', flexDirection: 'column', gap: '7px' }}>
-                <label style={{
-                  fontSize: '12px', fontWeight: 700, color: '#475569',
-                  letterSpacing: '0.3px', textTransform: 'uppercase',
-                }}>{field.label}</label>
-                <div style={{ position: 'relative' }}>
-                  <span style={{
-                    position: 'absolute', left: '14px', top: '50%', transform: 'translateY(-50%)',
-                    color: '#94a3b8', pointerEvents: 'none', display: 'flex',
-                  }}>
-                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">{field.icon}</svg>
-                  </span>
-                  <input
-                    type={field.showState ? 'text' : field.type}
-                    value={field.value}
-                    onChange={(e) => field.setter(e.target.value)}
-                    required
-                    placeholder={field.placeholder}
-                    style={{
-                      width: '100%', padding: '12px 14px 12px 42px',
-                      borderRadius: '12px', border: '1px solid #e2e8f0',
-                      background: '#fff', color: '#0f172a',
-                      fontSize: '14px', fontFamily: 'inherit', outline: 'none',
-                      transition: 'border-color 0.2s, box-shadow 0.2s, background 0.2s',
-                    }}
-                    onFocus={(e) => {
-                      e.target.style.borderColor = '#6366f1'
-                      e.target.style.boxShadow = '0 0 0 3px rgba(99,102,241,0.12)'
-                      e.target.style.background = '#fff'
-                    }}
-                    onBlur={(e) => {
-                      e.target.style.borderColor = '#e2e8f0'
-                      e.target.style.boxShadow = 'none'
-                      e.target.style.background = '#fff'
-                    }}
-                    onMouseEnter={(e) => { if (e.target !== document.activeElement) e.target.style.borderColor = '#cbd5e1' }}
-                    onMouseLeave={(e) => { if (e.target !== document.activeElement) e.target.style.borderColor = '#e2e8f0' }}
-                  />
-                  {field.toggle && (
-                    <button type="button" onClick={field.toggle}
+              {fields.map((field, idx) => (
+                <div key={field.label} style={{ display: 'flex', flexDirection: 'column', gap: '7px' }}>
+                  <label style={{
+                    fontSize: '12px', fontWeight: 700, color: '#475569',
+                    letterSpacing: '0.3px', textTransform: 'uppercase',
+                  }}>{field.label}</label>
+                  <div style={{ position: 'relative' }}>
+                    <span style={{
+                      position: 'absolute', left: '14px', top: '50%', transform: 'translateY(-50%)',
+                      color: '#94a3b8', pointerEvents: 'none', display: 'flex',
+                    }}>
+                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">{field.icon}</svg>
+                    </span>
+                    <input
+                      type={field.showState ? 'text' : field.type}
+                      value={field.value}
+                      onChange={(e) => field.setter(e.target.value)}
+                      required
+                      placeholder={field.placeholder}
                       style={{
-                        position: 'absolute', right: '12px', top: '50%', transform: 'translateY(-50%)',
-                        background: 'none', border: 'none', cursor: 'pointer',
-                        color: '#94a3b8', display: 'flex', padding: '4px',
-                        transition: 'color 0.15s',
+                        width: '100%', padding: '12px 14px 12px 42px',
+                        borderRadius: '12px', border: '1px solid #e2e8f0',
+                        background: '#fff', color: '#0f172a',
+                        fontSize: '14px', fontFamily: 'inherit', outline: 'none',
+                        transition: 'border-color 0.2s, box-shadow 0.2s, background 0.2s',
                       }}
-                      onMouseEnter={(e) => e.target.style.color = '#6366f1'}
-                      onMouseLeave={(e) => e.target.style.color = '#94a3b8'}
-                    >
-                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                        {field.showState
-                          ? <><path d="M9.88 9.88a3 3 0 1 0 4.24 4.24" /><path d="M10.73 5.08A10.43 10.43 0 0 1 12 5c7 0 10 7 10 7a13.16 13.16 0 0 1-1.67 2.68" /><path d="M6.61 6.61A13.526 13.526 0 0 0 2 12s3 7 10 7a9.74 9.74 0 0 0 5.39-1.61" /><line x1="2" y1="2" x2="22" y2="22" /></>
-                          : <><path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7z" /><circle cx="12" cy="12" r="3" /></>
-                        }
-                      </svg>
-                    </button>
+                      onFocus={(e) => {
+                        e.target.style.borderColor = '#6366f1'
+                        e.target.style.boxShadow = '0 0 0 3px rgba(99,102,241,0.12)'
+                        e.target.style.background = '#fff'
+                      }}
+                      onBlur={(e) => {
+                        e.target.style.borderColor = '#e2e8f0'
+                        e.target.style.boxShadow = 'none'
+                        e.target.style.background = '#fff'
+                      }}
+                      onMouseEnter={(e) => { if (e.target !== document.activeElement) e.target.style.borderColor = '#cbd5e1' }}
+                      onMouseLeave={(e) => { if (e.target !== document.activeElement) e.target.style.borderColor = '#e2e8f0' }}
+                    />
+                    {field.toggle && (
+                      <button type="button" onClick={field.toggle}
+                        style={{
+                          position: 'absolute', right: '12px', top: '50%', transform: 'translateY(-50%)',
+                          background: 'none', border: 'none', cursor: 'pointer',
+                          color: '#94a3b8', display: 'flex', padding: '4px',
+                          transition: 'color 0.15s',
+                        }}
+                        onMouseEnter={(e) => e.target.style.color = '#6366f1'}
+                        onMouseLeave={(e) => e.target.style.color = '#94a3b8'}
+                      >
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                          {field.showState
+                            ? <><path d="M9.88 9.88a3 3 0 1 0 4.24 4.24" /><path d="M10.73 5.08A10.43 10.43 0 0 1 12 5c7 0 10 7 10 7a13.16 13.16 0 0 1-1.67 2.68" /><path d="M6.61 6.61A13.526 13.526 0 0 0 2 12s3 7 10 7a9.74 9.74 0 0 0 5.39-1.61" /><line x1="2" y1="2" x2="22" y2="22" /></>
+                            : <><path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7z" /><circle cx="12" cy="12" r="3" /></>
+                          }
+                        </svg>
+                      </button>
+                    )}
+                  </div>
+                  {idx === 2 && strength && (
+                    <div style={{ marginTop: '4px' }}>
+                      <div style={{ display: 'flex', gap: '4px', marginBottom: '4px' }}>
+                        {[1, 2, 3, 4].map((i) => (
+                          <div key={i} style={{
+                            flex: 1, height: '4px', borderRadius: '4px',
+                            background: i <= strength.level ? strength.color : '#e2e8f0',
+                            transition: 'background 0.2s',
+                          }} />
+                        ))}
+                      </div>
+                      <p style={{ fontSize: '12px', fontWeight: 500, color: strength.color, margin: 0 }}>{strength.text}</p>
+                    </div>
                   )}
                 </div>
-                {idx === 2 && strength && (
-                  <div style={{ marginTop: '4px' }}>
-                    <div style={{ display: 'flex', gap: '4px', marginBottom: '4px' }}>
-                      {[1, 2, 3, 4].map((i) => (
-                        <div key={i} style={{
-                          flex: 1, height: '4px', borderRadius: '4px',
-                          background: i <= strength.level ? strength.color : '#e2e8f0',
-                          transition: 'background 0.2s',
-                        }} />
-                      ))}
-                    </div>
-                    <p style={{ fontSize: '12px', fontWeight: 500, color: strength.color, margin: 0 }}>{strength.text}</p>
-                  </div>
-                )}
-              </div>
-            ))}
+              ))}
 
-            {error && (
-              <div style={{
-                display: 'flex', alignItems: 'flex-start', gap: '10px',
-                padding: '12px 14px', borderRadius: '12px',
-                background: '#fef2f2', border: '1px solid #fecaca',
-                color: '#dc2626', fontSize: '13px', lineHeight: 1.5,
-              }}>
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ flexShrink: 0, marginTop: '1px' }}>
-                  <circle cx="12" cy="12" r="10" /><line x1="12" y1="8" x2="12" y2="12" /><line x1="12" y1="16" x2="12.01" y2="16" />
-                </svg>
-                {error}
-              </div>
-            )}
+              {error && (
+                <div style={{
+                  display: 'flex', alignItems: 'flex-start', gap: '10px',
+                  padding: '12px 14px', borderRadius: '12px',
+                  background: '#fef2f2', border: '1px solid #fecaca',
+                  color: '#dc2626', fontSize: '13px', lineHeight: 1.5,
+                }}>
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ flexShrink: 0, marginTop: '1px' }}>
+                    <circle cx="12" cy="12" r="10" /><line x1="12" y1="8" x2="12" y2="12" /><line x1="12" y1="16" x2="12.01" y2="16" />
+                  </svg>
+                  {error}
+                </div>
+              )}
 
-            <button type="submit" disabled={loading}
-              style={{
-                width: '100%', padding: '13px', borderRadius: '12px', border: 'none',
-                background: loading ? '#a5b4fc' : btnGradient,
-                color: '#fff', fontSize: '14px', fontWeight: 700,
-                fontFamily: 'inherit', cursor: loading ? 'not-allowed' : 'pointer',
-                letterSpacing: '0.2px', display: 'flex', alignItems: 'center',
-                justifyContent: 'center', gap: '8px',
-                transition: 'transform 0.2s, box-shadow 0.2s, opacity 0.2s',
-                opacity: loading ? 0.6 : 1,
-                boxShadow: loading ? 'none' : '0 4px 18px rgba(99,102,241,0.35)',
-              }}
-              onMouseEnter={(e) => { if (!loading) { e.target.style.transform = 'translateY(-1px)'; e.target.style.boxShadow = '0 8px 24px rgba(99,102,241,0.45)' } }}
-              onMouseLeave={(e) => { if (!loading) { e.target.style.transform = 'translateY(0)'; e.target.style.boxShadow = '0 4px 18px rgba(99,102,241,0.35)' } }}
-              onMouseDown={(e) => { if (!loading) e.target.style.transform = 'translateY(0)' }}
-            >
-              {loading ? <Loader2 size={16} className="animate-spin" /> : 'Create Account \u2192'}
-            </button>
-          </form>
+              <button type="submit" disabled={loading}
+                style={{
+                  width: '100%', padding: '13px', borderRadius: '12px', border: 'none',
+                  background: loading ? '#a5b4fc' : btnGradient,
+                  color: '#fff', fontSize: '14px', fontWeight: 700,
+                  fontFamily: 'inherit', cursor: loading ? 'not-allowed' : 'pointer',
+                  letterSpacing: '0.2px', display: 'flex', alignItems: 'center',
+                  justifyContent: 'center', gap: '8px',
+                  transition: 'transform 0.2s, box-shadow 0.2s, opacity 0.2s',
+                  opacity: loading ? 0.6 : 1,
+                  boxShadow: loading ? 'none' : '0 4px 18px rgba(99,102,241,0.35)',
+                }}
+                onMouseEnter={(e) => { if (!loading) { e.target.style.transform = 'translateY(-1px)'; e.target.style.boxShadow = '0 8px 24px rgba(99,102,241,0.45)' } }}
+                onMouseLeave={(e) => { if (!loading) { e.target.style.transform = 'translateY(0)'; e.target.style.boxShadow = '0 4px 18px rgba(99,102,241,0.35)' } }}
+                onMouseDown={(e) => { if (!loading) e.target.style.transform = 'translateY(0)' }}
+              >
+                {loading ? <Loader2 size={16} className="animate-spin" /> : 'Create Account \u2192'}
+              </button>
+            </form>
+          )}
 
           {/* Footer link */}
-          <p style={{ textAlign: 'center', fontSize: '13px', color: '#64748b', marginTop: '28px' }}>
-            Already have an account?{' '}
-            <Link to="/login" style={{ color: '#6366f1', fontWeight: 700, textDecoration: 'none', transition: 'color 0.15s' }}
-              onMouseEnter={(e) => e.target.style.color = '#4f46e5'}
-              onMouseLeave={(e) => e.target.style.color = '#6366f1'}
-            >Sign in</Link>
-          </p>
+          {!registered && (
+            <p style={{ textAlign: 'center', fontSize: '13px', color: '#64748b', marginTop: '28px' }}>
+              Already have an account?{' '}
+              <Link to="/login" style={{ color: '#6366f1', fontWeight: 700, textDecoration: 'none', transition: 'color 0.15s' }}
+                onMouseEnter={(e) => e.target.style.color = '#4f46e5'}
+                onMouseLeave={(e) => e.target.style.color = '#6366f1'}
+              >Sign in</Link>
+            </p>
+          )}
         </div>
       </div>
     </div>

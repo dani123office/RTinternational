@@ -223,7 +223,7 @@ export default function ManagerTransferDetail() {
             </div>
           </Card>
 
-          {transfer.accountNumber && (
+          {(transfer.accountNumber || transfer.mpan || transfer.mprn || transfer.msn) && (
             <div className="rt-fade rt-d3">
               <AccountDetailsCard transfer={transfer} />
             </div>

@@ -1,12 +1,13 @@
 import jwt
 import bcrypt
 import os
+import secrets
 from datetime import datetime, timedelta
 from fastapi import APIRouter, Depends, HTTPException, Header
 from sqlalchemy.orm import Session
 from database import get_db
 from models import User
-from schemas import LoginRequest, LoginResponse, RegisterRequest, UserOut
+from schemas import LoginRequest, LoginResponse, RegisterRequest, ForgotPasswordRequest, ResetPasswordRequest, UserOut
 
 router = APIRouter(prefix="/api/auth", tags=["auth"])
 
@@ -105,8 +106,10 @@ def login(request: LoginRequest, db: Session = Depends(get_db)):
     user = db.query(User).filter(User.email == request.email).first()
     if not user:
         raise HTTPException(status_code=401, detail="Invalid credentials")
-    if user.is_active != 1:
+    if not user.is_active:
         raise HTTPException(status_code=401, detail="Account is inactive")
+    if user.role != "admin" and user.manager_id is None:
+        raise HTTPException(status_code=401, detail="No manager assigned yet. Please wait for admin approval.")
 
     if not bcrypt.checkpw(request.password.encode("utf-8"), user.password_hash.encode("utf-8")):
         raise HTTPException(status_code=401, detail="Invalid credentials")
@@ -170,22 +173,54 @@ def register(request: RegisterRequest, db: Session = Depends(get_db)):
         email=request.email,
         password_hash=hashed,
         role=request.role or "agent",
-        is_active=1,
+        is_active=0,
     )
     db.add(user)
     db.commit()
     db.refresh(user)
 
-    token = _create_token(user.id)
-    refresh = _create_refresh_token(user.id)
-    return LoginResponse(
-        token=token,
-        refreshToken=refresh,
-        name=user.name,
-        role=user.role,
-        userId=user.id,
-        managerId=user.manager_id,
-    )
+    return {"message": "Account created successfully. Waiting for admin approval. You will be able to log in once an admin approves your account."}
+
+
+@router.post("/forgot-password")
+def forgot_password(request: ForgotPasswordRequest, db: Session = Depends(get_db)):
+    user = db.query(User).filter(User.email == request.email).first()
+    if not user:
+        return {"message": "If this email exists, a reset link has been sent."}
+
+    token = secrets.token_urlsafe(32)
+    user.reset_token = token
+    user.reset_token_expiry = datetime.utcnow() + timedelta(hours=1)
+    db.commit()
+
+    reset_link = f"/reset-password?token={token}"
+
+    return {
+        "message": "If this email exists, a reset link has been sent.",
+        "resetLink": reset_link,
+        "token": token,
+    }
+
+
+@router.post("/reset-password")
+def reset_password(request: ResetPasswordRequest, db: Session = Depends(get_db)):
+    user = db.query(User).filter(
+        User.reset_token == request.token,
+        User.reset_token_expiry > datetime.utcnow(),
+    ).first()
+
+    if not user:
+        raise HTTPException(status_code=400, detail="Invalid or expired reset token")
+
+    if len(request.password) < 6:
+        raise HTTPException(status_code=400, detail="Password must be at least 6 characters")
+
+    user.password_hash = bcrypt.hashpw(request.password.encode("utf-8"), bcrypt.gensalt()).decode("utf-8")
+    user.reset_token = None
+    user.reset_token_expiry = None
+    db.commit()
+
+    return {"message": "Password has been reset successfully"}
 
 
 @router.get("/users")

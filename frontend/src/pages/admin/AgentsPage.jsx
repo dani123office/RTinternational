@@ -1,17 +1,21 @@
 import { useEffect, useState } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { useAdminStore } from '@/store/adminStore'
-import { Users, Plus, Ban, Trash2, UserRoundCog, AlertTriangle, Eye, EyeOff } from 'lucide-react'
+import { Users, Plus, Ban, Trash2, UserRoundCog, AlertTriangle, Eye, EyeOff, KeyRound } from 'lucide-react'
 import { APP_STYLES } from '@/lib/styles'
 import DataTable from '@/components/shared/DataTable'
 import LoadingSpinner from '@/components/shared/LoadingSpinner'
 import EmptyState from '@/components/shared/EmptyState'
 import CreateAgentModal from '@/components/admin/CreateAgentModal'
 import AssignManagerModal from '@/components/admin/AssignManagerModal'
+import ResetPasswordModal from '@/components/admin/ResetPasswordModal'
 
 export default function AgentsPage() {
-  const { agents, managers, loadAgents, loadManagers, createAgent, assignAgent, updateUser, deleteUser } = useAdminStore()
+  const navigate = useNavigate()
+  const { agents, managers, loadAgents, loadManagers, createAgent, assignAgent, updateUser, deleteUser, resetUserPassword } = useAdminStore()
   const [showCreate, setShowCreate] = useState(false)
   const [showAssign, setShowAssign] = useState(null)
+  const [showResetPwd, setShowResetPwd] = useState(null)
   const search = ''
   const [showDeactivated, setShowDeactivated] = useState(false)
   const [loading, setLoading] = useState(true)
@@ -76,6 +80,9 @@ export default function AgentsPage() {
       header: 'Actions',
       cell: (row) => (
         <div className="flex gap-1 justify-end" onClick={(e) => e.stopPropagation()}>
+          <button onClick={() => setShowResetPwd(row)} title="Reset password" className="p-1.5 rounded-lg border-none bg-transparent text-amber-500 cursor-pointer hover:bg-amber-50 transition-colors">
+            <KeyRound size={14} />
+          </button>
           <button onClick={() => setShowAssign(row)} title="Assign manager" className="p-1.5 rounded-lg border-none bg-transparent text-indigo-500 cursor-pointer hover:bg-indigo-50 transition-colors">
             <UserRoundCog size={14} />
           </button>
@@ -155,6 +162,7 @@ export default function AgentsPage() {
                   data={filtered}
                   searchKey="name"
                   pageSize={10}
+                  onRowClick={(row) => navigate(`/admin/agents/${row.id}`)}
                 />
               )}
             </div>
@@ -172,6 +180,12 @@ export default function AgentsPage() {
             onSave={handleAssign}
             agent={showAssign}
             managers={managers}
+          />
+          <ResetPasswordModal
+            isOpen={!!showResetPwd}
+            onClose={() => setShowResetPwd(null)}
+            onSave={resetUserPassword}
+            user={showResetPwd}
           />
         </div>
       </div>

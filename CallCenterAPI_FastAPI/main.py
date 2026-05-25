@@ -121,6 +121,13 @@ def _clean_http_exception_detail(detail, status_code):
             'Email already in use',
             'Invalid credentials',
             'Account is inactive',
+            'Invalid or expired reset token',
+            'Password has been reset',
+            'If this email exists',
+            'User is already active',
+            'Waiting for admin approval',
+            'pending admin approval',
+            'No manager assigned yet',
         ]
         for prefix in safe_prefixes:
             if normalized.startswith(prefix):

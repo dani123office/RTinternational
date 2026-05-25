@@ -5,6 +5,9 @@ export const useAdminStore = create((set, get) => ({
   managers: [],
   agents: [],
   users: [],
+  pendingUsers: [],
+  selectedAgent: null,
+  selectedManager: null,
   overallStats: null,
   performanceOverview: null,
   businessFeed: [],
@@ -98,5 +101,53 @@ export const useAdminStore = create((set, get) => ({
     const res = await api.patch(endpoints.admin.assignAgent, { agentId, managerId })
     await get().loadAgents(showAll)
     return res.data
+  },
+
+  loadPendingUsers: async () => {
+    try {
+      const res = await api.get(endpoints.admin.pendingUsers)
+      set({ pendingUsers: res.data })
+      return res.data
+    } catch (err) {
+      set({ error: err.response?.data?.detail || 'Failed to load pending users' })
+      return []
+    }
+  },
+
+  approveUser: async (userId, managerId) => {
+    const res = await api.post(endpoints.admin.approveUser(userId), { managerId })
+    await get().loadPendingUsers()
+    await get().loadManagers()
+    await get().loadAgents(true)
+    return res.data
+  },
+
+  resetUserPassword: async (userId, newPassword) => {
+    const res = await api.post(endpoints.admin.resetUserPassword(userId), { newPassword })
+    return res.data
+  },
+
+  loadAdminManagerDetail: async (id) => {
+    set({ selectedManager: null, isLoading: true, error: null })
+    try {
+      const res = await api.get(endpoints.admin.managerDetail(id))
+      set({ selectedManager: res.data, isLoading: false })
+      return res.data
+    } catch (err) {
+      set({ error: err.response?.data?.detail || 'Failed to load manager detail', isLoading: false })
+      return null
+    }
+  },
+
+  loadAdminAgentDetail: async (id) => {
+    set({ selectedAgent: null, isLoading: true, error: null })
+    try {
+      const res = await api.get(endpoints.admin.agentDetail(id))
+      set({ selectedAgent: res.data, isLoading: false })
+      return res.data
+    } catch (err) {
+      set({ error: err.response?.data?.detail || 'Failed to load agent detail', isLoading: false })
+      return null
+    }
   },
 }))

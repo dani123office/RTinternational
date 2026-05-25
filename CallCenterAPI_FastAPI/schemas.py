@@ -241,6 +241,15 @@ class RegisterRequest(BaseModel):
     )
 
 
+class ForgotPasswordRequest(BaseModel):
+    email: str = Field(..., max_length=255, description="Email address")
+
+
+class ResetPasswordRequest(BaseModel):
+    token: str = Field(..., description="Reset token from email")
+    password: str = Field(..., max_length=128, description="New password (min 6 characters)")
+
+
 class UserOut(BaseModel):
     id: int
     name: str
@@ -288,6 +297,14 @@ class AgentDetail(BaseModel):
 
 
 # ─── Admin Schemas ─────────────────────────────────────────
+
+class ApproveUserRequest(BaseModel):
+    managerId: int = Field(..., description="Manager ID to assign to this user")
+
+
+class ResetUserPasswordRequest(BaseModel):
+    newPassword: str = Field(..., max_length=128, description="New password (min 6 characters)")
+
 
 class CreateManagerRequest(BaseModel):
     name: str

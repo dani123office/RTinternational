@@ -241,6 +241,15 @@ class RegisterRequest(BaseModel):
     )
 
 
+class ForgotPasswordRequest(BaseModel):
+    email: str = Field(..., max_length=255, description="Email address")
+
+
+class ResetPasswordRequest(BaseModel):
+    token: str = Field(..., description="Reset token from email")
+    password: str = Field(..., max_length=128, description="New password (min 6 characters)")
+
+
 class UserOut(BaseModel):
     id: int
     name: str

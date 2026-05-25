@@ -8,7 +8,8 @@ from models import User, Customer, CallBack, Transfer, Sale, ActivityLog
 from routers.auth import require_admin
 from schemas import (
     CreateManagerRequest, CreateAgentRequest, AssignAgentRequest,
-    UpdateUserRequest, OverallStats, ManagerKpi, AgentKpi,
+    UpdateUserRequest, ApproveUserRequest, ResetUserPasswordRequest,
+    OverallStats, ManagerKpi, AgentKpi, AgentDetail, AgentStats, AgentOut,
     AdminPerformanceOverview, BusinessFeedItem,
 )
 from routers.callbacks import _build_callback_out
@@ -151,6 +152,80 @@ def get_agents(
     return result
 
 
+@router.get("/managers/{manager_id}")
+def get_manager_detail(
+    manager_id: int,
+    admin: User = Depends(require_admin),
+    db: Session = Depends(get_db),
+):
+    manager = db.query(User).filter(User.id == manager_id, User.role == "manager").first()
+    if not manager:
+        raise HTTPException(status_code=404, detail="Manager not found")
+
+    agents = db.query(User).filter(User.manager_id == manager.id, User.role == "agent").all()
+
+    agent_list = []
+    for a in agents:
+        cb = db.query(func.count(CallBack.id)).filter(CallBack.employee_id == a.id).scalar() or 0
+        tr = db.query(func.count(Transfer.id)).filter(Transfer.employee_id == a.id).scalar() or 0
+        sa = db.query(func.count(Sale.id)).filter(Sale.employee_id == a.id).scalar() or 0
+        total_opps = tr
+        agent_list.append(AgentKpi(
+            id=a.id, name=a.name,
+            managerName=manager.name,
+            callbacks=cb, transfers=tr, sales=sa,
+            conversionRate=_safe_div(sa, total_opps),
+            isActive=1 if a.is_active else 0,
+        ))
+
+    return {
+        "manager": {
+            "id": manager.id, "name": manager.name, "email": manager.email,
+            "role": manager.role, "isActive": 1 if manager.is_active else 0,
+            "createdAt": manager.created_at.isoformat() if manager.created_at else None,
+        },
+        "agents": agent_list,
+        "teamSize": len(agents),
+    }
+
+
+@router.get("/agents/{agent_id}")
+def get_agent_detail(
+    agent_id: int,
+    admin: User = Depends(require_admin),
+    db: Session = Depends(get_db),
+):
+    agent = db.query(User).filter(User.id == agent_id, User.role == "agent").first()
+    if not agent:
+        raise HTTPException(status_code=404, detail="Agent not found")
+
+    transfers = db.query(Transfer).filter(Transfer.employee_id == agent.id).all()
+    sales = db.query(Sale).filter(Sale.employee_id == agent.id).all()
+
+    ac = 0
+    at = len(transfers)
+    as_ = len(sales)
+    a_total = ac + at
+    a_cr = _safe_div(as_, a_total)
+
+    return AgentDetail(
+        agent=AgentOut(
+            id=agent.id, name=agent.name, email=agent.email,
+            role=agent.role, isActive=agent.is_active, managerId=agent.manager_id,
+        ),
+        callbacks=[],
+        transfers=[_transfer_out(t, t.customer) for t in transfers],
+        sales=[_sale_out(s, s.customer) for s in sales],
+        stats=AgentStats(
+            agent=AgentOut(
+                id=agent.id, name=agent.name, email=agent.email,
+                role=agent.role, isActive=agent.is_active, managerId=agent.manager_id,
+            ),
+            callbacks=ac, transfers=at, sales=as_, conversionRate=a_cr,
+        ),
+    )
+
+
 @router.put("/user/{user_id}")
 def update_user(
     user_id: int, data: UpdateUserRequest,
@@ -237,6 +312,63 @@ def assign_agent(data: AssignAgentRequest, admin: User = Depends(require_admin),
     except Exception as e:
         db.rollback()
         raise HTTPException(status_code=400, detail=f"Failed to assign agent: {str(e)}")
+
+
+# ─── Pending Users (Admin Approval) ──────────────────────
+
+
+@router.get("/pending-users")
+def get_pending_users(admin: User = Depends(require_admin), db: Session = Depends(get_db)):
+    users = db.query(User).filter(
+        User.is_active == False,
+        User.role.in_(["agent", "manager"]),
+    ).order_by(User.created_at.desc()).all()
+    return [
+        {
+            "id": u.id, "name": u.name, "email": u.email,
+            "role": u.role, "createdAt": u.created_at.isoformat() if u.created_at else None,
+        }
+        for u in users
+    ]
+
+
+@router.post("/approve-user/{user_id}")
+def approve_user(
+    user_id: int, data: ApproveUserRequest,
+    admin: User = Depends(require_admin), db: Session = Depends(get_db),
+):
+    user = db.query(User).filter(User.id == user_id).first()
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+    if user.is_active:
+        raise HTTPException(status_code=400, detail="User is already active")
+
+    manager = db.query(User).filter(
+        User.id == data.managerId, User.role == "manager", User.is_active == True,
+    ).first()
+    if not manager:
+        raise HTTPException(status_code=400, detail="Manager not found or inactive")
+
+    user.manager_id = data.managerId
+    user.is_active = True
+    db.commit()
+    db.refresh(user)
+    return {"ok": True, "message": f"User {user.name} approved and assigned to {manager.name}"}
+
+
+@router.post("/reset-user-password/{user_id}")
+def reset_user_password(
+    user_id: int, data: ResetUserPasswordRequest,
+    admin: User = Depends(require_admin), db: Session = Depends(get_db),
+):
+    user = db.query(User).filter(User.id == user_id).first()
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+    if len(data.newPassword) < 6:
+        raise HTTPException(status_code=400, detail="Password must be at least 6 characters")
+    user.password_hash = bcrypt.hashpw(data.newPassword.encode("utf-8"), bcrypt.gensalt()).decode("utf-8")
+    db.commit()
+    return {"ok": True, "message": f"Password for {user.name} has been reset"}
 
 
 # ─── Analytics ────────────────────────────────────────────

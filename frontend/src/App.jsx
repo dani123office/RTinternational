@@ -3,6 +3,8 @@ import { useAuthStore } from '@/store/authStore'
 import AppLayout from '@/components/layout/AppLayout'
 import Login from '@/pages/Login'
 import Register from '@/pages/Register'
+import ForgotPassword from '@/pages/ForgotPassword'
+import ResetPassword from '@/pages/ResetPassword'
 import Dashboard from '@/pages/Dashboard'
 import Callbacks from '@/pages/Callbacks'
 import AddCallback from '@/pages/AddCallback'
@@ -29,6 +31,11 @@ import ManagerAgentsList from '@/pages/manager/ManagerAgentsList'
 import AdminDashboard from '@/pages/admin/AdminDashboard'
 import ManagersPage from '@/pages/admin/ManagersPage'
 import AgentsPage from '@/pages/admin/AgentsPage'
+import PendingUsers from '@/pages/admin/PendingUsers'
+import AdminAgentDetail from '@/pages/admin/AdminAgentDetail'
+import AdminManagerDetail from '@/pages/admin/AdminManagerDetail'
+import AdminTransferDetail from '@/pages/admin/AdminTransferDetail'
+import AdminSaleDetail from '@/pages/admin/AdminSaleDetail'
 
 function ProtectedRoute({ children }) {
   const { token } = useAuthStore()
@@ -58,6 +65,8 @@ export default function App() {
     <Routes>
       <Route path="/login" element={<PublicRoute><Login /></PublicRoute>} />
       <Route path="/register" element={<PublicRoute><Register /></PublicRoute>} />
+      <Route path="/forgot-password" element={<PublicRoute><ForgotPassword /></PublicRoute>} />
+      <Route path="/reset-password" element={<PublicRoute><ResetPassword /></PublicRoute>} />
 
       <Route path="/" element={<ProtectedRoute><AppLayout /></ProtectedRoute>}>
         <Route index element={<RoleRoute allowedRoles={['agent']}><Dashboard /></RoleRoute>} />
@@ -92,7 +101,12 @@ export default function App() {
       <Route path="/admin" element={<RoleRoute allowedRoles={['admin']}><AppLayout /></RoleRoute>}>
         <Route index element={<AdminDashboard />} />
         <Route path="managers" element={<ManagersPage />} />
+        <Route path="managers/:id" element={<AdminManagerDetail />} />
+        <Route path="pending" element={<PendingUsers />} />
         <Route path="agents" element={<AgentsPage />} />
+        <Route path="agents/:id" element={<AdminAgentDetail />} />
+        <Route path="transfers/:id" element={<AdminTransferDetail />} />
+        <Route path="sales/:id" element={<AdminSaleDetail />} />
         <Route path="analytics" element={<AdminDashboard />} />
         <Route path="activity" element={<AdminDashboard />} />
       </Route>

@@ -17,6 +17,8 @@ class User(Base):
     commission_rate = Column(Float, nullable=False, default=0.00)
     is_active = Column(Boolean, default=True)
     last_login_at = Column(DateTime, nullable=True)
+    reset_token = Column(String(255), nullable=True, index=True)
+    reset_token_expiry = Column(DateTime, nullable=True)
     created_at = Column(DateTime, default=datetime.now)
     updated_at = Column(DateTime, default=datetime.now, onupdate=datetime.now)
 

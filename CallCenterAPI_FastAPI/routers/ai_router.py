@@ -11,8 +11,9 @@ from dotenv import load_dotenv
 
 from .auth import get_current_user
 from ..models import User
+from pathlib import Path
 
-load_dotenv()
+load_dotenv(dotenv_path=Path(__file__).resolve().parent.parent / ".env")
 
 # =========================================================
 # LOGGING

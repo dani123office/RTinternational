@@ -1,15 +1,19 @@
 import { useEffect, useState } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { useAdminStore } from '@/store/adminStore'
-import { UserCog, Plus, Ban, Trash2 } from 'lucide-react'
+import { UserCog, Plus, Ban, Trash2, KeyRound } from 'lucide-react'
 import { APP_STYLES } from '@/lib/styles'
 import DataTable from '@/components/shared/DataTable'
 import LoadingSpinner from '@/components/shared/LoadingSpinner'
 import EmptyState from '@/components/shared/EmptyState'
 import CreateManagerModal from '@/components/admin/CreateManagerModal'
+import ResetPasswordModal from '@/components/admin/ResetPasswordModal'
 
 export default function ManagersPage() {
-  const { managers, loadManagers, createManager, updateUser, deleteUser } = useAdminStore()
+  const navigate = useNavigate()
+  const { managers, loadManagers, createManager, updateUser, deleteUser, resetUserPassword } = useAdminStore()
   const [showCreate, setShowCreate] = useState(false)
+  const [showResetPwd, setShowResetPwd] = useState(null)
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
@@ -57,6 +61,9 @@ export default function ManagersPage() {
       header: 'Actions',
       cell: (row) => (
         <div className="flex gap-1 justify-end" onClick={(e) => e.stopPropagation()}>
+          <button onClick={() => setShowResetPwd(row)} title="Reset password" className="p-1.5 rounded-lg border-none bg-transparent text-amber-500 cursor-pointer hover:bg-amber-50 transition-colors">
+            <KeyRound size={14} />
+          </button>
           <button onClick={() => handleToggleActive(row)} title="Toggle active" className="p-1.5 rounded-lg border-none bg-transparent text-slate-500 cursor-pointer hover:bg-slate-100 transition-colors">
             <Ban size={14} />
           </button>
@@ -115,6 +122,7 @@ export default function ManagersPage() {
                   data={managers}
                   searchKey="name"
                   pageSize={10}
+                  onRowClick={(row) => navigate(`/admin/managers/${row.id}`)}
                 />
               )}
             </div>
@@ -124,6 +132,12 @@ export default function ManagersPage() {
             isOpen={showCreate}
             onClose={() => setShowCreate(false)}
             onSave={handleCreate}
+          />
+          <ResetPasswordModal
+            isOpen={!!showResetPwd}
+            onClose={() => setShowResetPwd(null)}
+            onSave={resetUserPassword}
+            user={showResetPwd}
           />
         </div>
       </div>

@@ -20,7 +20,16 @@ export default function Login() {
     setLoading(true)
     const success = await login(email, password, rememberMe)
     if (success) navigate('/')
-    else setError(useAuthStore.getState().error || 'Invalid email or password. Please try again.')
+    else {
+      const errMsg = useAuthStore.getState().error || 'Invalid email or password. Please try again.'
+      if (errMsg.toLowerCase().includes('inactive')) {
+        setError('Your account is pending admin approval. Please wait for an admin to activate your account.')
+      } else if (errMsg.toLowerCase().includes('manager')) {
+        setError('Your account is not fully set up yet. Please wait for an admin to assign you a manager.')
+      } else {
+        setError(errMsg)
+      }
+    }
     setLoading(false)
   }
 

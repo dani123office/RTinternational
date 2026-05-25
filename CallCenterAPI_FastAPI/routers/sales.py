@@ -79,9 +79,18 @@ def get_sales(
 
 @router.get("/{id}")
 def get_sale(id: int, current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
-    s = db.query(Sale).filter(Sale.id == id, Sale.employee_id == current_user.id).first()
+    s = db.query(Sale).filter(Sale.id == id).first()
     if not s:
         raise HTTPException(status_code=404, detail="Sale not found")
+    is_auth = (s.employee_id == current_user.id)
+    if not is_auth and current_user.role == "manager":
+        creator = db.query(User).filter(User.id == s.employee_id).first()
+        if creator and creator.manager_id == current_user.id:
+            is_auth = True
+    if not is_auth and current_user.role == "admin":
+        is_auth = True
+    if not is_auth:
+        raise HTTPException(status_code=403, detail="Not authorized to access this sale")
     customer = db.query(Customer).filter(Customer.id == s.customer_id).first()
     return _sale_out(s, customer)
 

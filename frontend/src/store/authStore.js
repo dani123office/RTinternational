@@ -55,13 +55,8 @@ export const useAuthStore = create((set, get) => ({
   register: async (name, email, password, role = 'agent', rememberMe = true) => {
     set({ isLoading: true, error: null })
     try {
-      const res = await api.post(endpoints.auth.register, { name, email, password, role })
-      const { token, userId, name: userName, role: userRole, managerId } = res.data
-      const user = { id: userId, name: userName, email, role: userRole, managerId }
-      storage.set('token', token, rememberMe)
-      storage.set('user', JSON.stringify(user), rememberMe)
-      localStorage.setItem('rememberMe', rememberMe ? 'true' : 'false')
-      set({ token, user, rememberMe, isLoading: false })
+      await api.post(endpoints.auth.register, { name, email, password, role })
+      set({ isLoading: false })
       return true
     } catch (err) {
       const isNetwork = !err.response || err.code === 'ERR_NETWORK'
