@@ -174,7 +174,7 @@ async def generic_exception_handler(request, exc):
     traceback.print_exc(file=sys.stderr)
     return JSONResponse(
         status_code=500,
-        content={"detail": f"{type(exc).__name__}: {exc}"}
+        content={"detail": "Something went wrong. Please try again later."}
     )
 
 

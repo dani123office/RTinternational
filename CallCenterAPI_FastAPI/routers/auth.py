@@ -58,7 +58,7 @@ def get_current_user(
     user = db.query(User).filter(User.id == user_id).first()
     if not user:
         raise HTTPException(status_code=401, detail="User not found")
-    if user.is_active != 1:
+    if user.is_active != True:
         raise HTTPException(status_code=401, detail="Account is inactive")
     return user
 
@@ -91,7 +91,7 @@ def verify_manager_agent(manager: User, agent_id: int, db: Session) -> User:
     agent = db.query(User).filter(
         User.id == agent_id,
         User.role == "agent",
-        User.is_active == 1,
+        User.is_active == True,
     ).first()
     if not agent:
         raise HTTPException(status_code=404, detail="Agent not found or not assigned to you")
@@ -105,7 +105,7 @@ def login(request: LoginRequest, db: Session = Depends(get_db)):
     user = db.query(User).filter(User.email == request.email).first()
     if not user:
         raise HTTPException(status_code=401, detail="Invalid credentials")
-    if user.is_active != 1:
+    if user.is_active != True:
         raise HTTPException(status_code=401, detail="Account is inactive")
 
     if not bcrypt.checkpw(request.password.encode("utf-8"), user.password_hash.encode("utf-8")):
@@ -143,7 +143,7 @@ def refresh_token(db: Session = Depends(get_db), authorization: str = Header(Non
         raise HTTPException(status_code=401, detail="Invalid token")
 
     user = db.query(User).filter(User.id == user_id).first()
-    if not user or user.is_active != 1:
+    if not user or user.is_active != True:
         raise HTTPException(status_code=401, detail="User not found or inactive")
 
     new_token = _create_token(user.id)

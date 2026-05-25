@@ -40,7 +40,7 @@ router = APIRouter(prefix="/api/manager", tags=["manager"])
 def get_agent_ids(manager: User, db: Session) -> list[int]:
     query = db.query(User).filter(
         User.role == "agent",
-        User.is_active == 1,
+        User.is_active == True,
     )
     if manager.role != "admin":
         query = query.filter(User.manager_id == manager.id)
@@ -149,7 +149,7 @@ def get_agents(
     agents = db.query(User).filter(
         User.manager_id == manager.id,
         User.role == "agent",
-        User.is_active == 1,
+        User.is_active == True,
     ).all()
     return [
         AgentOut(

@@ -60,7 +60,7 @@ def create_agent(data: CreateAgentRequest, admin: User = Depends(require_admin),
         if existing:
             raise HTTPException(status_code=400, detail="Email already exists")
         manager = db.query(User).filter(
-            User.id == data.managerId, User.role == "manager", User.is_active == 1,
+            User.id == data.managerId, User.role == "manager", User.is_active == True,
         ).first()
         if not manager:
             raise HTTPException(status_code=400, detail="Manager not found or inactive")
@@ -104,7 +104,7 @@ def get_managers(
     admin: User = Depends(require_admin),
     db: Session = Depends(get_db),
 ):
-    managers = db.query(User).filter(User.role == "manager", User.is_active == 1).order_by(User.name).all()
+    managers = db.query(User).filter(User.role == "manager", User.is_active == True).order_by(User.name).all()
     result = []
     for m in managers:
         agent_ids = [a.id for a in db.query(User).filter(User.manager_id == m.id).all()]
@@ -131,7 +131,7 @@ def get_agents(
 ):
     query = db.query(User).filter(User.role == "agent")
     if not showAll:
-        query = query.filter(User.is_active == 1)
+        query = query.filter(User.is_active == True)
     agents = query.order_by(User.name).all()
     manager_map = {}
     for a in agents:
@@ -176,7 +176,7 @@ def update_user(
             if user.role != "agent":
                 raise HTTPException(status_code=400, detail="Only agents can be assigned a manager")
             mgr = db.query(User).filter(
-                User.id == data.managerId, User.role == "manager", User.is_active == 1,
+                User.id == data.managerId, User.role == "manager", User.is_active == True,
             ).first()
             if not mgr:
                 raise HTTPException(status_code=400, detail="Manager not found or inactive")
@@ -227,7 +227,7 @@ def assign_agent(data: AssignAgentRequest, admin: User = Depends(require_admin),
         if not agent:
             raise HTTPException(status_code=404, detail="Agent not found")
         manager = db.query(User).filter(
-            User.id == data.managerId, User.role == "manager", User.is_active == 1,
+            User.id == data.managerId, User.role == "manager", User.is_active == True,
         ).first()
         if not manager:
             raise HTTPException(status_code=400, detail="Manager not found or inactive")
@@ -247,8 +247,8 @@ def assign_agent(data: AssignAgentRequest, admin: User = Depends(require_admin),
 
 @router.get("/overall-stats")
 def overall_stats(admin: User = Depends(require_admin), db: Session = Depends(get_db)):
-    total_agents = db.query(func.count(User.id)).filter(User.role == "agent", User.is_active == 1).scalar() or 0
-    total_managers = db.query(func.count(User.id)).filter(User.role == "manager", User.is_active == 1).scalar() or 0
+    total_agents = db.query(func.count(User.id)).filter(User.role == "agent", User.is_active == True).scalar() or 0
+    total_managers = db.query(func.count(User.id)).filter(User.role == "manager", User.is_active == True).scalar() or 0
     total_cb = db.query(func.count(CallBack.id)).filter(CallBack.scheduled_datetime.isnot(None)).scalar() or 0
     total_tr = db.query(func.count(Transfer.id)).scalar() or 0
     total_sa = db.query(func.count(Sale.id)).scalar() or 0
@@ -266,9 +266,9 @@ def overall_stats(admin: User = Depends(require_admin), db: Session = Depends(ge
 @router.get("/performance-overview")
 def performance_overview(admin: User = Depends(require_admin), db: Session = Depends(get_db)):
     managers_data = []
-    managers = db.query(User).filter(User.role == "manager", User.is_active == 1).all()
+    managers = db.query(User).filter(User.role == "manager", User.is_active == True).all()
     for m in managers:
-        a_ids = [a.id for a in db.query(User).filter(User.manager_id == m.id, User.is_active == 1).all()]
+        a_ids = [a.id for a in db.query(User).filter(User.manager_id == m.id, User.is_active == True).all()]
         if a_ids:
             cb = db.query(func.count(CallBack.id)).filter(CallBack.employee_id.in_(a_ids), CallBack.scheduled_datetime.isnot(None)).scalar() or 0
             tr = db.query(func.count(Transfer.id)).filter(Transfer.employee_id.in_(a_ids)).scalar() or 0
@@ -282,8 +282,8 @@ def performance_overview(admin: User = Depends(require_admin), db: Session = Dep
         ))
 
     agents_data = []
-    agents = db.query(User).filter(User.role == "agent", User.is_active == 1).all()
-    mgr_names = {m.id: m.name for m in db.query(User).filter(User.role == "manager", User.is_active == 1).all()}
+    agents = db.query(User).filter(User.role == "agent", User.is_active == True).all()
+    mgr_names = {m.id: m.name for m in db.query(User).filter(User.role == "manager", User.is_active == True).all()}
     for a in agents:
         cb = db.query(func.count(CallBack.id)).filter(CallBack.employee_id == a.id, CallBack.scheduled_datetime.isnot(None)).scalar() or 0
         tr = db.query(func.count(Transfer.id)).filter(Transfer.employee_id == a.id).scalar() or 0
