@@ -1,0 +1,324 @@
+[
+  {
+      "id": "TC001",
+      "title": "User Login Flow",
+      "description": "Verify that a user can successfully log in with valid email and password credentials",
+      "category": "authentication",
+      "priority": "High",
+      "steps": [
+        "Navigate to http://localhost:5173/login",
+        "Enter valid email in the email field",
+        "Enter valid password in the password field",
+        "Click the Login button",
+        "Verify redirection to dashboard page",
+        "Verify JWT token is stored in session"
+      ],
+      "expected_result": "User is authenticated and redirected to the dashboard with a valid JWT token"
+    },
+    {
+      "id": "TC002",
+      "title": "User Registration Flow",
+      "description": "Verify that a new user can successfully register with email, password, and role selection",
+      "category": "authentication",
+      "priority": "High",
+      "steps": [
+        "Navigate to http://localhost:5173/register",
+        "Enter a unique email address",
+        "Enter a password",
+        "Select user role (Agent, Manager, or Admin)",
+        "Click Register button",
+        "Verify account creation confirmation message",
+        "Verify automatic redirect to login or dashboard"
+      ],
+      "expected_result": "New user account is created successfully and user can log in"
+    },
+    {
+      "id": "TC003",
+      "title": "Invalid Login Credentials Handling",
+      "description": "Verify that the system displays an error message when invalid credentials are provided",
+      "category": "authentication",
+      "priority": "High",
+      "steps": [
+        "Navigate to http://localhost:5173/login",
+        "Enter an invalid email",
+        "Enter an incorrect password",
+        "Click Login button",
+        "Observe error message displayed"
+      ],
+      "expected_result": "Authentication error message is displayed and user remains on login page"
+    },
+    {
+      "id": "TC004",
+      "title": "Agent Dashboard Access",
+      "description": "Verify that authenticated agents can view their dashboard with personal metrics",
+      "category": "dashboard",
+      "priority": "High",
+      "steps": [
+        "Login as an Agent user",
+        "Verify dashboard is displayed",
+        "Verify dashboard shows callbacks, transfers, and sales metrics",
+        "Verify personal dashboard items are visible"
+      ],
+      "expected_result": "Agent dashboard loads successfully with relevant data"
+    },
+    {
+      "id": "TC005",
+      "title": "Create Customer Record",
+      "description": "Verify that agents can create a new customer record with required fields",
+      "category": "customer_management",
+      "priority": "High",
+      "steps": [
+        "Login as an Agent",
+        "Navigate to /customers page",
+        "Click 'Add Customer' or similar button",
+        "Enter customer business name",
+        "Enter contact details (phone, email)",
+        "Enter site address and postcode",
+        "Select utility type (electricity or gas)",
+        "Click Save/Create button",
+        "Verify customer appears in customer list"
+      ],
+      "expected_result": "New customer record is created and visible in the customer list"
+    },
+    {
+      "id": "TC006",
+      "title": "Add Electricity Meter to Customer",
+      "description": "Verify that agents can add electricity meter details to a customer profile",
+      "category": "utility_management",
+      "priority": "High",
+      "steps": [
+        "Login as an Agent",
+        "Navigate to a customer detail page",
+        "Find and click 'Add Electricity Meter' button",
+        "Enter MPAN Core (supply number)",
+        "Enter meter serial number",
+        "Enter account number",
+        "Enter current supplier name",
+        "Enter unit rates (Day/Night/Evening)",
+        "Enter standing charge and monthly bill",
+        "Enter contract end date",
+        "Click Save button"
+      ],
+      "expected_result": "Electricity meter is added to customer profile and displayed in meter list"
+    },
+    {
+      "id": "TC007",
+      "title": "AI Extraction from Call Notes",
+      "description": "Verify that agents can use AI to extract utility information from unstructured call notes",
+      "category": "ai_integration",
+      "priority": "High",
+      "steps": [
+        "Login as an Agent",
+        "Navigate to AI Form Filler or similar component",
+        "Paste unstructured call notes into text area",
+        "Click 'Extract' or 'Parse' button",
+        "Wait for AI to process the request",
+        "Verify structured data is extracted and displayed",
+        "Verify extraction shows meter details, rates, and supplier information"
+      ],
+      "expected_result": "AI successfully extracts utility information from call notes"
+    },
+    {
+      "id": "TC008",
+      "title": "Schedule Callback",
+      "description": "Verify that agents can schedule callbacks for customers with pricing offers",
+      "category": "callback_management",
+      "priority": "High",
+      "steps": [
+        "Login as an Agent",
+        "Navigate to /callbacks or /callbacks/add",
+        "Select or enter customer name",
+        "Enter callback date and time",
+        "Add pricing offer (contract length, supplier, rates)",
+        "Save callback",
+        "Verify callback appears in callbacks list with pending status"
+      ],
+      "expected_result": "Callback is scheduled successfully and visible in callbacks list"
+    },
+    {
+      "id": "TC009",
+      "title": "View Callback Details",
+      "description": "Verify that agents can view detailed information about a scheduled callback",
+      "category": "callback_management",
+      "priority": "Medium",
+      "steps": [
+        "Login as an Agent with existing callbacks",
+        "Navigate to /callbacks",
+        "Click on a callback from the list",
+        "Verify callback detail page loads",
+        "Verify all callback information is displayed (customer, date, pricing offers)"
+      ],
+      "expected_result": "Callback detail page displays all relevant information"
+    },
+    {
+      "id": "TC010",
+      "title": "Create Transfer Request",
+      "description": "Verify that agents can create transfer requests for utility accounts",
+      "category": "transfer_management",
+      "priority": "High",
+      "steps": [
+        "Login as an Agent",
+        "Navigate to /transfers/add",
+        "Select customer account",
+        "Enter transfer details (new supplier, contract terms)",
+        "Enter banking information (Sort Code, Account Number)",
+        "Enter payment method",
+        "Click Submit button",
+        "Verify transfer request appears in transfers list"
+      ],
+      "expected_result": "Transfer request is created and visible in transfers list"
+    },
+    {
+      "id": "TC011",
+      "title": "Manager Team Dashboard Access",
+      "description": "Verify that managers can view their team dashboard with agent metrics",
+      "category": "manager_workflows",
+      "priority": "High",
+      "steps": [
+        "Login as a Manager",
+        "Navigate to /manager or dashboard",
+        "Verify manager dashboard displays team metrics",
+        "Verify manager can see agent list and performance data",
+        "Verify callbacks/transfers/sales overview is visible"
+      ],
+      "expected_result": "Manager dashboard loads with team-level metrics and overview"
+    },
+    {
+      "id": "TC012",
+      "title": "Manager View Agent List",
+      "description": "Verify that managers can view and manage their team agents",
+      "category": "manager_workflows",
+      "priority": "High",
+      "steps": [
+        "Login as a Manager",
+        "Navigate to /manager/agents",
+        "Verify list of agents is displayed",
+        "Verify agent performance metrics are shown",
+        "Verify manager can click on an agent to view details"
+      ],
+      "expected_result": "Agent list page displays all team agents with their metrics"
+    },
+    {
+      "id": "TC013",
+      "title": "Manager View Team Callbacks",
+      "description": "Verify that managers can monitor team callbacks",
+      "category": "manager_workflows",
+      "priority": "High",
+      "steps": [
+        "Login as a Manager",
+        "Navigate to /manager/callbacks",
+        "Verify list of team callbacks is displayed",
+        "Verify callbacks show agent name, customer, and status",
+        "Verify manager can click callback to view details"
+      ],
+      "expected_result": "Team callbacks list displays all callbacks with agent attribution"
+    },
+    {
+      "id": "TC014",
+      "title": "Admin Dashboard Access",
+      "description": "Verify that admin users can access the admin dashboard",
+      "category": "admin_workflows",
+      "priority": "High",
+      "steps": [
+        "Login as an Admin",
+        "Navigate to /admin",
+        "Verify admin dashboard loads",
+        "Verify platform-wide analytics and metrics are displayed",
+        "Verify admin navigation menu is visible"
+      ],
+      "expected_result": "Admin dashboard loads successfully with platform metrics"
+    },
+    {
+      "id": "TC015",
+      "title": "Admin Manager Management",
+      "description": "Verify that admins can manage manager accounts",
+      "category": "admin_workflows",
+      "priority": "High",
+      "steps": [
+        "Login as an Admin",
+        "Navigate to /admin/managers",
+        "Verify list of managers is displayed",
+        "Verify admin can create/edit/disable manager accounts"
+      ],
+      "expected_result": "Admin can manage manager accounts successfully"
+    },
+    {
+      "id": "TC016",
+      "title": "Profile Settings Update",
+      "description": "Verify that users can update their profile settings",
+      "category": "user_management",
+      "priority": "Medium",
+      "steps": [
+        "Login as any user role",
+        "Navigate to /profile",
+        "Update profile information (name, email, etc.)",
+        "Click Save button",
+        "Verify profile changes are saved",
+        "Verify success message is displayed"
+      ],
+      "expected_result": "Profile settings are updated successfully"
+    },
+    {
+      "id": "TC017",
+      "title": "Sales Application Submission",
+      "description": "Verify that agents can submit finalized sales applications",
+      "category": "sales_management",
+      "priority": "High",
+      "steps": [
+        "Login as an Agent",
+        "Navigate to /sales/apply",
+        "Enter customer details",
+        "Enter contract terms and pricing",
+        "Enter banking information (Sort Code, Account Number)",
+        "Verify and submit application",
+        "Verify success message and sale appears in sales list"
+      ],
+      "expected_result": "Sales application is submitted successfully"
+    },
+    {
+      "id": "TC018",
+      "title": "View Sales List",
+      "description": "Verify that users can view their sales applications",
+      "category": "sales_management",
+      "priority": "Medium",
+      "steps": [
+        "Login as an Agent",
+        "Navigate to /sales",
+        "Verify list of sales applications is displayed",
+        "Verify sales show customer, status, and submission date",
+        "Verify user can click on a sale to view details"
+      ],
+      "expected_result": "Sales list displays all submitted applications"
+    },
+    {
+      "id": "TC019",
+      "title": "Unauthorized Access Prevention",
+      "description": "Verify that unauthorized users cannot access protected routes",
+      "category": "security",
+      "priority": "High",
+      "steps": [
+        "Without logging in, navigate directly to /dashboard",
+        "Verify redirect to login page",
+        "Without logging in, navigate to /manager",
+        "Verify redirect to login page",
+        "Without logging in, navigate to /admin",
+        "Verify redirect to login page"
+      ],
+      "expected_result": "All protected routes redirect to login page for unauthorized users"
+    },
+    {
+      "id": "TC020",
+      "title": "Role-Based Access Control",
+      "description": "Verify that users can only access routes appropriate for their role",
+      "category": "security",
+      "priority": "High",
+      "steps": [
+        "Login as an Agent",
+        "Verify Agent cannot access /manager routes",
+        "Verify Agent cannot access /admin routes",
+        "Logout and login as a Manager",
+        "Verify Manager cannot access /admin routes",
+        "Verify Manager has access to /manager routes"
+      ],
+      "expected_result": "Role-based access control is properly enforced"
+    }  ]

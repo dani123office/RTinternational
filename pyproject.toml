@@ -1,0 +1,20 @@
+[project]
+name = "rt-international"
+version = "1.0.0"
+requires-python = ">=3.12,<3.13"
+dependencies = [
+    "fastapi==0.115.6",
+    "uvicorn[standard]==0.34.0",
+    "sqlalchemy==2.0.36",
+    "pydantic==2.10.3",
+    "python-multipart==0.0.19",
+    "bcrypt==4.2.1",
+    "pyjwt==2.10.1",
+    "psycopg2-binary==2.9.10",
+    "slowapi==0.1.9",
+    "cohere==5.13.4",
+    "python-dotenv==1.1.0",
+]
+
+[tool.vercel]
+entrypoint = "CallCenterAPI_FastAPI.main:app"

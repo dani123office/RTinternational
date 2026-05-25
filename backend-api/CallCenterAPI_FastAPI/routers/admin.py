@@ -1,0 +1,414 @@
+import bcrypt
+from datetime import datetime
+from fastapi import APIRouter, Depends, HTTPException, Query
+from sqlalchemy.orm import Session
+from sqlalchemy import func
+from database import get_db
+from models import User, Customer, CallBack, Transfer, Sale, ActivityLog
+from routers.auth import require_admin
+from schemas import (
+    CreateManagerRequest, CreateAgentRequest, AssignAgentRequest,
+    UpdateUserRequest, OverallStats, ManagerKpi, AgentKpi,
+    AdminPerformanceOverview, BusinessFeedItem,
+)
+from routers.callbacks import _build_callback_out
+from routers.transfers import _transfer_out
+from routers.sales import _sale_out
+
+router = APIRouter(prefix="/api/admin", tags=["admin"])
+
+
+def _safe_div(a: int, b: int) -> float:
+    if b == 0:
+        return 0.0
+    return round((a / b) * 100, 1)
+
+
+# ─── User Management ─────────────────────────────────────
+
+
+@router.post("/create-manager", status_code=201)
+def create_manager(data: CreateManagerRequest, admin: User = Depends(require_admin), db: Session = Depends(get_db)):
+    try:
+        existing = db.query(User).filter(User.email == data.email).first()
+        if existing:
+            raise HTTPException(status_code=400, detail="Email already exists")
+        hashed = bcrypt.hashpw(data.password.encode("utf-8"), bcrypt.gensalt()).decode("utf-8")
+        user = User(
+            name=data.name,
+            email=data.email,
+            password_hash=hashed,
+            role="manager",
+            is_active=1,
+        )
+        db.add(user)
+        db.commit()
+        db.refresh(user)
+        return {"id": user.id, "name": user.name, "email": user.email, "role": user.role}
+    except HTTPException:
+        db.rollback()
+        raise
+    except Exception as e:
+        db.rollback()
+        raise HTTPException(status_code=400, detail=f"Failed to create manager: {str(e)}")
+
+
+@router.post("/create-agent", status_code=201)
+def create_agent(data: CreateAgentRequest, admin: User = Depends(require_admin), db: Session = Depends(get_db)):
+    try:
+        existing = db.query(User).filter(User.email == data.email).first()
+        if existing:
+            raise HTTPException(status_code=400, detail="Email already exists")
+        manager = db.query(User).filter(
+            User.id == data.managerId, User.role == "manager", User.is_active == 1,
+        ).first()
+        if not manager:
+            raise HTTPException(status_code=400, detail="Manager not found or inactive")
+        hashed = bcrypt.hashpw(data.password.encode("utf-8"), bcrypt.gensalt()).decode("utf-8")
+        user = User(
+            name=data.name,
+            email=data.email,
+            password_hash=hashed,
+            role="agent",
+            manager_id=data.managerId,
+            is_active=1,
+        )
+        db.add(user)
+        db.commit()
+        db.refresh(user)
+        return {"id": user.id, "name": user.name, "email": user.email, "role": user.role, "managerId": user.manager_id}
+    except HTTPException:
+        db.rollback()
+        raise
+    except Exception as e:
+        db.rollback()
+        raise HTTPException(status_code=400, detail=f"Failed to create agent: {str(e)}")
+
+
+@router.get("/users")
+def get_all_users(admin: User = Depends(require_admin), db: Session = Depends(get_db)):
+    users = db.query(User).order_by(User.role, User.name).all()
+    return [
+        {
+            "id": u.id, "name": u.name, "email": u.email,
+            "role": u.role, "isActive": 1 if u.is_active else 0,
+            "managerId": u.manager_id,
+            "createdAt": u.created_at.isoformat() if u.created_at else None,
+        }
+        for u in users
+    ]
+
+
+@router.get("/managers")
+def get_managers(
+    admin: User = Depends(require_admin),
+    db: Session = Depends(get_db),
+):
+    managers = db.query(User).filter(User.role == "manager", User.is_active == 1).order_by(User.name).all()
+    result = []
+    for m in managers:
+        agent_ids = [a.id for a in db.query(User).filter(User.manager_id == m.id).all()]
+        cb = db.query(func.count(CallBack.id)).filter(CallBack.employee_id.in_(agent_ids) if agent_ids else False).scalar() or 0
+        tr = db.query(func.count(Transfer.id)).filter(Transfer.employee_id.in_(agent_ids) if agent_ids else False).scalar() or 0
+        sa = db.query(func.count(Sale.id)).filter(Sale.employee_id.in_(agent_ids) if agent_ids else False).scalar() or 0
+        total_opps = tr
+        result.append(ManagerKpi(
+            id=m.id, name=m.name, teamSize=len(agent_ids),
+            callbacks=cb, transfers=tr, sales=sa,
+            conversionRate=_safe_div(sa, total_opps),
+        ))
+    return result
+
+
+@router.get("/agents")
+def get_agents(
+    admin: User = Depends(require_admin),
+    db: Session = Depends(get_db),
+    showAll: bool = False,
+):
+    query = db.query(User).filter(User.role == "agent")
+    if not showAll:
+        query = query.filter(User.is_active == 1)
+    agents = query.order_by(User.name).all()
+    manager_map = {}
+    for a in agents:
+        if a.manager_id not in manager_map:
+            mgr = db.query(User).filter(User.id == a.manager_id).first()
+            manager_map[a.manager_id] = mgr.name if mgr else "Unassigned"
+    result = []
+    for a in agents:
+        cb = db.query(func.count(CallBack.id)).filter(CallBack.employee_id == a.id).scalar() or 0
+        tr = db.query(func.count(Transfer.id)).filter(Transfer.employee_id == a.id).scalar() or 0
+        sa = db.query(func.count(Sale.id)).filter(Sale.employee_id == a.id).scalar() or 0
+        total_opps = tr
+        result.append(AgentKpi(
+            id=a.id, name=a.name,
+            managerName=manager_map.get(a.manager_id, "Unassigned"),
+            callbacks=cb, transfers=tr, sales=sa,
+            conversionRate=_safe_div(sa, total_opps),
+            isActive=1 if a.is_active else 0,
+        ))
+    return result
+
+
+@router.put("/user/{user_id}")
+def update_user(
+    user_id: int, data: UpdateUserRequest,
+    admin: User = Depends(require_admin), db: Session = Depends(get_db),
+):
+    try:
+        user = db.query(User).filter(User.id == user_id).first()
+        if not user:
+            raise HTTPException(status_code=404, detail="User not found")
+        if data.name is not None:
+            user.name = data.name
+        if data.email is not None:
+            existing = db.query(User).filter(User.email == data.email, User.id != user_id).first()
+            if existing:
+                raise HTTPException(status_code=400, detail="Email already in use")
+            user.email = data.email
+        if data.isActive is not None:
+            user.is_active = data.isActive
+        if data.managerId is not None:
+            if user.role != "agent":
+                raise HTTPException(status_code=400, detail="Only agents can be assigned a manager")
+            mgr = db.query(User).filter(
+                User.id == data.managerId, User.role == "manager", User.is_active == 1,
+            ).first()
+            if not mgr:
+                raise HTTPException(status_code=400, detail="Manager not found or inactive")
+            user.manager_id = data.managerId
+        db.commit()
+        db.refresh(user)
+        return {"id": user.id, "name": user.name, "email": user.email, "role": user.role, "isActive": 1 if user.is_active else 0, "managerId": user.manager_id}
+    except HTTPException:
+        db.rollback()
+        raise
+    except Exception as e:
+        db.rollback()
+        raise HTTPException(status_code=400, detail=f"Failed to update user: {str(e)}")
+
+
+@router.delete("/user/{user_id}")
+def delete_user(user_id: int, admin: User = Depends(require_admin), db: Session = Depends(get_db)):
+    try:
+        user = db.query(User).filter(User.id == user_id).first()
+        if not user:
+            raise HTTPException(status_code=404, detail="User not found")
+        if user.role == "admin":
+            raise HTTPException(status_code=400, detail="Cannot delete admin account")
+        if user.role == "manager":
+            agents = db.query(User).filter(User.manager_id == user.id).count()
+            if agents > 0:
+                raise HTTPException(status_code=400, detail=f"Cannot delete manager with {agents} agent(s). Reassign agents first.")
+        name = user.name
+        db.query(CallBack).filter(CallBack.employee_id == user.id).delete()
+        db.query(Transfer).filter(Transfer.employee_id == user.id).delete()
+        db.query(Sale).filter(Sale.employee_id == user.id).delete()
+        db.query(Customer).filter(Customer.created_by == user.id).delete()
+        db.delete(user)
+        db.commit()
+        return {"ok": True, "message": f"User {name} and all associated records permanently deleted"}
+    except HTTPException:
+        db.rollback()
+        raise
+    except Exception as e:
+        db.rollback()
+        raise HTTPException(status_code=400, detail=f"Failed to delete user: {str(e)}")
+
+
+@router.patch("/assign-agent")
+def assign_agent(data: AssignAgentRequest, admin: User = Depends(require_admin), db: Session = Depends(get_db)):
+    try:
+        agent = db.query(User).filter(User.id == data.agentId, User.role == "agent").first()
+        if not agent:
+            raise HTTPException(status_code=404, detail="Agent not found")
+        manager = db.query(User).filter(
+            User.id == data.managerId, User.role == "manager", User.is_active == 1,
+        ).first()
+        if not manager:
+            raise HTTPException(status_code=400, detail="Manager not found or inactive")
+        agent.manager_id = data.managerId
+        db.commit()
+        return {"ok": True, "agentId": agent.id, "managerId": manager.id}
+    except HTTPException:
+        db.rollback()
+        raise
+    except Exception as e:
+        db.rollback()
+        raise HTTPException(status_code=400, detail=f"Failed to assign agent: {str(e)}")
+
+
+# ─── Analytics ────────────────────────────────────────────
+
+
+@router.get("/overall-stats")
+def overall_stats(admin: User = Depends(require_admin), db: Session = Depends(get_db)):
+    total_agents = db.query(func.count(User.id)).filter(User.role == "agent", User.is_active == 1).scalar() or 0
+    total_managers = db.query(func.count(User.id)).filter(User.role == "manager", User.is_active == 1).scalar() or 0
+    total_cb = db.query(func.count(CallBack.id)).filter(CallBack.scheduled_datetime.isnot(None)).scalar() or 0
+    total_tr = db.query(func.count(Transfer.id)).scalar() or 0
+    total_sa = db.query(func.count(Sale.id)).scalar() or 0
+    total_opps = total_tr
+    return OverallStats(
+        totalAgents=total_agents,
+        totalManagers=total_managers,
+        totalCallbacks=total_cb,
+        totalTransfers=total_tr,
+        totalSales=total_sa,
+        conversionRate=_safe_div(total_sa, total_opps),
+    )
+
+
+@router.get("/performance-overview")
+def performance_overview(admin: User = Depends(require_admin), db: Session = Depends(get_db)):
+    managers_data = []
+    managers = db.query(User).filter(User.role == "manager", User.is_active == 1).all()
+    for m in managers:
+        a_ids = [a.id for a in db.query(User).filter(User.manager_id == m.id, User.is_active == 1).all()]
+        cb = db.query(func.count(CallBack.id)).filter(CallBack.employee_id.in_(a_ids) if a_ids else False, CallBack.scheduled_datetime.isnot(None)).scalar() or 0
+        tr = db.query(func.count(Transfer.id)).filter(Transfer.employee_id.in_(a_ids) if a_ids else False).scalar() or 0
+        sa = db.query(func.count(Sale.id)).filter(Sale.employee_id.in_(a_ids) if a_ids else False).scalar() or 0
+        managers_data.append(ManagerKpi(
+            id=m.id, name=m.name, teamSize=len(a_ids),
+            callbacks=cb, transfers=tr, sales=sa,
+            conversionRate=_safe_div(sa, tr),
+        ))
+
+    agents_data = []
+    agents = db.query(User).filter(User.role == "agent", User.is_active == 1).all()
+    mgr_names = {m.id: m.name for m in db.query(User).filter(User.role == "manager", User.is_active == 1).all()}
+    for a in agents:
+        cb = db.query(func.count(CallBack.id)).filter(CallBack.employee_id == a.id, CallBack.scheduled_datetime.isnot(None)).scalar() or 0
+        tr = db.query(func.count(Transfer.id)).filter(Transfer.employee_id == a.id).scalar() or 0
+        sa = db.query(func.count(Sale.id)).filter(Sale.employee_id == a.id).scalar() or 0
+        agents_data.append(AgentKpi(
+            id=a.id, name=a.name,
+            managerName=mgr_names.get(a.manager_id, "Unassigned"),
+            callbacks=cb, transfers=tr, sales=sa,
+            conversionRate=_safe_div(sa, tr),
+            isActive=1 if a.is_active else 0,
+        ))
+
+    agents_data.sort(key=lambda x: x.conversionRate, reverse=True)
+    top_agents = agents_data[:5]
+    bottom_agents = list(reversed(agents_data[-5:])) if len(agents_data) > 5 else list(reversed(agents_data))
+
+    total_cb = sum(a.callbacks for a in agents_data)
+    total_tr = sum(a.transfers for a in agents_data)
+    total_sa = sum(a.sales for a in agents_data)
+
+    return AdminPerformanceOverview(
+        topManagers=sorted(managers_data, key=lambda x: x.conversionRate, reverse=True),
+        topAgents=top_agents,
+        bottomAgents=bottom_agents,
+        totalCallbacks=total_cb,
+        totalTransfers=total_tr,
+        totalSales=total_sa,
+        conversionRate=_safe_div(total_sa, total_tr),
+    )
+
+
+@router.get("/business-feed")
+def business_feed(admin: User = Depends(require_admin), db: Session = Depends(get_db)):
+    user_map = {u.id: u.name for u in db.query(User).all()}
+    events = []
+
+    callbacks = db.query(CallBack).order_by(CallBack.created_at.desc()).limit(30).all()
+    for cb in callbacks:
+        events.append(BusinessFeedItem(
+            type="callback", action="created",
+            agentName=user_map.get(cb.employee_id, "Unknown"),
+            description="created a callback",
+            timestamp=cb.created_at.isoformat() if cb.created_at else None,
+            id=cb.id,
+        ))
+
+    transfers = db.query(Transfer).order_by(Transfer.created_at.desc()).limit(30).all()
+    for t in transfers:
+        events.append(BusinessFeedItem(
+            type="transfer", action="created",
+            agentName=user_map.get(t.employee_id, "Unknown"),
+            description="created a transfer",
+            timestamp=t.created_at.isoformat() if t.created_at else None,
+            id=t.id,
+        ))
+
+    sales = db.query(Sale).order_by(Sale.created_at.desc()).limit(30).all()
+    for s in sales:
+        events.append(BusinessFeedItem(
+            type="sale", action="closed",
+            agentName=user_map.get(s.employee_id, "Unknown"),
+            description="closed a sale",
+            timestamp=s.created_at.isoformat() if s.created_at else None,
+            id=s.id,
+        ))
+
+    events.sort(key=lambda e: e.timestamp or "", reverse=True)
+    return events[:50]
+
+
+@router.get("/callbacks")
+def admin_callbacks(
+    status: str | None = Query(None),
+    skip: int = Query(0, ge=0),
+    limit: int = Query(100, ge=1, le=500),
+    admin: User = Depends(require_admin),
+    db: Session = Depends(get_db),
+):
+    q = db.query(CallBack)
+    if status:
+        q = q.filter(CallBack.status == status)
+    total = q.count()
+    items = [_build_callback_out(c, c.customer) for c in q.order_by(CallBack.created_at.desc()).offset(skip).limit(limit).all()]
+    return {"items": items, "total": total, "skip": skip, "limit": limit}
+
+
+@router.get("/transfers")
+def admin_transfers(
+    status: str | None = Query(None),
+    skip: int = Query(0, ge=0),
+    limit: int = Query(100, ge=1, le=500),
+    admin: User = Depends(require_admin),
+    db: Session = Depends(get_db),
+):
+    q = db.query(Transfer)
+    if status:
+        q = q.filter(Transfer.status == status)
+    total = q.count()
+    items = [_transfer_out(t, t.customer) for t in q.order_by(Transfer.created_at.desc()).offset(skip).limit(limit).all()]
+    return {"items": items, "total": total, "skip": skip, "limit": limit}
+
+
+@router.get("/sales")
+def admin_sales(
+    status: str | None = Query(None),
+    skip: int = Query(0, ge=0),
+    limit: int = Query(100, ge=1, le=500),
+    admin: User = Depends(require_admin),
+    db: Session = Depends(get_db),
+):
+    q = db.query(Sale)
+    if status:
+        q = q.filter(Sale.cot_status == status)
+    total = q.count()
+    items = [_sale_out(s, s.customer) for s in q.order_by(Sale.created_at.desc()).offset(skip).limit(limit).all()]
+    return {"items": items, "total": total, "skip": skip, "limit": limit}
+
+
+@router.get("/audit-log")
+def get_audit_log(admin: User = Depends(require_admin), db: Session = Depends(get_db)):
+    logs = db.query(ActivityLog).order_by(ActivityLog.created_at.desc()).limit(100).all()
+    return [
+        {
+            "id": log.id,
+            "userId": log.user_id,
+            "action": log.action,
+            "entityType": log.entity_type,
+            "entityId": log.entity_id,
+            "description": log.description,
+            "ipAddress": log.ip_address,
+            "createdAt": log.created_at.isoformat() if log.created_at else None,
+        }
+        for log in logs
+    ]

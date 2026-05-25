@@ -1,0 +1,494 @@
+[
+  {
+    "id": "BT001",
+    "title": "User Registration - Valid Input",
+    "description": "Test successful user registration with valid email and password",
+    "category": "authentication",
+    "priority": "High",
+    "steps": [
+      "POST /api/auth/register with email and password",
+      "Verify response contains userId and email",
+      "Verify HTTP 200 status code"
+    ],
+    "expected_result": "User is successfully registered and returns user ID and email"
+  },
+  {
+    "id": "BT002",
+    "title": "User Registration - Duplicate Email",
+    "description": "Test registration fails when email already exists",
+    "category": "authentication",
+    "priority": "High",
+    "steps": [
+      "Register a user with email test@example.com",
+      "Attempt to register another user with same email test@example.com",
+      "Verify response contains error message"
+    ],
+    "expected_result": "Server returns 400 error with 'email already exists' message"
+  },
+  {
+    "id": "BT003",
+    "title": "User Login - Valid Credentials",
+    "description": "Test successful login with valid email and password",
+    "category": "authentication",
+    "priority": "High",
+    "steps": [
+      "POST /api/auth/login with valid email and password",
+      "Verify response contains access token",
+      "Verify token is a valid JWT string",
+      "Verify response contains refresh token"
+    ],
+    "expected_result": "User receives access token and refresh token, HTTP 200 returned"
+  },
+  {
+    "id": "BT004",
+    "title": "User Login - Invalid Credentials",
+    "description": "Test login fails with wrong password",
+    "category": "authentication",
+    "priority": "High",
+    "steps": [
+      "POST /api/auth/login with valid email but wrong password",
+      "Verify response contains error message",
+      "Verify HTTP 401 status code"
+    ],
+    "expected_result": "Server returns 401 error with 'Invalid credentials' message"
+  },
+  {
+    "id": "BT005",
+    "title": "Create Customer - Agent Authorization",
+    "description": "Test agent can create a new customer record",
+    "category": "customer_management",
+    "priority": "High",
+    "steps": [
+      "Login as agent",
+      "POST /api/customers with business name, owner name, email, utility type",
+      "Verify response contains customerId and created customer data",
+      "Verify HTTP 200 status code"
+    ],
+    "expected_result": "Customer is created and returned with all details"
+  },
+  {
+    "id": "BT006",
+    "title": "Get Customers - Agent View",
+    "description": "Test agent can retrieve customer list",
+    "category": "customer_management",
+    "priority": "High",
+    "steps": [
+      "Login as agent",
+      "GET /api/customers",
+      "Verify response is a list of customers",
+      "Verify HTTP 200 status code"
+    ],
+    "expected_result": "Customers list is returned with customer records"
+  },
+  {
+    "id": "BT007",
+    "title": "Update Customer - Agent Authorization",
+    "description": "Test agent can update customer details",
+    "category": "customer_management",
+    "priority": "Medium",
+    "steps": [
+      "Login as agent",
+      "Create a customer",
+      "PUT /api/customers/{id} with updated business name",
+      "Verify response contains updated customer data",
+      "Verify HTTP 200 status code"
+    ],
+    "expected_result": "Customer record is updated successfully"
+  },
+  {
+    "id": "BT008",
+    "title": "Add Electricity Meter - Customer Utility Details",
+    "description": "Test agent can add electricity meter to customer",
+    "category": "customer_management",
+    "priority": "High",
+    "steps": [
+      "Login as agent",
+      "Create a customer",
+      "POST /api/customers/{id}/electricity-meters with meter number, supplier, rates",
+      "Verify response contains meterId",
+      "Verify HTTP 200 status code"
+    ],
+    "expected_result": "Electricity meter is added to customer record"
+  },
+  {
+    "id": "BT009",
+    "title": "Add Gas Meter - Customer Utility Details",
+    "description": "Test agent can add gas meter to customer",
+    "category": "customer_management",
+    "priority": "High",
+    "steps": [
+      "Login as agent",
+      "Create a customer",
+      "POST /api/customers/{id}/gas-meters with meter number, supplier, rates",
+      "Verify response contains meterId",
+      "Verify HTTP 200 status code"
+    ],
+    "expected_result": "Gas meter is added to customer record"
+  },
+  {
+    "id": "BT010",
+    "title": "AI Extraction - Parse Unstructured Notes",
+    "description": "Test AI module extracts utility data from call notes",
+    "category": "ai_integration",
+    "priority": "High",
+    "steps": [
+      "Login as agent",
+      "POST /api/ai/extract with call notes containing meter details",
+      "Verify response contains extracted meters array",
+      "Verify extracted data includes current and offered rates"
+    ],
+    "expected_result": "AI successfully extracts electricity and gas meter data from notes"
+  },
+  {
+    "id": "BT011",
+    "title": "AI Extraction - Fallback to Regex",
+    "description": "Test regex fallback when Cohere API is unavailable",
+    "category": "ai_integration",
+    "priority": "Medium",
+    "steps": [
+      "Disable or simulate Cohere API failure",
+      "POST /api/ai/extract with call notes",
+      "Verify response still contains extracted meters",
+      "Verify fallback mechanism was used"
+    ],
+    "expected_result": "System falls back to regex extraction and returns results"
+  },
+  {
+    "id": "BT012",
+    "title": "Create Callback - Schedule & Pricing",
+    "description": "Test agent can create callback with multiple pricing offers",
+    "category": "callback_management",
+    "priority": "High",
+    "steps": [
+      "Login as agent",
+      "Create a customer",
+      "POST /api/callbacks with customerId, scheduledDate, electricity rates, gas rates",
+      "Verify response contains callbackId",
+      "Verify HTTP 200 status code"
+    ],
+    "expected_result": "Callback is created with pricing offers and scheduled date"
+  },
+  {
+    "id": "BT013",
+    "title": "Update Callback Status - Complete",
+    "description": "Test agent can mark callback as done",
+    "category": "callback_management",
+    "priority": "High",
+    "steps": [
+      "Login as agent",
+      "Create a callback",
+      "PUT /api/callbacks/{id} with status='done'",
+      "Verify response contains updated status",
+      "Verify HTTP 200 status code"
+    ],
+    "expected_result": "Callback status is updated to done"
+  },
+  {
+    "id": "BT014",
+    "title": "Get Callbacks - Agent Filter",
+    "description": "Test agent can retrieve their callbacks",
+    "category": "callback_management",
+    "priority": "High",
+    "steps": [
+      "Login as agent",
+      "GET /api/callbacks",
+      "Verify response contains agent's callbacks only",
+      "Verify HTTP 200 status code"
+    ],
+    "expected_result": "Callbacks list filtered by agent is returned"
+  },
+  {
+    "id": "BT015",
+    "title": "Create Transfer - Account Details",
+    "description": "Test agent can create transfer with banking information",
+    "category": "transfer_management",
+    "priority": "High",
+    "steps": [
+      "Login as agent",
+      "Create a customer",
+      "POST /api/transfers with customerId, accountNumber, sortCode, paymentMethod",
+      "Verify response contains transferId",
+      "Verify HTTP 200 status code"
+    ],
+    "expected_result": "Transfer is created with banking details securely stored"
+  },
+  {
+    "id": "BT016",
+    "title": "Get Transfers - Agent Filter",
+    "description": "Test agent can retrieve their transfers",
+    "category": "transfer_management",
+    "priority": "High",
+    "steps": [
+      "Login as agent",
+      "GET /api/transfers",
+      "Verify response contains agent's transfers only",
+      "Verify HTTP 200 status code"
+    ],
+    "expected_result": "Transfers list filtered by agent is returned"
+  },
+  {
+    "id": "BT017",
+    "title": "Create Sale - Final Submission",
+    "description": "Test agent can submit final sale with banking and contract info",
+    "category": "sales_management",
+    "priority": "High",
+    "steps": [
+      "Login as agent",
+      "Create a transfer",
+      "POST /api/sales with transferId, contractEndDate, notes",
+      "Verify response contains saleId",
+      "Verify HTTP 200 status code"
+    ],
+    "expected_result": "Sale is created and submitted for processing"
+  },
+  {
+    "id": "BT018",
+    "title": "Get Sales - Agent Filter",
+    "description": "Test agent can retrieve their sales",
+    "category": "sales_management",
+    "priority": "High",
+    "steps": [
+      "Login as agent",
+      "GET /api/sales",
+      "Verify response contains agent's sales only",
+      "Verify HTTP 200 status code"
+    ],
+    "expected_result": "Sales list filtered by agent is returned"
+  },
+  {
+    "id": "BT019",
+    "title": "Manager Dashboard - Team Analytics",
+    "description": "Test manager can view team performance metrics",
+    "category": "role_based_access",
+    "priority": "High",
+    "steps": [
+      "Login as manager",
+      "GET /api/manager/dashboard",
+      "Verify response contains team metrics",
+      "Verify includes agent conversion rates and activity"
+    ],
+    "expected_result": "Manager dashboard displays team analytics and performance"
+  },
+  {
+    "id": "BT020",
+    "title": "Manager Callback Assignment - Reassign",
+    "description": "Test manager can reassign callbacks to agents",
+    "category": "role_based_access",
+    "priority": "High",
+    "steps": [
+      "Login as manager",
+      "Create a callback as agent",
+      "PUT /api/manager/callbacks/{id} with assignedAgentId",
+      "Verify callback is reassigned",
+      "Verify HTTP 200 status code"
+    ],
+    "expected_result": "Callback is successfully reassigned to new agent"
+  },
+  {
+    "id": "BT021",
+    "title": "Admin User Management - Create Manager",
+    "description": "Test admin can create new manager accounts",
+    "category": "admin_management",
+    "priority": "High",
+    "steps": [
+      "Login as admin",
+      "POST /api/admin/managers with email, password, role='manager'",
+      "Verify response contains managerId",
+      "Verify HTTP 200 status code"
+    ],
+    "expected_result": "Manager account is created by admin"
+  },
+  {
+    "id": "BT022",
+    "title": "Admin User Management - Create Agent",
+    "description": "Test admin can create new agent accounts",
+    "category": "admin_management",
+    "priority": "High",
+    "steps": [
+      "Login as admin",
+      "POST /api/admin/agents with email, password, managerId, role='agent'",
+      "Verify response contains agentId",
+      "Verify HTTP 200 status code"
+    ],
+    "expected_result": "Agent account is created by admin"
+  },
+  {
+    "id": "BT023",
+    "title": "Admin Audit Log - Security Events",
+    "description": "Test admin can view platform-wide audit log",
+    "category": "admin_management",
+    "priority": "Medium",
+    "steps": [
+      "Login as admin",
+      "GET /api/admin/audit-log",
+      "Verify response contains security events",
+      "Verify includes user login/logout and data modifications"
+    ],
+    "expected_result": "Audit log displays all security events platform-wide"
+  },
+  {
+    "id": "BT024",
+    "title": "Rate Limiting - API Throttling",
+    "description": "Test rate limiting protects API from abuse",
+    "category": "security",
+    "priority": "High",
+    "steps": [
+      "Send 61 requests to /api/customers within 1 minute",
+      "Verify 61st request returns 429 status code",
+      "Verify response contains 'rate limit exceeded' error"
+    ],
+    "expected_result": "API enforces 60 requests per minute rate limit"
+  },
+  {
+    "id": "BT025",
+    "title": "SQL Injection Protection - Middleware",
+    "description": "Test SQL injection attempts are blocked",
+    "category": "security",
+    "priority": "High",
+    "steps": [
+      "POST /api/customers with SQL injection payload in businessName",
+      "Verify request is rejected or sanitized",
+      "Verify HTTP 400 or 403 status code"
+    ],
+    "expected_result": "SQL injection attempt is blocked by security middleware"
+  },
+  {
+    "id": "BT026",
+    "title": "JWT Token Expiration - Access Denied",
+    "description": "Test expired JWT token denies API access",
+    "category": "security",
+    "priority": "High",
+    "steps": [
+      "Login to get access token",
+      "Wait for token to expire (after 2 hours in test environment)",
+      "Attempt to access protected endpoint",
+      "Verify HTTP 401 status code"
+    ],
+    "expected_result": "Expired token is rejected and user must re-authenticate"
+  },
+  {
+    "id": "BT027",
+    "title": "RBAC - Agent Cannot Access Admin Panel",
+    "description": "Test role-based access control prevents unauthorized access",
+    "category": "security",
+    "priority": "High",
+    "steps": [
+      "Login as agent",
+      "Attempt GET /api/admin/dashboard",
+      "Verify HTTP 403 Forbidden status code"
+    ],
+    "expected_result": "Agent is denied access to admin endpoints"
+  },
+  {
+    "id": "BT028",
+    "title": "CORS Policy - Cross-Origin Requests",
+    "description": "Test CORS policy allows only whitelisted origins",
+    "category": "security",
+    "priority": "Medium",
+    "steps": [
+      "Send request from http://localhost:5173 (frontend origin)",
+      "Send request from http://malicious.com",
+      "Verify first request succeeds, second is blocked"
+    ],
+    "expected_result": "CORS policy correctly enforces origin whitelist"
+  },
+  {
+    "id": "BT029",
+    "title": "Callback Scheduling - Date Validation",
+    "description": "Test callback scheduled date cannot be in the past",
+    "category": "data_validation",
+    "priority": "Medium",
+    "steps": [
+      "Login as agent",
+      "POST /api/callbacks with scheduledDate in the past",
+      "Verify response contains validation error",
+      "Verify HTTP 400 status code"
+    ],
+    "expected_result": "Past date is rejected with validation error"
+  },
+  {
+    "id": "BT030",
+    "title": "Customer Email Validation - Format Check",
+    "description": "Test email validation in customer creation",
+    "category": "data_validation",
+    "priority": "Medium",
+    "steps": [
+      "Login as agent",
+      "POST /api/customers with invalid email format",
+      "Verify response contains validation error",
+      "Verify HTTP 400 status code"
+    ],
+    "expected_result": "Invalid email format is rejected"
+  },
+  {
+    "id": "BT031",
+    "title": "Manager Delete Callback - Agent Constraint",
+    "description": "Test that a manager can delete a callback belonging to their team, but not one from another team",
+    "category": "role_based_access",
+    "priority": "High",
+    "steps": [
+      "Login as manager",
+      "Attempt to delete a callback of an agent managed by them",
+      "Verify response is HTTP 200",
+      "Attempt to delete a callback of an agent not managed by them",
+      "Verify response is HTTP 403 Forbidden"
+    ],
+    "expected_result": "Manager is restricted to deleting team-only callbacks"
+  },
+  {
+    "id": "BT032",
+    "title": "Manager Update Sale - Agent Constraint",
+    "description": "Test that a manager can modify a sale belonging to their team, but not one from another team",
+    "category": "role_based_access",
+    "priority": "High",
+    "steps": [
+      "Login as manager",
+      "PUT /api/manager/sales/{id} for their team agent's sale",
+      "Verify response is HTTP 200 and maps to SaleOut",
+      "PUT /api/manager/sales/{id} for another team's agent's sale",
+      "Verify response is HTTP 403 Forbidden"
+    ],
+    "expected_result": "Manager is restricted to updating team-only sales and response is successfully serialized"
+  },
+  {
+    "id": "BT033",
+    "title": "Admin User Management - Delete User Cascade",
+    "description": "Test that deleting an agent deletes all their associated records (callbacks, transfers, sales, customers) to avoid orphaned records",
+    "category": "admin_management",
+    "priority": "High",
+    "steps": [
+      "Login as admin",
+      "DELETE /api/admin/user/{id} for an agent with existing customers, callbacks, transfers, and sales",
+      "Verify response is HTTP 200",
+      "Verify from database that agent and all associated records are permanently deleted"
+    ],
+    "expected_result": "Agent and all associated records are permanently cascading deleted from database"
+  },
+  {
+    "id": "BT034",
+    "title": "Admin User Management - Assign Agent to Manager",
+    "description": "Test admin can reassign an agent to a different manager",
+    "category": "admin_management",
+    "priority": "Medium",
+    "steps": [
+      "Login as admin",
+      "PATCH /api/admin/assign-agent with agentId and new managerId",
+      "Verify response is HTTP 200",
+      "Verify agent's manager ID is updated to the new manager"
+    ],
+    "expected_result": "Agent is successfully reassigned to new manager"
+  },
+  {
+    "id": "BT035",
+    "title": "Manager Notifications Feed",
+    "description": "Test that a manager can retrieve a timeline of team events",
+    "category": "role_based_access",
+    "priority": "Medium",
+    "steps": [
+      "Login as manager",
+      "GET /api/manager/notifications",
+      "Verify response contains recent team transfer and sale events by their agents in ISO format"
+    ],
+    "expected_result": "Manager notifications list returns recent team activities"
+  }
+]

@@ -1,0 +1,7 @@
+{
+  "buildCommand": "cd frontend && npm install --legacy-peer-deps && npm run build && cp -r dist ../CallCenterAPI_FastAPI/static",
+  "outputDirectory": "frontend/dist",
+  "rewrites": [
+    { "source": "/(.*)", "destination": "/index.html" }
+  ]
+}

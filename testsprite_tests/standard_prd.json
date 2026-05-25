@@ -1,0 +1,191 @@
+{
+  "title": "RT International Call Center CRM & AI Utility Extraction Portal",
+  "version": "1.0.0",
+  "status": "Approved",
+  "target_release": "Q3 2026",
+  "executive_summary": "RT International is a specialized, multi-role Call Center Portal and CRM system tailored for the UK commercial utility brokerage industry. The platform empowers frontline agents to manage commercial clients, document current utility metrics (electricity and gas), leverage advanced AI to parse unstructured broker call notes, schedule callbacks, initiate account transfers, and submit finalized sales with structured banking and contract information.",
+  "problem_statement": [
+    "Unstructured Data Loss: Critical rates, supply numbers (MPAN/MPRN), serial numbers, and contract end dates are frequently buried in unstructured text notes, leading to transcription errors and loss of data integrity.",
+    "Disconnected Pipeline: Call center agents struggle to transition leads seamlessly from the initial callback to the transfer phase and final sale phase without losing key rate data.",
+    "Lack of Manager Visibility: Without localized management dashboards, managers cannot view agent conversion rates, track schedules, or re-assign callbacks efficiently.",
+    "Compliance & Banking Risks: Submitting commercial utility sales requires collecting sensitive banking info (Sort Code, Account Number, payment method, etc.) which must be validated and logged securely."
+  ],
+  "user_roles": [
+    {
+      "role": "Agent",
+      "description": "Frontline tele-broker / call agent",
+      "responsibilities": [
+        "Add customer records",
+        "Parse call notes using AI",
+        "Schedule callbacks",
+        "Create transfer offers",
+        "Submit final sale applications with banking details"
+      ],
+      "views": ["Personal Dashboard", "Customer Lists", "My Callbacks", "My Transfers", "My Sales"]
+    },
+    {
+      "role": "Manager",
+      "description": "Team Leader / Call Center Manager",
+      "responsibilities": [
+        "Oversee team performance",
+        "Track agent metrics",
+        "Create/edit team callbacks, transfers, and sales",
+        "View team activity logs and real-time sales/transfer notifications"
+      ],
+      "views": ["Team Dashboard", "Agent Performance Analytics", "Team Callbacks/Transfers/Sales management", "Activity Notifications"]
+    },
+    {
+      "role": "Admin",
+      "description": "System Administrator / Business Owner",
+      "responsibilities": [
+        "Manage managers and agents",
+        "Configure system parameters",
+        "Audit high-level analytics",
+        "View platform-wide security logs"
+      ],
+      "views": ["Admin Dashboard", "Manager/Agent User Management", "Platform-wide Analytics", "Global System Activity Audit Log"]
+    }
+  ],
+  "functional_requirements": [
+    {
+      "id": "FR-1",
+      "category": "Authentication & User Management",
+      "requirements": [
+        "Users must log in via email and password to receive a JWT access token",
+        "The system must enforce strict role-based access control (RBAC)",
+        "Admins must be able to create, read, update, and disable Manager and Agent accounts",
+        "Managers can only view and edit records belonging to agents within their managed team"
+      ]
+    },
+    {
+      "id": "FR-2",
+      "category": "Customer & Utility Meter Management",
+      "requirements": [
+        "Agents can create a Customer profile with business details and utility type",
+        "Each Customer can have multiple Electricity Meters with supply number, rates, and contract details",
+        "Each Customer can have multiple Gas Meters with supply number, rates, and contract details"
+      ]
+    },
+    {
+      "id": "FR-3",
+      "category": "AI Data Extraction Module",
+      "requirements": [
+        "Provide an AI parsing interface for unstructured call notes",
+        "Communicate with Cohere V2 endpoint using command-a-plus-05-2026 model",
+        "Extract utility parameters following UK energy broker conventions",
+        "Separate current meter rates from offered rates",
+        "Implement Regex Fallback Engine for basic field extraction if Cohere is offline"
+      ]
+    },
+    {
+      "id": "FR-4",
+      "category": "Callback Scheduling & Pricing Workflow",
+      "requirements": [
+        "Agents can schedule callbacks for specific date/time",
+        "Callbacks can store multiple pricing offers for electricity and gas",
+        "Callback statuses include pending and done"
+      ]
+    },
+    {
+      "id": "FR-5",
+      "category": "Transfer Management",
+      "requirements": [
+        "Agents can create transfer requests for utility accounts",
+        "Transfer requests must collect banking information securely",
+        "Managers can monitor and manage team transfers"
+      ]
+    },
+    {
+      "id": "FR-6",
+      "category": "Sales Management",
+      "requirements": [
+        "Agents can submit finalized sales applications",
+        "Sales require structured banking and contract information",
+        "Admins and managers can view platform-wide and team sales analytics"
+      ]
+    }
+  ],
+  "tech_stack": {
+    "frontend": {
+      "framework": "React.js with Vite",
+      "routing": "React Router DOM v6",
+      "state_management": "Zustand",
+      "styling": "Tailwind CSS with custom dark mode themes"
+    },
+    "backend": {
+      "framework": "FastAPI (Python 3.10+)",
+      "server": "Uvicorn",
+      "database": "Microsoft SQL Server / SQLite",
+      "orm": "SQLAlchemy",
+      "security": "JWT, bcrypt, Custom SQL Injection Middleware"
+    },
+    "external_services": {
+      "ai_extraction": "Cohere Client V2 (command-a-plus-05-2026)",
+      "rate_limiting": "SlowAPI"
+    }
+  },
+  "key_pages": [
+    {
+      "name": "Login",
+      "path": "/login",
+      "auth_required": false,
+      "description": "User authentication page"
+    },
+    {
+      "name": "Register",
+      "path": "/register",
+      "auth_required": false,
+      "description": "User registration page"
+    },
+    {
+      "name": "Dashboard",
+      "path": "/",
+      "auth_required": true,
+      "description": "Main dashboard (Agent, Manager, or Admin view)"
+    },
+    {
+      "name": "Customers",
+      "path": "/customers",
+      "auth_required": true,
+      "description": "Customer management list"
+    },
+    {
+      "name": "Callbacks",
+      "path": "/callbacks",
+      "auth_required": true,
+      "description": "Callback management list"
+    },
+    {
+      "name": "Transfers",
+      "path": "/transfers",
+      "auth_required": true,
+      "description": "Transfer management list"
+    },
+    {
+      "name": "Sales",
+      "path": "/sales",
+      "auth_required": true,
+      "description": "Sales applications list"
+    },
+    {
+      "name": "Manager Dashboard",
+      "path": "/manager",
+      "auth_required": true,
+      "description": "Manager team overview dashboard"
+    },
+    {
+      "name": "Admin Dashboard",
+      "path": "/admin",
+      "auth_required": true,
+      "description": "Admin platform overview dashboard"
+    }
+  ],
+  "security_requirements": [
+    "SQL Injection protection middleware",
+    "Robust password hashing (bcrypt)",
+    "JSON Web Token (JWT) session security",
+    "Rate-limiting enforcement",
+    "Role-based access control (RBAC) enforcement",
+    "Secure banking information handling for sales submissions"
+  ]
+}
