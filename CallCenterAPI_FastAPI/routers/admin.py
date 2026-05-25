@@ -108,9 +108,12 @@ def get_managers(
     result = []
     for m in managers:
         agent_ids = [a.id for a in db.query(User).filter(User.manager_id == m.id).all()]
-        cb = db.query(func.count(CallBack.id)).filter(CallBack.employee_id.in_(agent_ids) if agent_ids else False).scalar() or 0
-        tr = db.query(func.count(Transfer.id)).filter(Transfer.employee_id.in_(agent_ids) if agent_ids else False).scalar() or 0
-        sa = db.query(func.count(Sale.id)).filter(Sale.employee_id.in_(agent_ids) if agent_ids else False).scalar() or 0
+        if agent_ids:
+            cb = db.query(func.count(CallBack.id)).filter(CallBack.employee_id.in_(agent_ids)).scalar() or 0
+            tr = db.query(func.count(Transfer.id)).filter(Transfer.employee_id.in_(agent_ids)).scalar() or 0
+            sa = db.query(func.count(Sale.id)).filter(Sale.employee_id.in_(agent_ids)).scalar() or 0
+        else:
+            cb = tr = sa = 0
         total_opps = tr
         result.append(ManagerKpi(
             id=m.id, name=m.name, teamSize=len(agent_ids),
@@ -266,9 +269,12 @@ def performance_overview(admin: User = Depends(require_admin), db: Session = Dep
     managers = db.query(User).filter(User.role == "manager", User.is_active == 1).all()
     for m in managers:
         a_ids = [a.id for a in db.query(User).filter(User.manager_id == m.id, User.is_active == 1).all()]
-        cb = db.query(func.count(CallBack.id)).filter(CallBack.employee_id.in_(a_ids) if a_ids else False, CallBack.scheduled_datetime.isnot(None)).scalar() or 0
-        tr = db.query(func.count(Transfer.id)).filter(Transfer.employee_id.in_(a_ids) if a_ids else False).scalar() or 0
-        sa = db.query(func.count(Sale.id)).filter(Sale.employee_id.in_(a_ids) if a_ids else False).scalar() or 0
+        if a_ids:
+            cb = db.query(func.count(CallBack.id)).filter(CallBack.employee_id.in_(a_ids), CallBack.scheduled_datetime.isnot(None)).scalar() or 0
+            tr = db.query(func.count(Transfer.id)).filter(Transfer.employee_id.in_(a_ids)).scalar() or 0
+            sa = db.query(func.count(Sale.id)).filter(Sale.employee_id.in_(a_ids)).scalar() or 0
+        else:
+            cb = tr = sa = 0
         managers_data.append(ManagerKpi(
             id=m.id, name=m.name, teamSize=len(a_ids),
             callbacks=cb, transfers=tr, sales=sa,
