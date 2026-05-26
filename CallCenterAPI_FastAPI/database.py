@@ -22,7 +22,11 @@ if DATABASE_URL and DATABASE_URL.startswith("postgresql://"):
                 import psycopg2
                 DATABASE_URL = DATABASE_URL.replace("postgresql://", "postgresql+psycopg2://", 1)
             except ImportError:
-                DATABASE_URL = DATABASE_URL.replace("postgresql://", "postgresql+pg8000://", 1)
+                try:
+                    import pg8000
+                    DATABASE_URL = DATABASE_URL.replace("postgresql://", "postgresql+pg8000://", 1)
+                except ImportError:
+                    pass  # Will try to connect with default driver
         else:
             # Local development: prefer psycopg2 if available, otherwise pg8000
             try:
