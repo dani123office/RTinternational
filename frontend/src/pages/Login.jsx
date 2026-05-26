@@ -296,7 +296,7 @@ export default function Login() {
           <div className="brand-body">
             <h2 className="brand-heading">
               Manage your<br />
-              <span>pipeline smarter</span>
+              <span>pipeline Smartly</span>
             </h2>
             <p className="brand-desc">
               Track callbacks, transfers, and sales in one unified dashboard built for UK energy brokers.
