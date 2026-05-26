@@ -1,8 +1,7 @@
 from fastapi import APIRouter, HTTPException, Depends
 from pydantic import BaseModel, Field, ValidationError
 from typing import Optional, List, Dict, Any
-from google import genai
-from google.genai import types
+from openai import OpenAI
 import json
 import os
 import logging
@@ -36,18 +35,17 @@ router = APIRouter(
 # ENVIRONMENT
 # =========================================================
 
-GOOGLE_API_KEY = os.getenv("GOOGLE_API_KEY")
+GROQ_API_KEY = os.getenv("GROQ_API_KEY")
 
-GEMINI_AVAILABLE = bool(GOOGLE_API_KEY) and GOOGLE_API_KEY != "dummy"
+GROQ_AVAILABLE = bool(GROQ_API_KEY) and GROQ_API_KEY != "dummy"
 
-if GEMINI_AVAILABLE:
-    gemini_client = genai.Client(api_key=GOOGLE_API_KEY)
-    gemini_config = types.GenerateContentConfig(
-        response_mime_type="application/json",
-        temperature=0.0,
+if GROQ_AVAILABLE:
+    groq_client = OpenAI(
+        api_key=GROQ_API_KEY,
+        base_url="https://api.groq.com/openai/v1",
     )
 else:
-    gemini_client = None
+    groq_client = None
 
 # =========================================================
 # SYSTEM PROMPT
@@ -507,9 +505,9 @@ MAX_RETRIES = 2
 
 
 def generate_extraction(text: str) -> dict:
-    if not GEMINI_AVAILABLE:
-        logger.info("Gemini API key not available; using regex fallback")
-        return regex_fallback_extraction(text, "Gemini API key not configured")
+    if not GROQ_AVAILABLE:
+        logger.info("Groq API key not available; using regex fallback")
+        return regex_fallback_extraction(text, "Groq API key not configured")
 
     last_error_msg = ""
 
@@ -517,15 +515,26 @@ def generate_extraction(text: str) -> dict:
         try:
             logger.info(f"Extraction attempt {attempt + 1}/{MAX_RETRIES}")
 
-            response = gemini_client.models.generate_content(
-                model="gemini-2.0-flash",
-                contents=f"{SYSTEM_PROMPT}\n\nExtract ALL data from this UK energy broker note. Return ONLY raw JSON.\n\n{text}",
-                config=gemini_config,
+            response = groq_client.chat.completions.create(
+                model="llama-3.1-70b-versatile",
+                messages=[
+                    {"role": "system", "content": SYSTEM_PROMPT},
+                    {
+                        "role": "user",
+                        "content": (
+                            "Extract ALL data from this UK energy broker note. "
+                            "Return ONLY raw JSON.\n\n"
+                            f"{text}"
+                        )
+                    }
+                ],
+                temperature=0.0,
+                response_format={"type": "json_object"},
             )
 
-            raw_text = response.text
+            raw_text = response.choices[0].message.content
             if not raw_text:
-                raise ValueError("Empty response from Gemini")
+                raise ValueError("Empty response from Groq")
 
             logger.info(f"AI response received. First 300 chars:\n{raw_text[:300]}")
 
