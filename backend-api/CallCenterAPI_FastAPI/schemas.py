@@ -981,10 +981,6 @@ class CallBackOut(BaseModel):
     status: str
     outcome: Optional[str] = None
     notInterestedReason: Optional[str] = None
-    accountNumber: Optional[str] = None
-    mpan: Optional[str] = None
-    mprn: Optional[str] = None
-    msn: Optional[str] = None
     createdAt: datetime
     customer: Optional[CustomerOut] = None
     agentName: Optional[str] = None
@@ -1009,10 +1005,6 @@ class CallBackCreate(BaseModel):
         None, max_length=2000,
         description="Callback notes"
     )
-    accountNumber: Optional[str] = Field(None, max_length=100, description="Account number with current supplier")
-    mpan: Optional[str] = Field(None, max_length=100, description="MPAN (electricity supply number)")
-    mprn: Optional[str] = Field(None, max_length=100, description="MPRN (gas supply number)")
-    msn: Optional[str] = Field(None, max_length=100, description="Meter serial number")
     offeredElectricityRates: Optional[List[CallbackOfferedElectricityRateCreate]] = None
     offeredGasRates: Optional[List[CallbackOfferedGasRateCreate]] = None
 
@@ -1053,10 +1045,6 @@ class CallBackUpdate(BaseModel):
         None, description="Utility type (electricity or gas)"
     )
     postcode: Optional[str] = Field(None, max_length=20)
-    accountNumber: Optional[str] = Field(None, max_length=100, description="Account number with current supplier")
-    mpan: Optional[str] = Field(None, max_length=100, description="MPAN (electricity supply number)")
-    mprn: Optional[str] = Field(None, max_length=100, description="MPRN (gas supply number)")
-    msn: Optional[str] = Field(None, max_length=100, description="Meter serial number")
     electricityRates: Optional[List[ElectricityMeterCreate]] = None
     gasRates: Optional[List[GasMeterCreate]] = None
 
@@ -1104,26 +1092,6 @@ class CallBackUpdate(BaseModel):
     @classmethod
     def validate_postcode(cls, v):
         return check_postcode(v)
-
-    @field_validator('accountNumber', check_fields=False)
-    @classmethod
-    def validate_account_number(cls, v):
-        return check_optional_str(v, 'accountNumber', max_len=100)
-
-    @field_validator('mpan', check_fields=False)
-    @classmethod
-    def validate_mpan(cls, v):
-        return check_optional_str(v, 'mpan', max_len=100)
-
-    @field_validator('mprn', check_fields=False)
-    @classmethod
-    def validate_mprn(cls, v):
-        return check_optional_str(v, 'mprn', max_len=100)
-
-    @field_validator('msn', check_fields=False)
-    @classmethod
-    def validate_msn(cls, v):
-        return check_optional_str(v, 'msn', max_len=100)
 
 
 # ─── Transfer ────────────────────────────────────────────

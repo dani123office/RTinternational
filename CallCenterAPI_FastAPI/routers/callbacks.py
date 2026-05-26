@@ -91,10 +91,6 @@ def _build_callback_out(c: CallBack, customer: Customer = None) -> CallBackOut:
         status=c.status,
         outcome=c.outcome,
         notInterestedReason=c.not_interested_reason,
-        accountNumber=c.account_number,
-        mpan=c.mpan,
-        mprn=c.mprn,
-        msn=c.msn,
         createdAt=c.created_at,
         agentName=c.employee.name if c.employee else "Unknown Agent",
         customer=customer_out,
@@ -160,10 +156,6 @@ def create_callback(dto: CallBackCreate, current_user: User = Depends(get_curren
                 scheduled_datetime=dt,
                 notes=dto.notes,
                 status="pending",
-                account_number=dto.accountNumber,
-                mpan=dto.mpan,
-                mprn=dto.mprn,
-                msn=dto.msn,
             )
             db.add(callback)
 
