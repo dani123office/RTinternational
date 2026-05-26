@@ -996,7 +996,10 @@ class CallBackOut(BaseModel):
     offeredElectricityRates: List[CallbackOfferedElectricityRateOut] = []
     offeredGasRates: List[CallbackOfferedGasRateOut] = []
     transferId: Optional[int] = None
-
+    linkedTransferAccountNumber: Optional[str] = None
+    linkedTransferMpan: Optional[str] = None
+    linkedTransferMprn: Optional[str] = None
+    linkedTransferMsn: Optional[str] = None
 
 
 class CallBackCreate(BaseModel):

@@ -189,12 +189,11 @@ export default function AddCallback() {
     return initState()
   })
   const [localCallback, setLocalCallback] = useState(null)
-  const [localLinkedTransfer, setLocalLinkedTransfer] = useState(null)
 
   const callbackData = localCallback || (isEdit ? callbacks.find((c) => c.id === Number(id)) : null)
-  const linkedTransfer = localLinkedTransfer || (isEdit && callbackData?.transferId
+  const linkedTransfer = callbackData?.transferId
     ? transfers.find((t) => t.id === callbackData.transferId)
-    : null)
+    : null
 
   const upd = useCallback((field, value) => setForm((p) => ({...p, [field]:value})), [])
 
@@ -231,24 +230,6 @@ export default function AddCallback() {
   }, [id, isEdit, callbacks])
 
   useEffect(() => {
-    if (!isEdit || !callbackData?.transferId) return
-    let isMounted = true
-    const loadTransfer = async () => {
-      const found = transfers.find((t) => t.id === callbackData.transferId)
-      if (found) {
-        setLocalLinkedTransfer(found)
-        return
-      }
-      try {
-        const res = await api.get(`/api/transfers/${callbackData.transferId}`)
-        if (isMounted) setLocalLinkedTransfer(res.data)
-      } catch { /* silent */ }
-    }
-    loadTransfer()
-    return () => { isMounted = false }
-  }, [isEdit, callbackData?.transferId, transfers])
-
-  useEffect(() => {
     if (!callbackData) return
     const c = callbackData.customer || {}
     const elecOffer = callbackData.offeredElectricityRates?.[0] || null
@@ -263,10 +244,10 @@ export default function AddCallback() {
       ownerPhone: c.ownerPhone||'', email: c.email||'', postcode: c.postcode||'',
       notes: callbackData.notes||'',
       utilityType: c.utilityType||'electricity',
-      accountNumber: linkedTransfer?.accountNumber || callbackData.accountNumber || '',
-      mpan: linkedTransfer?.mpan || callbackData.mpan || '',
-      mprn: linkedTransfer?.mprn || callbackData.mprn || '',
-      msn: linkedTransfer?.msn || callbackData.msn || '',
+      accountNumber: callbackData.linkedTransferAccountNumber || callbackData.accountNumber || '',
+      mpan: callbackData.linkedTransferMpan || callbackData.mpan || '',
+      mprn: callbackData.linkedTransferMprn || callbackData.mprn || '',
+      msn: callbackData.linkedTransferMsn || callbackData.msn || '',
       dayOfWeek: callbackData.dayOfWeek || '',
       scheduledDate: callbackData.scheduledDateTime?.substring(0,10) || getTomorrow(),
       scheduledTime: callbackData.scheduledDateTime?.substring(11,16) || '10:00',
@@ -313,7 +294,7 @@ export default function AddCallback() {
         brokerServiceCharge: gasOffer?.brokerServiceCharge?.toString() || '',
       },
     }))
-  }, [callbackData, transfers])
+  }, [callbackData])
 
   const handleAiFill = (data) => {
     setForm((p) => {
@@ -482,7 +463,7 @@ export default function AddCallback() {
       if (isEdit) {
         await updateCallback(Number(id), {...customerPayload, ...callbackPayload})
         // Sync account details to linked transfer
-        if (linkedTransfer) {
+        if (callbackData?.transferId) {
           await api.put(`/api/transfers/${callbackData.transferId}`, {
             accountNumber: form.accountNumber || undefined,
             mpan: form.mpan || undefined,

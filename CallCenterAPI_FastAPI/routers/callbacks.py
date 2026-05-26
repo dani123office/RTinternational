@@ -101,6 +101,10 @@ def _build_callback_out(c: CallBack, customer: Customer = None) -> CallBackOut:
         offeredElectricityRates=_elec_rates_out(c),
         offeredGasRates=_gas_rates_out(c),
         transferId=transfer_id,
+        linkedTransferAccountNumber=t.account_number if t else None,
+        linkedTransferMpan=t.mpan if t else None,
+        linkedTransferMprn=t.mprn if t else None,
+        linkedTransferMsn=t.msn if t else None,
     )
 
 
