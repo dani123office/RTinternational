@@ -70,10 +70,10 @@ export default function ManagerCallbackDetail() {
       : (fallbackTransfer?.offeredGasRates || []),
   }
   const accountDetails = {
-    accountNumber: fallbackTransfer?.accountNumber || callback?.accountNumber,
-    mpan: fallbackTransfer?.mpan || callback?.mpan || customer?.electricityMeters?.[0]?.supplyNumber,
-    mprn: fallbackTransfer?.mprn || callback?.mprn,
-    msn: fallbackTransfer?.msn || callback?.msn,
+    accountNumber: fallbackTransfer?.accountNumber || callback?.linkedTransferAccountNumber,
+    mpan: fallbackTransfer?.mpan || callback?.linkedTransferMpan || customer?.electricityMeters?.[0]?.supplyNumber,
+    mprn: fallbackTransfer?.mprn || callback?.linkedTransferMprn,
+    msn: fallbackTransfer?.msn || callback?.linkedTransferMsn,
   }
 
   return (

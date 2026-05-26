@@ -65,7 +65,7 @@ export default function CallbackDetail() {
 
   const fallbackTransfer = linkedTransfers?.[0] || {}
 
-  const preferredMpAN = fallbackTransfer?.mpan || callback?.mpan || customer?.electricityMeters?.[0]?.supplyNumber
+  const preferredMpAN = fallbackTransfer?.mpan || callback?.linkedTransferMpan || customer?.electricityMeters?.[0]?.supplyNumber
   const displayedElectricityMeters = preferredMpAN && hasElectricity
     ? customer.electricityMeters.map((m, index) => ({
         ...m,
@@ -73,10 +73,10 @@ export default function CallbackDetail() {
       }))
     : customer?.electricityMeters || []
   const accountDetails = {
-    accountNumber: fallbackTransfer?.accountNumber || callback?.accountNumber,
-    mpan: fallbackTransfer?.mpan || callback?.mpan || customer?.electricityMeters?.[0]?.supplyNumber,
-    mprn: fallbackTransfer?.mprn || callback?.mprn,
-    msn: fallbackTransfer?.msn || callback?.msn,
+    accountNumber: fallbackTransfer?.accountNumber || callback?.linkedTransferAccountNumber,
+    mpan: fallbackTransfer?.mpan || callback?.linkedTransferMpan || customer?.electricityMeters?.[0]?.supplyNumber,
+    mprn: fallbackTransfer?.mprn || callback?.linkedTransferMprn,
+    msn: fallbackTransfer?.msn || callback?.linkedTransferMsn,
   }
   const mergedForRates = {
     ...callback,
