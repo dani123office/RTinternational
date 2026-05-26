@@ -1050,6 +1050,10 @@ class CallBackUpdate(BaseModel):
         None, description="Utility type (electricity or gas)"
     )
     postcode: Optional[str] = Field(None, max_length=20)
+    accountNumber: Optional[str] = Field(None, max_length=100, description="Account number with current supplier")
+    mpan: Optional[str] = Field(None, max_length=100, description="MPAN (electricity supply number)")
+    mprn: Optional[str] = Field(None, max_length=100, description="MPRN (gas supply number)")
+    msn: Optional[str] = Field(None, max_length=100, description="Meter serial number")
     electricityRates: Optional[List[ElectricityMeterCreate]] = None
     gasRates: Optional[List[GasMeterCreate]] = None
 

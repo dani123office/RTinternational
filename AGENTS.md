@@ -47,6 +47,10 @@ Fix 500 errors (local and Vercel) in the RT International call center FastAPI ap
    - Added URL query-param filtering in `database.py` to strip unrecognized params (`channel_binding`, etc.) that pg8000 may not support, preventing them from being passed as kwargs to `connect()`.
 10. **Fixed 405 on `/api/auth/login`** — Added `rewrites` to `vercel.json` to route all traffic through Python function.
 11. **Fixed `sslmode` TypeError** — Stripped all URL query params from DATABASE_URL, since pg8000 doesn't accept any as `connect()` kwargs.
+12. **Fixed 400 on `PUT /api/callbacks/{id}`** — `CallBackUpdate` schema was missing `accountNumber`, `mpan`, `mprn`, `msn` fields that the PUT handler accesses on the DTO object. Pydantic v2 raises `AttributeError` when accessing undeclared fields, caught by the generic `except Exception` and returned as 400. Added the missing fields to `CallBackUpdate` in both `schemas.py` copies.
+
+## Root Causes (continued)
+- **400 on PUT /api/callbacks/{id}**: `CallBackUpdate` schema (used for `update_callback` PUT endpoint) was missing `accountNumber`, `mpan`, `mprn`, `msn` fields that the PUT handler accessed via `dto.accountNumber` etc. Pydantic v2 raises `AttributeError` on undeclared field access, caught by `except Exception` and returned as 400. `CallBackCreate` (used for POST) already had these fields — `CallBackUpdate` was simply incomplete. → Fixed by adding the four fields to `CallBackUpdate`.
 
 ## Verification
 1. Push to GitHub → Vercel auto-deploys
