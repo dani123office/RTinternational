@@ -47,3 +47,17 @@ app.*.map.json
 testsprite_tests\tmp\config.json
 
 .vercel
+
+# Environment and secret files
+.env
+.env.local
+.env.*.local
+*.env
+CallCenterAPI_FastAPI/.env
+backend-api/CallCenterAPI_FastAPI/.env
+
+# Database files
+*.db
+*.sqlite
+*.sqlite3
+callcenter.db
