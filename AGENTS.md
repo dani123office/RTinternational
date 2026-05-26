@@ -41,6 +41,10 @@ Fix 500 errors (local and Vercel) in the RT International call center FastAPI ap
 
 ## Completed (this session)
 7. **Verified `POSTGRES_URL`** — already configured on `rt-international` Vercel project via Neon integration (same database as old `rt-international-api`).
+8. **Deleted old `rt-international-api`** Vercel project (no longer needed after unified deployment).
+9. **Fixed `TypeError: connect() got an unexpected keyword argument 'channel_binding'`** — two-part fix:
+   - Loosened pg8000 pin from `==1.31.2` to `>=1.31.2,<2.0` so Vercel can resolve a compatible version.
+   - Added URL query-param filtering in `database.py` to strip unrecognized params (`channel_binding`, etc.) that pg8000 may not support, preventing them from being passed as kwargs to `connect()`.
 
 ## Verification
 1. Push to GitHub → Vercel auto-deploys

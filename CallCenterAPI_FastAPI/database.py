@@ -2,7 +2,7 @@ import os
 from sqlalchemy import create_engine, event
 from sqlalchemy.orm import sessionmaker, DeclarativeBase
 from sqlalchemy.pool import NullPool
-from urllib.parse import urlparse
+from urllib.parse import urlparse, urlencode, parse_qs
 
 DATABASE_URL = os.environ.get(
     "POSTGRES_URL",
@@ -17,6 +17,16 @@ if DATABASE_URL and DATABASE_URL.startswith("postgres://"):
 if DATABASE_URL and DATABASE_URL.startswith("postgresql://"):
     if "+psycopg2" not in DATABASE_URL and "+psycopg" not in DATABASE_URL and "+pg8000" not in DATABASE_URL:
         DATABASE_URL = DATABASE_URL.replace("postgresql://", "postgresql+pg8000://", 1)
+
+# Strip unrecognized query params that pg8000 may not support (e.g. channel_binding)
+if DATABASE_URL and "?" in DATABASE_URL:
+    parsed = urlparse(DATABASE_URL)
+    query_params = parse_qs(parsed.query)
+    supported_params = {"sslmode", "ssl", "timeout", "connect_timeout", "application_name", "keepalives", "keepalives_idle", "keepalives_interval", "keepalives_count", "options"}
+    filtered = {k: v for k, v in query_params.items() if k in supported_params}
+    flat = {k: v[0] if len(v) == 1 else v for k, v in filtered.items()}
+    new_query = urlencode(flat, doseq=True)
+    DATABASE_URL = parsed._replace(query=new_query).geturl()
 
 
 def _mask_database_url(url):
