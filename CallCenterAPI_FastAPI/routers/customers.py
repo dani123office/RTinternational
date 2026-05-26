@@ -1,6 +1,7 @@
 from datetime import date, datetime
 from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.orm import Session
+from sqlalchemy import func
 from ..database import get_db
 from ..models import Customer, ElectricityMeter, GasMeter, User
 from ..schemas import CustomerOut, CustomerCreate, CustomerUpdate, ElectricityMeterOut, GasMeterOut, ElectricityMeterCreate, GasMeterCreate
@@ -93,6 +94,13 @@ def get_customer(id: int, current_user: User = Depends(get_current_user), db: Se
 @router.post("")
 def create_customer(dto: CustomerCreate, current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
     try:
+        if dto.postcode:
+            existing = db.query(Customer).filter(
+                func.lower(Customer.postcode) == func.lower(dto.postcode.strip())
+            ).first()
+            if existing:
+                return _customer_out(existing)
+
         customer = Customer(
             business_name=dto.businessName or "Unknown",
             owner_name=dto.ownerName or "Not provided",
@@ -107,23 +115,6 @@ def create_customer(dto: CustomerCreate, current_user: User = Depends(get_curren
         )
         db.add(customer)
         db.flush()
-
-        if dto.postcode:
-            dup_customer = db.query(Customer).filter(
-                Customer.postcode == dto.postcode,
-                Customer.created_by != current_user.id,
-                Customer.id != customer.id,
-            ).first()
-            if dup_customer:
-                owner = db.query(User).filter(User.id == dup_customer.created_by).first() if dup_customer else None
-                owner_name = owner.name if owner else "another agent"
-                raise HTTPException(
-                    status_code=409,
-                    detail={
-                        "message": f"This customer is customer of {owner_name}",
-                        "existingCustomerId": dup_customer.id,
-                    }
-                )
 
         if dto.electricityRates:
             for rate in dto.electricityRates:
