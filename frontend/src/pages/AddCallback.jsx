@@ -140,6 +140,7 @@ export default function AddCallback() {
   const updateCallback = isManager ? managerStore.updateCallback : dataStore.updateCallback
   const createCallback = isManager ? managerStore.createCallback : dataStore.createCallback
   const createCustomer = dataStore.createCustomer
+  const transfers = isManager ? managerStore.transfers : dataStore.transfers
 
   const [loading, setLoading] = useState(false)
   const [form, setForm] = useState(() => {
@@ -232,6 +233,10 @@ export default function AddCallback() {
     const gasOffer = callbackData.offeredGasRates?.[0] || null
     const hasElecOffer = !!elecOffer
     const hasGasOffer = !!gasOffer
+    // Fallback to linked transfer if callback fields are empty
+    const linkedTransfer = callbackData.transferId
+      ? transfers.find((t) => t.id === callbackData.transferId)
+      : null
     // eslint-disable-next-line react-hooks/set-state-in-effect
     setForm((p) => ({
       ...p,
@@ -240,10 +245,10 @@ export default function AddCallback() {
       ownerPhone: c.ownerPhone||'', email: c.email||'', postcode: c.postcode||'',
       notes: callbackData.notes||'',
       utilityType: c.utilityType||'electricity',
-      accountNumber: callbackData.accountNumber || '',
-      mpan: callbackData.mpan || '',
-      mprn: callbackData.mprn || '',
-      msn: callbackData.msn || '',
+      accountNumber: callbackData.accountNumber || linkedTransfer?.accountNumber || '',
+      mpan: callbackData.mpan || linkedTransfer?.mpan || '',
+      mprn: callbackData.mprn || linkedTransfer?.mprn || '',
+      msn: callbackData.msn || linkedTransfer?.msn || '',
       dayOfWeek: callbackData.dayOfWeek || '',
       scheduledDate: callbackData.scheduledDateTime?.substring(0,10) || getTomorrow(),
       scheduledTime: callbackData.scheduledDateTime?.substring(11,16) || '10:00',
@@ -290,7 +295,7 @@ export default function AddCallback() {
         brokerServiceCharge: gasOffer?.brokerServiceCharge?.toString() || '',
       },
     }))
-  }, [callbackData])
+  }, [callbackData, transfers])
 
   const handleAiFill = (data) => {
     setForm((p) => {
