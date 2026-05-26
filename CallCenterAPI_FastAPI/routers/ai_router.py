@@ -516,7 +516,7 @@ def generate_extraction(text: str) -> dict:
             logger.info(f"Extraction attempt {attempt + 1}/{MAX_RETRIES}")
 
             response = groq_client.chat.completions.create(
-                model="llama-3.1-70b-versatile",
+                model="llama-3.3-70b-versatile",
                 messages=[
                     {"role": "system", "content": SYSTEM_PROMPT},
                     {
