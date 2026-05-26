@@ -13,27 +13,10 @@ DATABASE_URL = os.environ.get(
 if DATABASE_URL and DATABASE_URL.startswith("postgres://"):
     DATABASE_URL = DATABASE_URL.replace("postgres://", "postgresql://", 1)
 
-# Add driver for PostgreSQL - prefer psycopg2 on Vercel, pg8000 otherwise
+# Add pg8000 driver for PostgreSQL (pure Python, works in Vercel serverless)
 if DATABASE_URL and DATABASE_URL.startswith("postgresql://"):
     if "+psycopg2" not in DATABASE_URL and "+psycopg" not in DATABASE_URL and "+pg8000" not in DATABASE_URL:
         DATABASE_URL = DATABASE_URL.replace("postgresql://", "postgresql+pg8000://", 1)
-            except ImportError:
-                try:
-                    import pg8000
-                    DATABASE_URL = DATABASE_URL.replace("postgresql://", "postgresql+pg8000://", 1)
-                except ImportError:
-                    pass  # Will try to connect with default driver
-        else:
-            # Local development: prefer psycopg2 if available, otherwise pg8000
-            try:
-                import psycopg2
-                DATABASE_URL = DATABASE_URL.replace("postgresql://", "postgresql+psycopg2://", 1)
-            except ImportError:
-                try:
-                    import pg8000
-                    DATABASE_URL = DATABASE_URL.replace("postgresql://", "postgresql+pg8000://", 1)
-                except ImportError:
-                    pass  # Will try to connect with default driver
 
 
 def _mask_database_url(url):
