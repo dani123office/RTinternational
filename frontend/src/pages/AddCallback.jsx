@@ -189,11 +189,12 @@ export default function AddCallback() {
     return initState()
   })
   const [localCallback, setLocalCallback] = useState(null)
+  const [localLinkedTransfer, setLocalLinkedTransfer] = useState(null)
 
   const callbackData = localCallback || (isEdit ? callbacks.find((c) => c.id === Number(id)) : null)
-  const linkedTransfer = isEdit && callbackData?.transferId
+  const linkedTransfer = localLinkedTransfer || (isEdit && callbackData?.transferId
     ? transfers.find((t) => t.id === callbackData.transferId)
-    : null
+    : null)
 
   const upd = useCallback((field, value) => setForm((p) => ({...p, [field]:value})), [])
 
@@ -230,16 +231,30 @@ export default function AddCallback() {
   }, [id, isEdit, callbacks])
 
   useEffect(() => {
+    if (!isEdit || !callbackData?.transferId) return
+    let isMounted = true
+    const loadTransfer = async () => {
+      const found = transfers.find((t) => t.id === callbackData.transferId)
+      if (found) {
+        setLocalLinkedTransfer(found)
+        return
+      }
+      try {
+        const res = await api.get(`/api/transfers/${callbackData.transferId}`)
+        if (isMounted) setLocalLinkedTransfer(res.data)
+      } catch { /* silent */ }
+    }
+    loadTransfer()
+    return () => { isMounted = false }
+  }, [isEdit, callbackData?.transferId, transfers])
+
+  useEffect(() => {
     if (!callbackData) return
     const c = callbackData.customer || {}
     const elecOffer = callbackData.offeredElectricityRates?.[0] || null
     const gasOffer = callbackData.offeredGasRates?.[0] || null
     const hasElecOffer = !!elecOffer
     const hasGasOffer = !!gasOffer
-    // Fallback to linked transfer if callback fields are empty
-    const linkedTransfer = callbackData.transferId
-      ? transfers.find((t) => t.id === callbackData.transferId)
-      : null
     // eslint-disable-next-line react-hooks/set-state-in-effect
     setForm((p) => ({
       ...p,
@@ -248,10 +263,10 @@ export default function AddCallback() {
       ownerPhone: c.ownerPhone||'', email: c.email||'', postcode: c.postcode||'',
       notes: callbackData.notes||'',
       utilityType: c.utilityType||'electricity',
-      accountNumber: callbackData.accountNumber || linkedTransfer?.accountNumber || '',
-      mpan: callbackData.mpan || linkedTransfer?.mpan || '',
-      mprn: callbackData.mprn || linkedTransfer?.mprn || '',
-      msn: callbackData.msn || linkedTransfer?.msn || '',
+      accountNumber: linkedTransfer?.accountNumber || callbackData.accountNumber || '',
+      mpan: linkedTransfer?.mpan || callbackData.mpan || '',
+      mprn: linkedTransfer?.mprn || callbackData.mprn || '',
+      msn: linkedTransfer?.msn || callbackData.msn || '',
       dayOfWeek: callbackData.dayOfWeek || '',
       scheduledDate: callbackData.scheduledDateTime?.substring(0,10) || getTomorrow(),
       scheduledTime: callbackData.scheduledDateTime?.substring(11,16) || '10:00',
