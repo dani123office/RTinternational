@@ -197,8 +197,10 @@ export function useManagerCallbackDetail() {
     linkedTransfers: useMemo(() => {
       const byCallBackId = transfers.filter((t) => t.callBackId === callbackId)
       if (byCallBackId.length > 0) return byCallBackId
+      const byTransferId = callback?.transferId ? transfers.filter((t) => t.id === callback.transferId) : []
+      if (byTransferId.length > 0) return byTransferId
       return transfers.filter((t) => t.customerId === callback?.customerId)
-    }, [transfers, callbackId, callback?.customerId]),
+    }, [transfers, callbackId, callback?.customerId, callback?.transferId]),
     linkedSales: useMemo(() => {
       const transferIds = transfers
         .filter((t) => t.callBackId === callbackId || t.customerId === callback?.customerId)

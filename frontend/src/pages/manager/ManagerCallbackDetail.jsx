@@ -8,6 +8,7 @@ import CallbackHero from '@/components/callbacks/CallbackHero'
 import CallbackActions from '@/components/callbacks/CallbackActions'
 import CallbackDialogs from '@/components/callbacks/CallbackDialogs'
 import CustomerInfoCard from '@/components/shared/CustomerInfoCard'
+import AccountDetailsCard from '@/components/shared/AccountDetailsCard'
 import MeterDetailsCard from '@/components/shared/MeterDetailsCard'
 import OfferedRatesCard from '@/components/shared/OfferedRatesCard'
 
@@ -68,6 +69,12 @@ export default function ManagerCallbackDetail() {
       ? callback.offeredGasRates
       : (fallbackTransfer?.offeredGasRates || []),
   }
+  const accountDetails = {
+    accountNumber: fallbackTransfer?.accountNumber || callback?.accountNumber,
+    mpan: fallbackTransfer?.mpan || callback?.mpan || customer?.electricityMeters?.[0]?.supplyNumber,
+    mprn: fallbackTransfer?.mprn || callback?.mprn,
+    msn: fallbackTransfer?.msn || callback?.msn,
+  }
 
   return (
     <>
@@ -112,6 +119,12 @@ export default function ManagerCallbackDetail() {
               {hasGas && (
                 <div className="rt-fade rt-d3">
                   <MeterDetailsCard utilityType="gas" meters={customer.gasMeters} />
+                </div>
+              )}
+
+              {Object.values(accountDetails).some(Boolean) && (
+                <div className="rt-fade rt-d3">
+                  <AccountDetailsCard transfer={accountDetails} />
                 </div>
               )}
 
