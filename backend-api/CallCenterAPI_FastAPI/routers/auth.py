@@ -108,7 +108,7 @@ def login(request: LoginRequest, db: Session = Depends(get_db)):
         raise HTTPException(status_code=401, detail="Invalid credentials")
     if not user.is_active:
         raise HTTPException(status_code=401, detail="Account is inactive")
-    if user.role != "admin" and user.manager_id is None:
+    if user.role not in ("admin", "manager") and user.manager_id is None:
         raise HTTPException(status_code=401, detail="No manager assigned yet. Please wait for admin approval.")
 
     if not bcrypt.checkpw(request.password.encode("utf-8"), user.password_hash.encode("utf-8")):
@@ -173,12 +173,14 @@ def register(request: RegisterRequest, db: Session = Depends(get_db)):
         email=request.email,
         password_hash=hashed,
         role=request.role or "agent",
-        is_active=0,
+        is_active=1 if request.role == "manager" else 0,
     )
     db.add(user)
     db.commit()
     db.refresh(user)
 
+    if request.role == "manager":
+        return {"message": "Manager account created successfully. You can now log in."}
     return {"message": "Account created successfully. Waiting for admin approval. You will be able to log in once an admin approves your account."}
 
 
