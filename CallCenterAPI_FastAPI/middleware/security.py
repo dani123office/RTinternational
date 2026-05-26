@@ -7,8 +7,8 @@ SQL_INJECTION_PATTERNS = [
     re.compile(r"(?:;\s*|'\s*)(?:OR|AND|UNION|SELECT|INSERT|UPDATE|DELETE|DROP|ALTER|CREATE|EXEC|EXECUTE)\s", re.IGNORECASE),
     re.compile(r"(?:--|\/\*|' --)", re.IGNORECASE),
     re.compile(r"(?:xp_cmdshell|sp_executesql|sp_prepare|waifor|pg_sleep)\s*\(", re.IGNORECASE),
-    re.compile(r"(?:0x[0-9a-fA-F]{8,})\s", re.IGNORECASE),
-    re.compile(r"(?:ISNULL|COALESCE|CASE\s+WHEN|DECLARE\s+@)\s", re.IGNORECASE),
+    re.compile(r"(?:0x[0-9a-fA-F]{16,})\s", re.IGNORECASE),
+    re.compile(r"(?:;\s*|'\s*)(?:ISNULL|COALESCE|CASE\s+WHEN|DECLARE\s+@)\s", re.IGNORECASE),
 ]
 
 

@@ -23,8 +23,7 @@ class ProfileOut(BaseModel):
     createdAt: Optional[str] = None
     updatedAt: Optional[str] = None
 
-    class Config:
-        from_attributes = True
+
 
 
 class ProfileUpdate(BaseModel):

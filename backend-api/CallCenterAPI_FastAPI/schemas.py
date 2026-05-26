@@ -257,8 +257,7 @@ class UserOut(BaseModel):
     role: str
     isActive: int
     managerId: Optional[int] = None
-    class Config:
-        from_attributes = True
+
 
 
 class AgentOut(BaseModel):
@@ -268,8 +267,7 @@ class AgentOut(BaseModel):
     role: str
     isActive: int
     managerId: Optional[int] = None
-    class Config:
-        from_attributes = True
+
 
 
 class ManagerTeamStats(BaseModel):
@@ -428,8 +426,7 @@ class ElectricityMeterOut(BaseModel):
     standingRate: Optional[float] = None
     monthlyBill: Optional[float] = None
     contractEndDate: Optional[date] = None
-    class Config:
-        from_attributes = True
+
 
 
 class ElectricityMeterCreate(BaseModel):
@@ -506,8 +503,7 @@ class GasMeterOut(BaseModel):
     standingRate: Optional[float] = None
     monthlyBill: Optional[float] = None
     contractEndDate: Optional[date] = None
-    class Config:
-        from_attributes = True
+
 
 
 class GasMeterCreate(BaseModel):
@@ -560,8 +556,7 @@ class AddressOut(BaseModel):
     customerId: int
     businessAddress: Optional[str] = None
     postcode: Optional[str] = None
-    class Config:
-        from_attributes = True
+
 
 
 class AddressCreate(BaseModel):
@@ -602,8 +597,7 @@ class CustomerOut(BaseModel):
     electricityMeters: List[ElectricityMeterOut] = []
     gasMeters: List[GasMeterOut] = []
     addresses: List[AddressOut] = []
-    class Config:
-        from_attributes = True
+
 
 
 class CustomerCreate(BaseModel):
@@ -788,8 +782,7 @@ class CallbackOfferedElectricityRateOut(BaseModel):
     nonCommissionEveningRate: Optional[float] = None
     nonCommissionStandingRate: Optional[float] = None
     brokerServiceCharge: Optional[float] = None
-    class Config:
-        from_attributes = True
+
 
 
 def _rate_validators(cls):
@@ -865,8 +858,7 @@ class CallbackOfferedGasRateOut(BaseModel):
     nonCommissionUnitRate: Optional[float] = None
     nonCommissionStandingRate: Optional[float] = None
     brokerServiceCharge: Optional[float] = None
-    class Config:
-        from_attributes = True
+
 
 
 class CallbackOfferedGasRateCreate(BaseModel):
@@ -913,8 +905,7 @@ class TransferOfferedElectricityRateOut(BaseModel):
     nonCommissionEveningRate: Optional[float] = None
     nonCommissionStandingRate: Optional[float] = None
     brokerServiceCharge: Optional[float] = None
-    class Config:
-        from_attributes = True
+
 
 
 class TransferOfferedElectricityRateCreate(BaseModel):
@@ -955,8 +946,7 @@ class TransferOfferedGasRateOut(BaseModel):
     nonCommissionUnitRate: Optional[float] = None
     nonCommissionStandingRate: Optional[float] = None
     brokerServiceCharge: Optional[float] = None
-    class Config:
-        from_attributes = True
+
 
 
 class TransferOfferedGasRateCreate(BaseModel):
@@ -1001,8 +991,7 @@ class CallBackOut(BaseModel):
     offeredElectricityRates: List[CallbackOfferedElectricityRateOut] = []
     offeredGasRates: List[CallbackOfferedGasRateOut] = []
     transferId: Optional[int] = None
-    class Config:
-        from_attributes = True
+
 
 
 class CallBackCreate(BaseModel):
@@ -1153,8 +1142,7 @@ class TransferOut(BaseModel):
     offeredElectricityRates: List[TransferOfferedElectricityRateOut] = []
     offeredGasRates: List[TransferOfferedGasRateOut] = []
     agentName: Optional[str] = None
-    class Config:
-        from_attributes = True
+
 
 
 class TransferCreate(BaseModel):
@@ -1288,8 +1276,7 @@ class SaleOut(BaseModel):
     notes: Optional[str] = None
     createdAt: datetime
     customer: Optional[CustomerOut] = None
-    class Config:
-        from_attributes = True
+
 
 
 class SaleCreate(BaseModel):

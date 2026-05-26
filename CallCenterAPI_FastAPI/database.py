@@ -12,13 +12,27 @@ DATABASE_URL = os.environ.get(
 if DATABASE_URL and DATABASE_URL.startswith("postgres://"):
     DATABASE_URL = DATABASE_URL.replace("postgres://", "postgresql://", 1)
 
-# Add driver for PostgreSQL
+# Add driver for PostgreSQL - prefer psycopg2 on Vercel, pg8000 otherwise
 if DATABASE_URL and DATABASE_URL.startswith("postgresql://"):
     if "+psycopg2" not in DATABASE_URL and "+psycopg" not in DATABASE_URL and "+pg8000" not in DATABASE_URL:
+        # On Vercel, try psycopg2-binary first (more reliable), fallback to pg8000
         if os.environ.get("VERCEL"):
-            DATABASE_URL = DATABASE_URL.replace("postgresql://", "postgresql+pg8000://", 1)
+            try:
+                import psycopg2
+                DATABASE_URL = DATABASE_URL.replace("postgresql://", "postgresql+psycopg2://", 1)
+            except ImportError:
+                DATABASE_URL = DATABASE_URL.replace("postgresql://", "postgresql+pg8000://", 1)
         else:
-            DATABASE_URL = DATABASE_URL.replace("postgresql://", "postgresql+psycopg2://", 1)
+            # Local development: prefer psycopg2 if available, otherwise pg8000
+            try:
+                import psycopg2
+                DATABASE_URL = DATABASE_URL.replace("postgresql://", "postgresql+psycopg2://", 1)
+            except ImportError:
+                try:
+                    import pg8000
+                    DATABASE_URL = DATABASE_URL.replace("postgresql://", "postgresql+pg8000://", 1)
+                except ImportError:
+                    pass  # Will try to connect with default driver
 
 # Create engine with proper configuration for serverless
 try:

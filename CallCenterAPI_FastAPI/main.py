@@ -240,7 +240,17 @@ async def spa_fallback(request, exc):
 
 @app.on_event("startup")
 def on_startup():
-    Base.metadata.create_all(bind=engine)
+    if engine is None:
+        print("Warning: Database engine is not initialized. Skipping database setup.")
+        print("Ensure DATABASE_URL or POSTGRES_URL environment variable is properly set.")
+        return
+    
+    try:
+        Base.metadata.create_all(bind=engine)
+    except Exception as e:
+        print(f"Warning: Failed to create database tables: {e}")
+        return
+    
     db = SessionLocal()
     try:
         if not db.query(User).first():
