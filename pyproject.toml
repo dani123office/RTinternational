@@ -14,3 +14,6 @@ dependencies = [
     "cohere==5.13.4",
     "python-dotenv==1.1.0",
 ]
+
+[tool.vercel]
+entrypoint = "CallCenterAPI_FastAPI.main:app"

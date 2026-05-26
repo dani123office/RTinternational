@@ -215,6 +215,7 @@ import pathlib
 from fastapi.responses import FileResponse
 
 _STATIC_DIR = pathlib.Path(__file__).resolve().parent / "static"
+_FRONTEND_DIR = pathlib.Path(__file__).resolve().parent.parent / "frontend" / "dist"
 _INDEX_HTML = _STATIC_DIR / "index.html"
 
 
@@ -225,14 +226,17 @@ async def spa_fallback(request, exc):
         from fastapi.responses import JSONResponse
         return JSONResponse(status_code=404, content={"detail": "Not found"})
 
-    # Serve static asset files (JS, CSS, images, etc.)
-    asset_path = _STATIC_DIR / path.lstrip("/")
-    if asset_path.is_file():
-        return FileResponse(str(asset_path))
+    # Serve static asset files (JS, CSS, images, etc.) from static/ first, then frontend/dist
+    for base in (_STATIC_DIR, _FRONTEND_DIR):
+        asset_path = base / path.lstrip("/")
+        if asset_path.is_file():
+            return FileResponse(str(asset_path))
 
     # SPA fallback: all non-API, non-asset routes go to index.html
-    if _INDEX_HTML.is_file():
-        return FileResponse(str(_INDEX_HTML))
+    for base in (_STATIC_DIR, _FRONTEND_DIR):
+        index = base / "index.html"
+        if index.is_file():
+            return FileResponse(str(index))
 
     from fastapi.responses import JSONResponse
     return JSONResponse(status_code=404, content={"detail": "Not found"})
