@@ -269,52 +269,39 @@ def on_startup():
     
     db = SessionLocal()
     try:
-        if not db.query(User).first():
-            def make_hash():
-                return bcrypt.hashpw(b"password", bcrypt.gensalt()).decode("utf-8")
+        def _hash(pw: str = "password"):
+            return bcrypt.hashpw(pw.encode("utf-8"), bcrypt.gensalt()).decode("utf-8")
 
-            admin_user = User(
-                name="Admin User",
-                email="admin@test.com",
-                password_hash=make_hash(),
-                role="admin",
-                is_active=1,
-            )
-            db.add(admin_user)
-            db.flush()
+        def _ensure_user(email, defaults):
+            existing = db.query(User).filter(User.email == email).first()
+            if not existing:
+                u = User(email=email, **defaults)
+                db.add(u)
+                db.flush()
+                return u
+            return existing
 
-            manager = User(
-                name="Sarah",
-                email="manager@test.com",
-                password_hash=make_hash(),
-                role="manager",
-                is_active=1,
-            )
-            db.add(manager)
-            db.flush()
+        admin_user = _ensure_user("admin@test.com", dict(name="Admin User", password_hash=_hash(), role="admin", is_active=1))
+        manager = _ensure_user("manager@test.com", dict(name="Sarah", password_hash=_hash(), role="manager", is_active=1))
+        manager2 = _ensure_user("zara@test.com", dict(name="Zara", password_hash=_hash(), role="manager", is_active=1))
 
-            manager2 = User(
-                name="Zara",
-                email="zara@test.com",
-                password_hash=make_hash(),
-                role="manager",
-                is_active=1,
-            )
-            db.add(manager2)
-            db.flush()
+        _ensure_user("sunny@rt.com", dict(name="Sunny", password_hash=_hash("123456"), role="manager", is_active=1))
 
-            agents = [
-                User(name="Usman", email="usman@test.com", password_hash=make_hash(), role="agent", manager_id=manager.id, is_active=1),
-                User(name="Danny", email="danny@test.com", password_hash=make_hash(), role="agent", manager_id=manager.id, is_active=1),
-                User(name="Emily", email="emily@test.com", password_hash=make_hash(), role="agent", manager_id=manager.id, is_active=1),
-                User(name="James", email="james@test.com", password_hash=make_hash(), role="agent", manager_id=manager2.id, is_active=1),
-                User(name="Sophie", email="sophie@test.com", password_hash=make_hash(), role="agent", manager_id=manager2.id, is_active=1),
-                User(name="Oliver", email="oliver@test.com", password_hash=make_hash(), role="agent", manager_id=manager2.id, is_active=1),
-            ]
-            db.add_all(agents)
-            db.flush()
+        agents_config = [
+            ("Usman", "usman@test.com", manager.id),
+            ("Danny", "danny@test.com", manager.id),
+            ("Emily", "emily@test.com", manager.id),
+            ("James", "james@test.com", manager2.id),
+            ("Sophie", "sophie@test.com", manager2.id),
+            ("Oliver", "oliver@test.com", manager2.id),
+        ]
+        agents = []
+        for name, email, mid in agents_config:
+            a = _ensure_user(email, dict(name=name, password_hash=_hash(), role="agent", manager_id=mid, is_active=1))
+            agents.append(a)
 
-            now = datetime.now()
+        now = datetime.now()
+        if not db.query(Customer).first():
             for i, agent in enumerate(agents):
                 for j in range(3 + (i % 3)):
                     unique_id = 1000 + i * 10 + j
@@ -375,7 +362,7 @@ def on_startup():
                     notes=f"Sample sale for {agent.name}",
                 ))
 
-            db.commit()
+        db.commit()
     finally:
         db.close()
 
