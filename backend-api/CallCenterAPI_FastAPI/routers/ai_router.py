@@ -1,7 +1,8 @@
 from fastapi import APIRouter, HTTPException, Depends
 from pydantic import BaseModel, Field, ValidationError
 from typing import Optional, List, Dict, Any
-import cohere
+from google import genai
+from google.genai import types
 import json
 import os
 import logging
@@ -34,14 +35,18 @@ router = APIRouter(
 # ENVIRONMENT
 # =========================================================
 
-COHERE_API_KEY = os.getenv("COHERE_API_KEY")
+GOOGLE_API_KEY = os.getenv("GOOGLE_API_KEY")
 
-COHERE_AVAILABLE = bool(COHERE_API_KEY) and COHERE_API_KEY != "dummy"
+GEMINI_AVAILABLE = bool(GOOGLE_API_KEY) and GOOGLE_API_KEY != "dummy"
 
-if COHERE_AVAILABLE:
-    co = cohere.ClientV2(api_key=COHERE_API_KEY, timeout=120)
+if GEMINI_AVAILABLE:
+    gemini_client = genai.Client(api_key=GOOGLE_API_KEY)
+    gemini_config = types.GenerateContentConfig(
+        response_mime_type="application/json",
+        temperature=0.0,
+    )
 else:
-    co = None
+    gemini_client = None
 
 # =========================================================
 # SYSTEM PROMPT
@@ -501,9 +506,9 @@ MAX_RETRIES = 2
 
 
 def generate_extraction(text: str) -> dict:
-    if not COHERE_AVAILABLE:
-        logger.info("Cohere API key not available; using regex fallback")
-        return regex_fallback_extraction(text, "Cohere API key not configured")
+    if not GEMINI_AVAILABLE:
+        logger.info("Gemini API key not available; using regex fallback")
+        return regex_fallback_extraction(text, "Gemini API key not configured")
 
     last_error_msg = ""
 
@@ -511,27 +516,16 @@ def generate_extraction(text: str) -> dict:
         try:
             logger.info(f"Extraction attempt {attempt + 1}/{MAX_RETRIES}")
 
-            response = co.chat(
-                model="command-a-plus-05-2026",
-                messages=[
-                    {"role": "system", "content": SYSTEM_PROMPT},
-                    {
-                        "role": "user",
-                        "content": (
-                            "Extract ALL data from this UK energy broker note. "
-                            "Return ONLY raw JSON.\n\n"
-                            f"{text}"
-                        )
-                    }
-                ],
-                temperature=0.0,
-                response_format={"type": "json_object"},
+            response = gemini_client.models.generate_content(
+                model="gemini-2.0-flash",
+                contents=f"{SYSTEM_PROMPT}\n\nExtract ALL data from this UK energy broker note. Return ONLY raw JSON.\n\n{text}",
+                config=gemini_config,
             )
 
-            raw_text = next(
-                item.text for item in response.message.content
-                if hasattr(item, 'text')
-            )
+            raw_text = response.text
+            if not raw_text:
+                raise ValueError("Empty response from Gemini")
+
             logger.info(f"AI response received. First 300 chars:\n{raw_text[:300]}")
 
             data = extract_json(raw_text)

@@ -11,7 +11,7 @@ dependencies = [
     "bcrypt==4.2.1",
     "pyjwt==2.10.1",
     "pg8000>=1.31.2,<2.0",
-    "cohere==5.13.4",
+    "google-genai>=2.6.0",
     "python-dotenv==1.1.0",
 ]
 
