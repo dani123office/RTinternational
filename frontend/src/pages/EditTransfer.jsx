@@ -85,7 +85,7 @@ export default function EditTransfer() {
   const { id } = useParams()
   const navigate = useNavigate()
   const { toast } = useToast()
-  const { transfers, updateTransfer, updateCustomer, loadTransfers, createCallback } = useDataStore()
+  const { transfers, updateTransfer, updateCustomer, loadTransfers, createCallback, updateCallback } = useDataStore()
   const [saving, setSaving] = useState(false)
   const { user } = useAuthStore()
   const isManager = user?.role === 'manager'
@@ -213,7 +213,7 @@ export default function EditTransfer() {
       date: t.scheduledDateTime?.substring(0, 10) || '',
       time: t.scheduledDateTime?.substring(11, 16) || '',
       day: '',
-      scheduleAsCallback: false,
+      scheduleAsCallback: !!t.callBackId,
     })
   }
 
@@ -374,6 +374,16 @@ export default function EditTransfer() {
       }
 
       await updateTransfer(transferId, transferPayload)
+
+      // Sync account details to linked callback
+      if (transfer.callBackId) {
+        await api.put(`/api/callbacks/${transfer.callBackId}`, {
+          accountNumber: form.accountNumber || null,
+          mpan: form.mpan || null,
+          mprn: form.mprn || null,
+          msn: form.msn || null,
+        }).catch(() => { /* silent fail */ })
+      }
 
       if (form.scheduleAsCallback && form.date && form.time) {
         await createCallback({
