@@ -85,7 +85,7 @@ export default function EditTransfer() {
   const { id } = useParams()
   const navigate = useNavigate()
   const { toast } = useToast()
-  const { transfers, updateTransfer, updateCustomer, loadTransfers } = useDataStore()
+  const { transfers, updateTransfer, updateCustomer, loadTransfers, createCallback } = useDataStore()
   const [saving, setSaving] = useState(false)
   const { user } = useAuthStore()
   const isManager = user?.role === 'manager'
@@ -130,6 +130,7 @@ export default function EditTransfer() {
     date: '',
     time: '',
     day: '',
+    scheduleAsCallback: false,
   })
 
   const populateForm = (t) => {
@@ -212,6 +213,7 @@ export default function EditTransfer() {
       date: t.scheduledDateTime?.substring(0, 10) || '',
       time: t.scheduledDateTime?.substring(11, 16) || '',
       day: '',
+      scheduleAsCallback: false,
     })
   }
 
@@ -338,10 +340,6 @@ export default function EditTransfer() {
         notes: form.notes || undefined,
       }
 
-      if (form.date && form.time) {
-        transferPayload.scheduledDateTime = `${form.date}T${form.time}:00`
-      }
-
       if (form.day) transferPayload.dayOfWeek = form.day
 
       if (form.showOfferRates) {
@@ -376,6 +374,43 @@ export default function EditTransfer() {
       }
 
       await updateTransfer(transferId, transferPayload)
+
+      if (form.scheduleAsCallback && form.date && form.time) {
+        await createCallback({
+          customerId: customer.id,
+          scheduledDateTime: `${form.date}T${form.time}:00`,
+          notes: form.notes || null,
+          accountNumber: form.accountNumber || null,
+          mpan: form.mpan || null,
+          mprn: form.mprn || null,
+          msn: form.msn || null,
+          offeredElectricityRates: form.showOfferRates && form.utilityType !== 'gas' ? [{
+            contractLength: form.elecContractLength,
+            supplier: form.elecSupplier || null,
+            meterType: form.elecMeterType,
+            commissionType: form.elecCommissionType,
+            dayUnitRate: toNum(form.elecCommission.dayUnitRate),
+            nightUnitRate: toNum(form.elecCommission.nightUnitRate),
+            eveningUnitRate: toNum(form.elecCommission.eveningUnitRate),
+            standingRate: toNum(form.elecCommission.standingRate),
+            nonCommissionDayRate: toNum(form.elecNonCommission.dayUnitRate),
+            nonCommissionNightRate: toNum(form.elecNonCommission.nightUnitRate),
+            nonCommissionEveningRate: toNum(form.elecNonCommission.eveningUnitRate),
+            nonCommissionStandingRate: toNum(form.elecNonCommission.standingRate),
+            brokerServiceCharge: toNum(form.elecNonCommission.brokerServiceCharge),
+          }] : [],
+          offeredGasRates: form.showOfferRates && form.utilityType !== 'electricity' ? [{
+            contractLength: form.gasContractLength,
+            supplier: form.gasSupplier || null,
+            unitRate: toNum(form.gasCommission.dayUnitRate),
+            standingRate: toNum(form.gasCommission.standingRate),
+            nonCommissionUnitRate: toNum(form.gasNonCommission.dayUnitRate),
+            nonCommissionStandingRate: toNum(form.gasNonCommission.standingRate),
+            brokerServiceCharge: toNum(form.gasNonCommission.brokerServiceCharge),
+          }] : [],
+        })
+      }
+
       await loadTransfers()
       toast('Transfer updated successfully', 'success')
       navigate(isManager ? `/manager/transfers/${id}` : `/transfers/${id}`)
@@ -608,19 +643,32 @@ export default function EditTransfer() {
               )}
             </Card>
 
-            <Card icon={FileText} iconColor="#f59e0b" iconBg="rgba(245,158,11,0.15)" title="Schedule" delay="rt-d5">
-              <div className="rt-grid2">
-                <div>
-                  <Field label="Date" icon={Calendar}>
-                    <input type="date" value={form.date} onChange={(e) => setField('date', e.target.value)} className="rt-input" style={{ paddingLeft: '38px' }} />
-                  </Field>
+            <Card icon={Calendar} iconColor="#f59e0b" iconBg="rgba(245,158,11,0.15)" title="Schedule as Call Back" delay="rt-d5"
+              headerRight={
+                <div className="rt-toggle-row">
+                  <span className="rt-toggle-label">Enable</span>
+                  <Switch checked={form.scheduleAsCallback} onCheckedChange={(v) => setField('scheduleAsCallback', v)} />
                 </div>
-                <div>
-                  <Field label="Time" icon={Clock}>
-                    <input type="time" value={form.time || '10:00'} onChange={(e) => setField('time', e.target.value)} className="rt-input" style={{ paddingLeft: '38px' }} />
-                  </Field>
+              }
+            >
+              {form.scheduleAsCallback ? (
+                <div className="rt-grid2">
+                  <div>
+                    <Field label="Date" icon={Calendar}>
+                      <input type="date" value={form.date} onChange={(e) => setField('date', e.target.value)} className="rt-input" style={{ paddingLeft: '38px' }} />
+                    </Field>
+                  </div>
+                  <div>
+                    <Field label="Time" icon={Clock}>
+                      <input type="time" value={form.time || '10:00'} onChange={(e) => setField('time', e.target.value)} className="rt-input" style={{ paddingLeft: '38px' }} />
+                    </Field>
+                  </div>
                 </div>
-              </div>
+              ) : (
+                <p style={{ color: '#94a3b8', fontSize: '13.5px', margin: 0, fontStyle: 'italic' }}>
+                  Enable to schedule a callback for this transfer.
+                </p>
+              )}
             </Card>
 
             <Card icon={FileText} iconColor="#6366f1" iconBg="rgba(99,102,241,0.15)" title="Notes" delay="rt-d6">
