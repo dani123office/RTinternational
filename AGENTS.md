@@ -39,7 +39,10 @@ Fix 500 errors (local and Vercel) in the RT International call center FastAPI ap
 
 - **400 false positives from security middleware**: Overly broad SQL injection patterns matched legitimate business text (e.g., "CASE WHEN" in notes, short hex strings in data). → Fixed by tightening regex patterns.
 
+## Completed (this session)
+7. **Verified `POSTGRES_URL`** — already configured on `rt-international` Vercel project via Neon integration (same database as old `rt-international-api`).
+
 ## Verification
 1. Push to GitHub → Vercel auto-deploys
-2. Check `https://rt-international.vercel.app/api/health` or any API endpoint
-3. Check `https://rt-international.vercel.app/` for frontend
+2. Check `https://rt-international.vercel.app/` for frontend (should load SPA)
+3. Check `https://rt-international.vercel.app/api/auth/users` (should 401 with JSON body, not 500)
