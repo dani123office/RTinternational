@@ -249,86 +249,8 @@ def on_startup():
                 return u
             return existing
 
-        admin_user = _ensure_user("admin@test.com", dict(name="Admin User", password_hash=_hash(), role="admin", is_active=1))
-        manager = _ensure_user("manager@test.com", dict(name="Sarah", password_hash=_hash(), role="manager", is_active=1))
-        manager2 = _ensure_user("zara@test.com", dict(name="Zara", password_hash=_hash(), role="manager", is_active=1))
-
+        _ensure_user("admin@test.com", dict(name="Admin User", password_hash=_hash(), role="admin", is_active=1))
         _ensure_user("sunny@rt.com", dict(name="Sunny", password_hash=_hash("123456"), role="manager", is_active=1))
-
-        agents = []
-        agents_config = [
-            ("Usman", "usman@test.com", manager.id),
-            ("Danny", "danny@test.com", manager.id),
-            ("Emily", "emily@test.com", manager.id),
-            ("James", "james@test.com", manager2.id),
-            ("Sophie", "sophie@test.com", manager2.id),
-            ("Oliver", "oliver@test.com", manager2.id),
-        ]
-        for name, email, mid in agents_config:
-            a = _ensure_user(email, dict(name=name, password_hash=_hash(), role="agent", manager_id=mid, is_active=1))
-            agents.append(a)
-
-        now = datetime.now()
-        if not db.query(Customer).first():
-            for i, agent in enumerate(agents):
-                for j in range(3 + (i % 3)):
-                    unique_id = 1000 + i * 10 + j
-                    customer = Customer(
-                        created_by=agent.id,
-                        business_name=f"Business {unique_id}",
-                        owner_name=f"Owner {unique_id}",
-                        business_phone="0123456789",
-                        utility_type="electricity",
-                        postcode="SW1A 1AA",
-                    )
-                    db.add(customer)
-                    db.flush()
-                    db.add(CallBack(
-                        employee_id=agent.id,
-                        customer_id=customer.id,
-                        scheduled_datetime=now,
-                        notes=f"Sample callback {j+1} for {agent.name}",
-                        status="pending" if j < 2 else "done",
-                    ))
-                for j in range(2 + (i % 2)):
-                    unique_id = 2000 + i * 10 + j
-                    customer = Customer(
-                        created_by=agent.id,
-                        business_name=f"Business {unique_id}",
-                        owner_name=f"Owner {unique_id}",
-                        business_phone="0123456789",
-                        utility_type="electricity",
-                        postcode="SW1A 1AA",
-                    )
-                    db.add(customer)
-                    db.flush()
-                    db.add(Transfer(
-                        employee_id=agent.id,
-                        customer_id=customer.id,
-                        utility_type="electricity",
-                        elec_offer_supplier="British Gas",
-                        status="pending" if j == 0 else "completed",
-                        scheduled_datetime=now,
-                        notes=f"Sample transfer {j+1}",
-                    ))
-                unique_id = 3000 + i
-                customer = Customer(
-                    created_by=agent.id,
-                    business_name=f"Business {unique_id}",
-                    owner_name=f"Owner {unique_id}",
-                    business_phone="0123456789",
-                    utility_type="electricity",
-                    postcode="SW1A 1AA",
-                )
-                db.add(customer)
-                db.flush()
-                db.add(Sale(
-                    employee_id=agent.id,
-                    customer_id=customer.id,
-                    owner_full_name=f"{agent.name}'s Client",
-                    cot_status="chasing" if i % 2 == 0 else "done",
-                    notes=f"Sample sale for {agent.name}",
-                ))
 
         db.commit()
     finally:
