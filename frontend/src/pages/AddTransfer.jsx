@@ -160,19 +160,32 @@ export default function AddTransfer() {
               </div>
             </Card>
 
-            <Card icon={CalendarIcon} iconColor="#f59e0b" iconBg="rgba(245,158,11,0.15)" title="Schedule Transfer" delay="rt-d4">
-              <div className="rt-grid2">
-                <div>
-                  <Field label="Date" icon={CalendarIcon}>
-                    <input className="rt-input" style={{ paddingLeft: '38px' }} type="date" value={form.scheduledDate} onChange={(e) => setField('scheduledDate', e.target.value)} />
-                  </Field>
+            <Card icon={CalendarIcon} iconColor="#f59e0b" iconBg="rgba(245,158,11,0.15)" title="Schedule as Call Back" delay="rt-d4"
+              headerRight={
+                <div className="rt-toggle-row">
+                  <span className="rt-toggle-label">Enable</span>
+                  <Switch checked={form.scheduleAsCallback} onCheckedChange={(v) => setField('scheduleAsCallback', v)} />
                 </div>
-                <div>
-                  <Field label="Time" icon={Clock}>
-                    <input className="rt-input" style={{ paddingLeft: '38px' }} type="time" value={form.scheduledTime} onChange={(e) => setField('scheduledTime', e.target.value)} />
-                  </Field>
+              }
+            >
+              {form.scheduleAsCallback ? (
+                <div className="rt-grid2">
+                  <div>
+                    <Field label="Date" icon={CalendarIcon}>
+                      <input className="rt-input" style={{ paddingLeft: '38px' }} type="date" value={form.scheduledDate} onChange={(e) => setField('scheduledDate', e.target.value)} />
+                    </Field>
+                  </div>
+                  <div>
+                    <Field label="Time" icon={Clock}>
+                      <input className="rt-input" style={{ paddingLeft: '38px' }} type="time" value={form.scheduledTime} onChange={(e) => setField('scheduledTime', e.target.value)} />
+                    </Field>
+                  </div>
                 </div>
-              </div>
+              ) : (
+                <p style={{ color: '#94a3b8', fontSize: '13.5px', margin: 0, fontStyle: 'italic' }}>
+                  Enable to schedule a callback for this transfer.
+                </p>
+              )}
             </Card>
 
             <Card

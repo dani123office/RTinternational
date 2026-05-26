@@ -32,7 +32,7 @@ const mapGasMeter = (m, i) => ({
 })
 
 export function useTransferForm(locationState, navigate) {
-  const { createTransfer, loadTransfers, createCustomer } = useDataStore()
+  const { createTransfer, loadTransfers, createCustomer, createCallback } = useDataStore()
   const { getCurrentUserId } = useAuthStore()
   const { toast } = useToast()
   const [isLoading, setIsLoading] = useState(false)
@@ -266,12 +266,12 @@ export function useTransferForm(locationState, navigate) {
         customerId = customer.id
       }
 
-      await createTransfer({
+      const transfer = await createTransfer({
         customerId,
         accountNumber: form.accountNumber || null,
         notes: form.notes || null,
         employeeId: uid,
-        scheduledDateTime: form.scheduledDate ? `${form.scheduledDate}T${form.scheduledTime || '10:00'}:00` : null,
+        scheduledDateTime: null,
         callBackId: form.callbackId || form.callBackId || null,
         offeredElectricityRates: form.showOfferRates && form.utilityType !== 'gas' ? [{
           contractLength: form.elecContractLength, supplier: form.elecSupplier || null,
@@ -292,6 +292,37 @@ export function useTransferForm(locationState, navigate) {
           brokerServiceCharge: toNum(form.gasNonCommission.brokerServiceCharge),
         }] : [],
       })
+
+      if (form.scheduleAsCallback && form.scheduledDate) {
+        await createCallback({
+          customerId,
+          scheduledDateTime: `${form.scheduledDate}T${form.scheduledTime || '10:00'}:00`,
+          notes: form.notes || null,
+          accountNumber: form.accountNumber || null,
+          mpan: form.mpan || null,
+          mprn: form.mprn || null,
+          msn: form.msn || null,
+          offeredElectricityRates: form.showOfferRates && form.utilityType !== 'gas' ? [{
+            contractLength: form.elecContractLength, supplier: form.elecSupplier || null,
+            meterType: form.elecMeterType, commissionType: form.elecCommissionType,
+            dayUnitRate: toNum(form.elecCommission.dayUnitRate), nightUnitRate: toNum(form.elecCommission.nightUnitRate),
+            eveningUnitRate: toNum(form.elecCommission.eveningUnitRate), standingRate: toNum(form.elecCommission.standingRate),
+            nonCommissionDayRate: toNum(form.elecNonCommission.dayUnitRate),
+            nonCommissionNightRate: toNum(form.elecNonCommission.nightUnitRate),
+            nonCommissionEveningRate: toNum(form.elecNonCommission.eveningUnitRate),
+            nonCommissionStandingRate: toNum(form.elecNonCommission.standingRate),
+            brokerServiceCharge: toNum(form.elecNonCommission.brokerServiceCharge),
+          }] : [],
+          offeredGasRates: form.showOfferRates && form.utilityType !== 'electricity' ? [{
+            contractLength: form.gasContractLength, supplier: form.gasSupplier || null,
+            unitRate: toNum(form.gasCommission.dayUnitRate), standingRate: toNum(form.gasCommission.standingRate),
+            nonCommissionUnitRate: toNum(form.gasNonCommission.dayUnitRate),
+            nonCommissionStandingRate: toNum(form.gasNonCommission.standingRate),
+            brokerServiceCharge: toNum(form.gasNonCommission.brokerServiceCharge),
+          }] : [],
+        })
+      }
+
       await loadTransfers()
       toast('Transfer created successfully', 'success')
       navigate('/transfers')

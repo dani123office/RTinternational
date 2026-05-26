@@ -109,4 +109,5 @@ export const DEFAULT_CALLBACK_FORM = {
 export const DEFAULT_TRANSFER_FORM = {
   ...DEFAULT_CALLBACK_FORM,
   accountNumber: '', mpan: '', mprn: '', msn: '',
+  scheduleAsCallback: false,
 };
