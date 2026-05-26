@@ -443,6 +443,10 @@ export default function AddCallback() {
         employeeId:        uid,
         scheduledDateTime: `${form.scheduledDate}T${form.scheduledTime}:00`,
         notes:             form.notes || null,
+        accountNumber:     form.accountNumber || null,
+        mpan:              form.mpan || null,
+        mprn:              form.mprn || null,
+        msn:               form.msn || null,
         offeredElectricityRates: form.showOfferRates && form.utilityType !== 'gas' ? [{
           contractLength:form.elecContractLength, supplier:form.elecSupplier||null,
           meterType:form.elecMeterType, commissionType:form.elecCommissionType,
@@ -462,6 +466,15 @@ export default function AddCallback() {
 
       if (isEdit) {
         await updateCallback(Number(id), {...customerPayload, ...callbackPayload})
+        // Sync account details to linked transfer
+        if (linkedTransfer) {
+          await api.put(`/api/transfers/${callbackData.transferId}`, {
+            accountNumber: form.accountNumber || undefined,
+            mpan: form.mpan || undefined,
+            mprn: form.mprn || undefined,
+            msn: form.msn || undefined,
+          }).catch(() => {})
+        }
       } else {
         const customer = await createCustomer(customerPayload)
         await createCallback({ customerId:customer.id, ...callbackPayload })
@@ -564,14 +577,14 @@ export default function AddCallback() {
               <div style={{display:'grid', gridTemplateColumns:'1fr 1fr', gap:'16px'}}>
                 {(form.utilityType==='electricity'||form.utilityType==='both') && (
                   <>
-                    <div><InputField label="MPAN (Supply Number)">{isEdit ? <span style={{display:'block',padding:'8px 12px',background:'#f8fafc',border:'1px solid #e2e8f0',borderRadius:'8px',fontSize:'14px',color:'#0f172a'}}>{linkedTransfer?.mpan || '—'}</span> : <input className="rt-input" value={form.mpan} onChange={(e)=>upd('mpan',e.target.value)} placeholder="e.g. 04 1234 5678 901"/>}</InputField></div>
-                    <div><InputField label="MSN (Meter Serial No)">{isEdit ? <span style={{display:'block',padding:'8px 12px',background:'#f8fafc',border:'1px solid #e2e8f0',borderRadius:'8px',fontSize:'14px',color:'#0f172a'}}>{linkedTransfer?.msn || '—'}</span> : <input className="rt-input" value={form.msn} onChange={(e)=>upd('msn',e.target.value)} placeholder="e.g. 12A3456789"/>}</InputField></div>
+                    <div><InputField label="MPAN (Supply Number)"><input className="rt-input" value={form.mpan} onChange={(e)=>upd('mpan',e.target.value)} placeholder="e.g. 04 1234 5678 901"/></InputField></div>
+                    <div><InputField label="MSN (Meter Serial No)"><input className="rt-input" value={form.msn} onChange={(e)=>upd('msn',e.target.value)} placeholder="e.g. 12A3456789"/></InputField></div>
                   </>
                 )}
                 {(form.utilityType==='gas'||form.utilityType==='both') && (
-                  <div><InputField label="MPRN">{isEdit ? <span style={{display:'block',padding:'8px 12px',background:'#f8fafc',border:'1px solid #e2e8f0',borderRadius:'8px',fontSize:'14px',color:'#0f172a'}}>{linkedTransfer?.mprn || '—'}</span> : <input className="rt-input" value={form.mprn} onChange={(e)=>upd('mprn',e.target.value)} placeholder="e.g. 1234567890"/>}</InputField></div>
+                  <div><InputField label="MPRN"><input className="rt-input" value={form.mprn} onChange={(e)=>upd('mprn',e.target.value)} placeholder="e.g. 1234567890"/></InputField></div>
                 )}
-                <div><InputField label="Account Number">{isEdit ? <span style={{display:'block',padding:'8px 12px',background:'#f8fafc',border:'1px solid #e2e8f0',borderRadius:'8px',fontSize:'14px',color:'#0f172a'}}>{linkedTransfer?.accountNumber || '—'}</span> : <input className="rt-input" value={form.accountNumber} onChange={(e)=>upd('accountNumber',e.target.value)} placeholder="e.g. AC12345678"/>}</InputField></div>
+                <div><InputField label="Account Number"><input className="rt-input" value={form.accountNumber} onChange={(e)=>upd('accountNumber',e.target.value)} placeholder="e.g. AC12345678"/></InputField></div>
               </div>
             </DashboardCard>
 

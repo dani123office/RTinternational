@@ -156,6 +156,10 @@ def create_callback(dto: CallBackCreate, current_user: User = Depends(get_curren
                 scheduled_datetime=dt,
                 notes=dto.notes,
                 status="pending",
+                account_number=dto.accountNumber,
+                mpan=dto.mpan,
+                mprn=dto.mprn,
+                msn=dto.msn,
             )
             db.add(callback)
 
