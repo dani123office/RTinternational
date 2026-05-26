@@ -5,3 +5,5 @@ from . import transfers
 from . import sales
 from . import manager
 from . import admin
+from . import ai_router
+from . import profile
