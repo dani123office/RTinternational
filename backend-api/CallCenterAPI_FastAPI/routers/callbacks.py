@@ -149,14 +149,6 @@ def create_callback(dto: CallBackCreate, current_user: User = Depends(get_curren
             if dto.notes:
                 callback.notes = (callback.notes or "") + f"\n[Rescheduled by Agent] " + dto.notes
             callback.status = "pending"
-            if dto.accountNumber is not None:
-                callback.account_number = dto.accountNumber
-            if dto.mpan is not None:
-                callback.mpan = dto.mpan
-            if dto.mprn is not None:
-                callback.mprn = dto.mprn
-            if dto.msn is not None:
-                callback.msn = dto.msn
         else:
             callback = CallBack(
                 employee_id=current_user.id,
@@ -164,10 +156,6 @@ def create_callback(dto: CallBackCreate, current_user: User = Depends(get_curren
                 scheduled_datetime=dt,
                 notes=dto.notes,
                 status="pending",
-                account_number=dto.accountNumber,
-                mpan=dto.mpan,
-                mprn=dto.mprn,
-                msn=dto.msn,
             )
             db.add(callback)
 
@@ -241,14 +229,6 @@ def update_callback(id: int, dto: CallBackUpdate, current_user: User = Depends(g
             callback.outcome = dto.outcome
         if dto.notInterestedReason is not None:
             callback.not_interested_reason = dto.notInterestedReason
-        if dto.accountNumber is not None:
-            callback.account_number = dto.accountNumber
-        if dto.mpan is not None:
-            callback.mpan = dto.mpan
-        if dto.mprn is not None:
-            callback.mprn = dto.mprn
-        if dto.msn is not None:
-            callback.msn = dto.msn
 
         if dto.offeredElectricityRates is not None:
             if dto.offeredElectricityRates:
