@@ -15,5 +15,4 @@ dependencies = [
     "python-dotenv==1.1.0",
 ]
 
-[tool.vercel]
-entrypoint = "CallCenterAPI_FastAPI.main:app"
+# Vercel uses api/index.py as the serverless function entry point
