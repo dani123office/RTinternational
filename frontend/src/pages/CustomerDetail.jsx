@@ -50,9 +50,9 @@ export default function CustomerDetail() {
     )
   }
 
-  const customerCallbacks = callbacks.filter((c) => c.customerId === customer.id && c.status !== 'done' && c.status !== 'not_interested')
-  const customerNotInterestedCallbacks = callbacks.filter((c) => c.customerId === customer.id && c.outcome === 'not_interested')
-  const customerNotInterestedTransfers = transfers.filter((t) => t.customerId === customer.id && t.outcome === 'not_interested')
+  const customerCallbacks = callbacks.filter((c) => c.customerId === customer.id)
+  const customerNotInterestedCallbacks = callbacks.filter((c) => c.customerId === customer.id && (c.outcome === 'not_interested' || c.status === 'not_interested'))
+  const customerNotInterestedTransfers = transfers.filter((t) => t.customerId === customer.id && (t.outcome === 'not_interested' || t.status === 'not_interested'))
   const customerTransfers = transfers.filter((t) => t.customerId === customer.id)
   const customerSales = sales.filter((s) => s.customerId === customer.id)
   const latestTransfer = customerTransfers[0]
@@ -153,7 +153,11 @@ export default function CustomerDetail() {
               {customerCallbacks.length > 0 ? (
                 <div className="space-y-4">
                   {customerCallbacks.map((c, idx) => (
-                    <div key={c.id || idx} className={`p-4 rounded-xl border border-slate-100 bg-slate-50/50 flex flex-col gap-2.5 text-sm ${idx > 0 ? 'mt-3' : ''}`}>
+                    <div
+                      key={c.id || idx}
+                      onClick={() => c.id && navigate(`/callbacks/${c.id}`)}
+                      className={`p-4 rounded-xl border border-slate-100 bg-slate-50/50 flex flex-col gap-2.5 text-sm cursor-pointer hover:bg-slate-100/70 hover:shadow-sm transition-all duration-200 ${idx > 0 ? 'mt-3' : ''}`}
+                    >
                       <div className="flex items-center justify-between gap-3">
                         <span className="font-semibold text-slate-800 flex items-center gap-1.5">
                           <Clock size={14} className="text-slate-400" />
@@ -246,7 +250,11 @@ export default function CustomerDetail() {
                     const gRates = t.offeredGasRates || []
                     const hasOffer = eRates.length > 0 || gRates.length > 0
                     return (
-                      <div key={t.id || idx} className={`p-4 rounded-xl border border-slate-100 bg-slate-50/50 flex flex-col gap-3 text-sm ${idx > 0 ? 'mt-3' : ''}`}>
+                      <div
+                        key={t.id || idx}
+                        onClick={() => t.id && navigate(`/transfers/${t.id}`)}
+                        className={`p-4 rounded-xl border border-slate-100 bg-slate-50/50 flex flex-col gap-3 text-sm cursor-pointer hover:bg-slate-100/70 hover:shadow-sm transition-all duration-200 ${idx > 0 ? 'mt-3' : ''}`}
+                      >
                         <div className="flex items-center justify-between gap-3">
                           <div className="flex items-center gap-2">
                             <span className="font-bold text-slate-800">Transfer #{t.id}</span>
@@ -399,7 +407,11 @@ export default function CustomerDetail() {
               {customerSales.length > 0 ? (
                 <div className="space-y-4">
                   {customerSales.map((s, idx) => (
-                    <div key={s.id || idx} className={`p-4 rounded-xl border border-slate-100 bg-slate-50/50 flex flex-col gap-3 text-sm ${idx > 0 ? 'mt-3' : ''}`}>
+                    <div
+                      key={s.id || idx}
+                      onClick={() => s.id && navigate(`/sales/${s.id}`)}
+                      className={`p-4 rounded-xl border border-slate-100 bg-slate-50/50 flex flex-col gap-3 text-sm cursor-pointer hover:bg-slate-100/70 hover:shadow-sm transition-all duration-200 ${idx > 0 ? 'mt-3' : ''}`}
+                    >
                       <div className="flex items-center justify-between gap-3">
                         <span className="font-bold text-slate-800">Sale Application #{s.id}</span>
                         <StatusBadge status={s.cotStatus || 'submitted'} />
