@@ -99,6 +99,46 @@ def create_customer(dto: CustomerCreate, current_user: User = Depends(get_curren
                 func.lower(Customer.postcode) == func.lower(dto.postcode.strip())
             ).first()
             if existing:
+                if dto.businessName:
+                    existing.business_name = dto.businessName
+                if dto.ownerName:
+                    existing.owner_name = dto.ownerName
+                if dto.businessPhone:
+                    existing.business_phone = dto.businessPhone
+                if dto.ownerPhone is not None:
+                    existing.owner_phone = dto.ownerPhone
+                if dto.email is not None:
+                    existing.email = dto.email
+                if dto.businessAddress:
+                    existing.business_address = dto.businessAddress
+                if dto.utilityType:
+                    existing.utility_type = dto.utilityType
+
+                if dto.electricityRates is not None:
+                    db.query(ElectricityMeter).filter(ElectricityMeter.customer_id == existing.id).delete()
+                    db.flush()
+                    for rate in dto.electricityRates:
+                        db.add(ElectricityMeter(
+                            customer_id=existing.id, meter_number=rate.meterNumber,
+                            current_supplier=rate.currentSupplier, supply_number=rate.supplyNumber,
+                            day_unit_rate=rate.dayUnitRate, night_unit_rate=rate.nightUnitRate,
+                            evening_unit_rate=rate.eveningUnitRate, standing_rate=rate.standingRate,
+                            monthly_bill=rate.monthlyBill, contract_end_date=rate.contractEndDate,
+                        ))
+
+                if dto.gasRates is not None:
+                    db.query(GasMeter).filter(GasMeter.customer_id == existing.id).delete()
+                    db.flush()
+                    for rate in dto.gasRates:
+                        db.add(GasMeter(
+                            customer_id=existing.id, meter_number=rate.meterNumber,
+                            current_supplier=rate.currentSupplier, unit_rate=rate.unitRate,
+                            standing_rate=rate.standingRate, monthly_bill=rate.monthlyBill,
+                            contract_end_date=rate.contractEndDate,
+                        ))
+
+                db.commit()
+                db.refresh(existing)
                 return _customer_out(existing)
 
         customer = Customer(
