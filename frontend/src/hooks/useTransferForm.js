@@ -284,6 +284,9 @@ export function useTransferForm(locationState, navigate) {
       const transfer = await createTransfer({
         customerId,
         accountNumber: form.accountNumber || null,
+        mpan: form.mpan || null,
+        mprn: form.mprn || null,
+        msn: form.msn || null,
         notes: form.notes || null,
         employeeId: uid,
         scheduledDateTime: null,
