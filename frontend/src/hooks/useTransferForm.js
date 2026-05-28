@@ -41,17 +41,32 @@ export function useTransferForm(locationState, navigate) {
     const prefill = locationState?.prefillData || locationState || {}
     const or = locationState?.prefillData?.offeredRates || locationState?.offeredRates
 
+    // Handle businessAddress coming in two formats:
+    //  1) straight string from customer (businessAddress)
+    //  2) split fields from callback form (addressLine1 + city)
+    const rawAddress = prefill.businessAddress || prefill.customer?.businessAddress
+    const reconstructedAddress = prefill.addressLine1
+      ? [prefill.addressLine1, prefill.city].filter(Boolean).join(', ')
+      : null
+    const resolvedAddress = rawAddress || reconstructedAddress || ''
+
     const initialForm = {
       ...DEFAULT_TRANSFER_FORM,
       ...prefill,
       businessName: prefill.businessName || prefill.customer?.businessName || '',
       businessPhone: prefill.businessPhone || prefill.customer?.businessPhone || '',
-      businessAddress: prefill.businessAddress || prefill.customer?.businessAddress || '',
+      businessAddress: resolvedAddress,
       postcode: prefill.postcode || prefill.customer?.postcode || '',
       ownerName: prefill.ownerName || prefill.customer?.ownerName || '',
       ownerPhone: prefill.ownerPhone || prefill.customer?.ownerPhone || '',
       email: prefill.email || prefill.customer?.email || '',
       utilityType: prefill.utilityType || prefill.customer?.utilityType || 'electricity',
+      // Preserve account/meter details from prefill (callback may supply these)
+      accountNumber: prefill.accountNumber || prefill.customer?.accountNumber || '',
+      mpan: prefill.mpan || prefill.customer?.mpan || '',
+      mprn: prefill.mprn || prefill.customer?.mprn || '',
+      msn: prefill.msn || prefill.customer?.msn || '',
+      callbackId: prefill.callbackId || prefill.callBackId || null,
       elecMeters: (prefill.elecMeters || prefill.electricityMeters || prefill.customer?.electricityMeters)
         ? (prefill.elecMeters || prefill.electricityMeters || prefill.customer.electricityMeters).map((m, i) => ({
             meterNumber: m.meterNumber || i + 1,

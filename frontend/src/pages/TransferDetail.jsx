@@ -1,4 +1,4 @@
-import { Loader2, ArrowLeft, FileText } from 'lucide-react'
+import { Loader2, ArrowLeft, FileText, PhoneCall, PoundSterling, ArrowLeftRight } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
 import { APP_STYLES } from '@/lib/styles'
 import { useTransferDetail } from '@/hooks/useTransferDetail'
@@ -9,6 +9,7 @@ import CustomerInfoCard from '@/components/shared/CustomerInfoCard'
 import AccountDetailsCard from '@/components/shared/AccountDetailsCard'
 import MeterDetailsCard from '@/components/shared/MeterDetailsCard'
 import OfferedRatesCard from '@/components/shared/OfferedRatesCard'
+import { formatDateTime } from '@/lib/formatters'
 
 function Card({ icon: Icon, iconColor, iconBg, title, children, delay }) {
   return (
@@ -26,10 +27,30 @@ function Card({ icon: Icon, iconColor, iconBg, title, children, delay }) {
   )
 }
 
+function LinkedRow({ icon: Icon, iconBg, iconColor, label, sub, onClick }) {
+  return (
+    <div
+      onClick={onClick}
+      className="flex items-center gap-3 p-3 rounded-xl cursor-pointer hover:bg-slate-50 transition-colors border border-slate-100"
+    >
+      <div className="w-9 h-9 rounded-xl flex items-center justify-center shrink-0" style={{ background: iconBg }}>
+        <Icon size={15} color={iconColor} />
+      </div>
+      <div className="min-w-0">
+        <p className="text-sm font-semibold text-slate-800 truncate">{label}</p>
+        {sub && <p className="text-xs text-slate-500 truncate">{sub}</p>}
+      </div>
+      <ArrowLeftRight size={13} className="ml-auto text-slate-400 shrink-0" />
+    </div>
+  )
+}
+
 export default function TransferDetail() {
   const navigate = useNavigate()
   const {
     transfer,
+    linkedSales,
+    linkedCallback,
     showSchedule, setShowSchedule,
     showReschedule, setShowReschedule,
     showDelete, setShowDelete,
@@ -60,6 +81,17 @@ export default function TransferDetail() {
 
   const customer = transfer.customer || {}
 
+  // Build unified account details — prefer transfer-level fields over customer meter fields
+  const accountDetails = {
+    accountNumber: transfer.accountNumber,
+    mpan: transfer.mpan || customer.electricityMeters?.[0]?.supplyNumber,
+    mprn: transfer.mprn,
+    msn: transfer.msn,
+  }
+  const hasAccountDetails = Object.values(accountDetails).some(Boolean)
+
+  const hasLinked = linkedCallback || (linkedSales && linkedSales.length > 0)
+
   return (
     <>
       <style>{APP_STYLES}</style>
@@ -76,16 +108,19 @@ export default function TransferDetail() {
             <TransferHero transfer={transfer} customer={customer} />
           </div>
 
+          {/* Customer Info */}
           <div className="rt-fade rt-d2">
             <CustomerInfoCard customer={customer} />
           </div>
 
-          {(transfer.accountNumber || transfer.mpan || transfer.mprn || transfer.msn) && (
+          {/* Account Details (transfer-level) */}
+          {hasAccountDetails && (
             <div className="rt-fade rt-d3">
-              <AccountDetailsCard transfer={transfer} />
+              <AccountDetailsCard transfer={accountDetails} />
             </div>
           )}
 
+          {/* Meter Details grid */}
           <div className="rt-grid2">
             <div className="rt-fade rt-d3">
               <MeterDetailsCard utilityType="electricity" meters={customer.electricityMeters} />
@@ -97,15 +132,48 @@ export default function TransferDetail() {
             </div>
           </div>
 
+          {/* Notes */}
           {transfer.notes && (
             <Card icon={FileText} iconColor="#6366f1" iconBg="rgba(99,102,241,0.15)" title="Notes" delay="rt-d4">
               <p style={{color:'#334155',fontSize:'13.5px',whiteSpace:'pre-wrap',lineHeight:1.7,margin:0}}>{transfer.notes}</p>
             </Card>
           )}
 
+          {/* Offered Rates */}
           <div className="rt-fade rt-d5">
             <OfferedRatesCard transfer={transfer} />
           </div>
+
+          {/* Linked Records — Callback & Sales */}
+          {hasLinked && (
+            <Card icon={PhoneCall} iconColor="#6366f1" iconBg="rgba(99,102,241,0.15)" title="Linked Records" delay="rt-d5">
+              <div className="flex flex-col gap-2">
+                {linkedCallback && (
+                  <LinkedRow
+                    icon={PhoneCall}
+                    iconBg="rgba(99,102,241,0.1)"
+                    iconColor="#6366f1"
+                    label={`Callback #${linkedCallback.id}`}
+                    sub={linkedCallback.scheduledDateTime
+                      ? `Scheduled: ${formatDateTime(linkedCallback.scheduledDateTime)}`
+                      : linkedCallback.customer?.businessName}
+                    onClick={() => navigate(`/callbacks/${linkedCallback.id}`)}
+                  />
+                )}
+                {linkedSales?.map((s) => (
+                  <LinkedRow
+                    key={s.id}
+                    icon={PoundSterling}
+                    iconBg="rgba(245,158,11,0.1)"
+                    iconColor="#f59e0b"
+                    label={`Sale Application #${s.id}`}
+                    sub={s.ownerFullName || customer.businessName || `Status: ${s.cotStatus || 'submitted'}`}
+                    onClick={() => navigate(`/sales/${s.id}`)}
+                  />
+                ))}
+              </div>
+            </Card>
+          )}
 
           <div className="rt-fade rt-d6">
             <TransferActions

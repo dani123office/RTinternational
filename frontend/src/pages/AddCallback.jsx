@@ -462,6 +462,11 @@ export default function AddCallback() {
 
       if (isEdit) {
         await updateCallback(Number(id), {...customerPayload, ...callbackPayload})
+        // Sync customer business info to the shared customer record so linked transfers/sales also reflect changes
+        const customerId = callbackData?.customerId || callbackData?.customer?.id
+        if (customerId) {
+          await api.put(`/api/customers/${customerId}`, customerPayload).catch(() => {})
+        }
         // Sync account details to linked transfer
         if (callbackData?.transferId) {
           await api.put(`/api/transfers/${callbackData.transferId}`, {

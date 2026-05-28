@@ -1,5 +1,5 @@
 import { APP_STYLES } from '@/lib/styles'
-import { Loader2, ArrowLeft, FileText, Trash2, Activity, CheckCircle } from 'lucide-react'
+import { Loader2, ArrowLeft, FileText, Trash2, Activity, CheckCircle, PhoneCall, ArrowLeftRight } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
 import { useSaleDetail } from '@/hooks/useSaleDetail'
 import { Select } from '@/components/ui/select'
@@ -8,6 +8,8 @@ import { Button } from '@/components/ui/button'
 import SaleHero from '@/components/sale/SaleHero'
 import PaymentDetailsCard from '@/components/sale/PaymentDetailsCard'
 import CustomerInfoCard from '@/components/shared/CustomerInfoCard'
+import AccountDetailsCard from '@/components/shared/AccountDetailsCard'
+import MeterDetailsCard from '@/components/shared/MeterDetailsCard'
 import OfferedRatesCard from '@/components/shared/OfferedRatesCard'
 import ProgressTracker from '@/components/shared/ProgressTracker'
 import { useAuthStore } from '@/store/authStore'
@@ -34,6 +36,24 @@ function Card({ icon: Icon, title, headerRight, children, delay }) {
         {headerRight}
       </div>
       <div className="rt-card-body">{children}</div>
+    </div>
+  )
+}
+
+function LinkedRow({ icon: Icon, iconBg, iconColor, label, sub, onClick }) {
+  return (
+    <div
+      onClick={onClick}
+      className="flex items-center gap-3 p-3 rounded-xl cursor-pointer hover:bg-slate-50 transition-colors border border-slate-100"
+    >
+      <div className="w-9 h-9 rounded-xl flex items-center justify-center shrink-0" style={{ background: iconBg }}>
+        <Icon size={15} color={iconColor} />
+      </div>
+      <div className="min-w-0">
+        <p className="text-sm font-semibold text-slate-800 truncate">{label}</p>
+        {sub && <p className="text-xs text-slate-500 truncate">{sub}</p>}
+      </div>
+      <ArrowLeftRight size={13} className="ml-auto text-slate-400 shrink-0" />
     </div>
   )
 }
@@ -107,6 +127,19 @@ export default function SaleDetail() {
             <CustomerInfoCard customer={compositeCustomer} />
             <PaymentDetailsCard sale={sale} />
 
+            {/* Account details from linked transfer */}
+            {linkedTransfer && (linkedTransfer.accountNumber || linkedTransfer.mpan || linkedTransfer.mprn || linkedTransfer.msn) && (
+              <AccountDetailsCard transfer={linkedTransfer} />
+            )}
+
+            {/* Meter details from customer */}
+            {customer.electricityMeters?.length > 0 && (
+              <MeterDetailsCard utilityType="electricity" meters={customer.electricityMeters} />
+            )}
+            {customer.gasMeters?.length > 0 && (
+              <MeterDetailsCard utilityType="gas" meters={customer.gasMeters} />
+            )}
+
             <Card icon={CheckCircle} title="Status" delay="rt-d2">
               <Select value={sale.cotStatus} onChange={(e) => handleStatusChange(e.target.value)} className="rt-input" style={{maxWidth:'280px'}}>
                 <option value="chasing">Chasing</option>
@@ -122,10 +155,36 @@ export default function SaleDetail() {
               </Card>
             )}
 
-
-
             {linkedTransfer?.offeredElectricityRates?.length > 0 && (
               <OfferedRatesCard transfer={linkedTransfer} />
+            )}
+
+            {/* Linked Records */}
+            {(linkedTransfer || linkedCallback) && (
+              <Card icon={PhoneCall} title="Linked Records" delay="rt-d4">
+                <div className="flex flex-col gap-2">
+                  {linkedTransfer && (
+                    <LinkedRow
+                      icon={ArrowLeftRight}
+                      iconBg="rgba(34,197,94,0.1)"
+                      iconColor="#22c55e"
+                      label={`Transfer #${linkedTransfer.id}`}
+                      sub={linkedTransfer.status ? `Status: ${linkedTransfer.status}` : customer.businessName}
+                      onClick={() => navigate(`/transfers/${linkedTransfer.id}`)}
+                    />
+                  )}
+                  {linkedCallback && (
+                    <LinkedRow
+                      icon={PhoneCall}
+                      iconBg="rgba(99,102,241,0.1)"
+                      iconColor="#6366f1"
+                      label={`Callback #${linkedCallback.id}`}
+                      sub={linkedCallback.customer?.businessName || customer.businessName}
+                      onClick={() => navigate(`/callbacks/${linkedCallback.id}`)}
+                    />
+                  )}
+                </div>
+              </Card>
             )}
 
             <div className="rt-actions">

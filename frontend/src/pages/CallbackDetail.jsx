@@ -1,5 +1,5 @@
 import { useParams, useNavigate } from 'react-router-dom'
-import { Loader2, ArrowLeft, FileText } from 'lucide-react'
+import { Loader2, ArrowLeft, FileText, PhoneCall, PoundSterling, ArrowLeftRight } from 'lucide-react'
 
 import { APP_STYLES } from '@/lib/styles'
 import { useCallbackDetail } from '@/hooks/useCallbackDetail'
@@ -27,6 +27,24 @@ function DashboardCard({ icon: Icon, title, children, delay = '' }) {
   )
 }
 
+function LinkedRow({ icon: Icon, iconBg, iconColor, label, sub, onClick }) {
+  return (
+    <div
+      onClick={onClick}
+      className="flex items-center gap-3 p-3 rounded-xl cursor-pointer hover:bg-slate-50 transition-colors border border-slate-100"
+    >
+      <div className="w-9 h-9 rounded-xl flex items-center justify-center shrink-0" style={{ background: iconBg }}>
+        <Icon size={15} color={iconColor} />
+      </div>
+      <div className="min-w-0">
+        <p className="text-sm font-semibold text-slate-800 truncate">{label}</p>
+        {sub && <p className="text-xs text-slate-500 truncate">{sub}</p>}
+      </div>
+      <ArrowLeftRight size={13} className="ml-auto text-slate-400 shrink-0" />
+    </div>
+  )
+}
+
 export default function CallbackDetail() {
   const { id } = useParams()
   const navigate = useNavigate()
@@ -34,7 +52,7 @@ export default function CallbackDetail() {
   const isManager = user?.role === 'manager'
 
   const {
-    callback, customer, linkedTransfers, loading, converting,
+    callback, customer, linkedTransfers, linkedSales, loading, converting,
     showReschedule, setShowReschedule,
     rescheduleDate, setRescheduleDate, rescheduleTime, setRescheduleTime,
     showNotInterested, setShowNotInterested,
@@ -145,6 +163,36 @@ export default function CallbackDetail() {
                   <p className="text-sm text-slate-700 whitespace-pre-wrap leading-relaxed">
                     {callback.notes}
                   </p>
+                </DashboardCard>
+              )}
+
+              {/* Linked Records — Transfer & Sales */}
+              {(linkedTransfers?.length > 0 || linkedSales?.length > 0) && (
+                <DashboardCard icon={PhoneCall} title="Linked Records" delay="rt-d5">
+                  <div className="flex flex-col gap-2">
+                    {linkedTransfers?.map((t) => (
+                      <LinkedRow
+                        key={t.id}
+                        icon={ArrowLeftRight}
+                        iconBg="rgba(34,197,94,0.1)"
+                        iconColor="#22c55e"
+                        label={`Transfer #${t.id}`}
+                        sub={t.status ? `Status: ${t.status}` : t.customer?.businessName}
+                        onClick={() => navigate(`/transfers/${t.id}`)}
+                      />
+                    ))}
+                    {linkedSales?.map((s) => (
+                      <LinkedRow
+                        key={s.id}
+                        icon={PoundSterling}
+                        iconBg="rgba(245,158,11,0.1)"
+                        iconColor="#f59e0b"
+                        label={`Sale Application #${s.id}`}
+                        sub={s.ownerFullName || customer?.businessName || `Status: ${s.cotStatus || 'submitted'}`}
+                        onClick={() => navigate(`/sales/${s.id}`)}
+                      />
+                    ))}
+                  </div>
                 </DashboardCard>
               )}
             </div>
