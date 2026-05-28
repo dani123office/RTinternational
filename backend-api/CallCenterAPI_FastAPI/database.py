@@ -56,13 +56,13 @@ try:
             "timeout": 10,
             "check_same_thread": False
         }
-    elif ssl_required:
-        import ssl
-        ssl_context = ssl.create_default_context()
-        ssl_context.check_hostname = False
-        ssl_context.verify_mode = ssl.CERT_NONE
+    elif ssl_required and "+pg8000" in DATABASE_URL:
         connect_args = {
-            "ssl_context": ssl_context
+            "ssl_context": True
+        }
+    elif ssl_required:
+        connect_args = {
+            "ssl": True
         }
 
     engine = create_engine(
