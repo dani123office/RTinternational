@@ -61,7 +61,7 @@ function LinkedRow({ icon: Icon, iconBg, iconColor, label, sub, onClick }) {
 export default function SaleDetail() {
   const navigate = useNavigate()
   const {
-    sale, linkedTransfer,
+    sale, linkedTransfer, linkedCallback,
     showDelete, setShowDelete,
     handleStatusChange, handleDelete,
     loading, error,
