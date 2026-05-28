@@ -232,15 +232,19 @@ def delete_customer(id: int, current_user: User = Depends(get_current_user), db:
     if not is_auth:
         raise HTTPException(status_code=403, detail="Not authorized to delete this customer")
     try:
+        from ..models import Transfer, Sale, CallBack
+        db.query(ElectricityMeter).filter(ElectricityMeter.customer_id == id).delete()
+        db.query(GasMeter).filter(GasMeter.customer_id == id).delete()
+        db.query(Sale).filter(Sale.customer_id == id).delete()
+        db.query(Transfer).filter(Transfer.customer_id == id).delete()
+        db.query(CallBack).filter(CallBack.customer_id == id).delete()
+        
         db.delete(customer)
         db.commit()
         return {"success": True}
     except Exception as e:
         db.rollback()
-        err_msg = str(e)
-        if "foreign key" in err_msg.lower() or "violates foreign key constraint" in err_msg.lower():
-            raise HTTPException(status_code=400, detail="Cannot delete customer because it has linked callbacks, transfers, or sales. Please delete those records first.")
-        raise HTTPException(status_code=400, detail=f"Failed to delete customer: {err_msg}")
+        raise HTTPException(status_code=400, detail=f"Failed to delete customer: {str(e)}")
 
 
 @router.post("/{id}/electricity-meters")
