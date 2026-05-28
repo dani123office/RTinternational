@@ -376,6 +376,77 @@ class AdminPerformanceOverview(BaseModel):
     conversionRate: float
 
 
+class CallbackOfferedElectricityRateCreate(BaseModel):
+    contractLength: Optional[str] = Field(
+        None, max_length=50,
+        description="Contract length (e.g. 1 Year, 2 Years)"
+    )
+    supplier: Optional[str] = Field(
+        None, max_length=255,
+        description="Supplier name for offered rate"
+    )
+    meterType: Optional[str] = Field(
+        None, max_length=50,
+        description="Meter type (Standard, Economy 7, etc.)"
+    )
+    commissionType: Optional[str] = Field(
+        None, max_length=50,
+        description="Commission type (Commission or Non-Commission)"
+    )
+    dayUnitRate: Optional[float] = Field(None, description="Day unit rate in p/kWh")
+    nightUnitRate: Optional[float] = Field(None, description="Night unit rate in p/kWh")
+    eveningUnitRate: Optional[float] = Field(None, description="Evening unit rate in p/kWh")
+    standingRate: Optional[float] = Field(None, description="Standing charge in p/day")
+    nonCommissionDayRate: Optional[float] = Field(None, description="Day rate (non-commission)")
+    nonCommissionNightRate: Optional[float] = Field(None, description="Night rate (non-commission)")
+    nonCommissionEveningRate: Optional[float] = Field(None, description="Evening rate (non-commission)")
+    nonCommissionStandingRate: Optional[float] = Field(None, description="Standing charge (non-commission)")
+    brokerServiceCharge: Optional[float] = Field(None, description="Broker fee in GBP")
+
+    @field_validator('supplier')
+    @classmethod
+    def strip_supplier(cls, v):
+        return v.strip() if v else v
+
+    @field_validator('dayUnitRate', 'nightUnitRate', 'eveningUnitRate', 'standingRate',
+                     'nonCommissionDayRate', 'nonCommissionNightRate', 'nonCommissionEveningRate',
+                     'nonCommissionStandingRate')
+    @classmethod
+    def validate_all_rates(cls, v, info):
+        return check_rate(v, info.field_name)
+
+    @field_validator('brokerServiceCharge')
+    @classmethod
+    def validate_broker_charge(cls, v):
+        return check_broker_charge(v)
+
+
+class CallbackOfferedGasRateCreate(BaseModel):
+    contractLength: Optional[str] = Field(
+        None, max_length=50,
+        description="Contract length (e.g. 1 Year)"
+    )
+    supplier: Optional[str] = Field(
+        None, max_length=255,
+        description="Supplier name for offered rate"
+    )
+    unitRate: Optional[float] = Field(None, description="Unit rate in p/kWh")
+    standingRate: Optional[float] = Field(None, description="Standing charge in p/day")
+    nonCommissionUnitRate: Optional[float] = Field(None, description="Unit rate (non-commission)")
+    nonCommissionStandingRate: Optional[float] = Field(None, description="Standing charge (non-commission)")
+    brokerServiceCharge: Optional[float] = Field(None, description="Broker fee in GBP")
+
+    @field_validator('unitRate', 'standingRate', 'nonCommissionUnitRate', 'nonCommissionStandingRate')
+    @classmethod
+    def validate_all_rates(cls, v, info):
+        return check_rate(v, info.field_name)
+
+    @field_validator('brokerServiceCharge')
+    @classmethod
+    def validate_broker_charge(cls, v):
+        return check_broker_charge(v)
+
+
 class ManagerCallbackCreate(BaseModel):
     employeeId: int
     customerId: int
@@ -388,8 +459,8 @@ class ManagerCallbackCreate(BaseModel):
     mpan: Optional[str] = Field(None, max_length=100)
     mprn: Optional[str] = Field(None, max_length=100)
     msn: Optional[str] = Field(None, max_length=100)
-    offeredElectricityRates: Optional[List['CallbackOfferedElectricityRateCreate']] = None
-    offeredGasRates: Optional[List['CallbackOfferedGasRateCreate']] = None
+    offeredElectricityRates: Optional[List[CallbackOfferedElectricityRateCreate]] = None
+    offeredGasRates: Optional[List[CallbackOfferedGasRateCreate]] = None
 
     @field_validator('accountNumber')
     @classmethod
@@ -834,49 +905,7 @@ def _add_rate_validators(*fields):
     return validators
 
 
-class CallbackOfferedElectricityRateCreate(BaseModel):
-    contractLength: Optional[str] = Field(
-        None, max_length=50,
-        description="Contract length (e.g. 1 Year, 2 Years)"
-    )
-    supplier: Optional[str] = Field(
-        None, max_length=255,
-        description="Supplier name for offered rate"
-    )
-    meterType: Optional[str] = Field(
-        None, max_length=50,
-        description="Meter type (Standard, Economy 7, etc.)"
-    )
-    commissionType: Optional[str] = Field(
-        None, max_length=50,
-        description="Commission type (Commission or Non-Commission)"
-    )
-    dayUnitRate: Optional[float] = Field(None, description="Day unit rate in p/kWh")
-    nightUnitRate: Optional[float] = Field(None, description="Night unit rate in p/kWh")
-    eveningUnitRate: Optional[float] = Field(None, description="Evening unit rate in p/kWh")
-    standingRate: Optional[float] = Field(None, description="Standing charge in p/day")
-    nonCommissionDayRate: Optional[float] = Field(None, description="Day rate (non-commission)")
-    nonCommissionNightRate: Optional[float] = Field(None, description="Night rate (non-commission)")
-    nonCommissionEveningRate: Optional[float] = Field(None, description="Evening rate (non-commission)")
-    nonCommissionStandingRate: Optional[float] = Field(None, description="Standing charge (non-commission)")
-    brokerServiceCharge: Optional[float] = Field(None, description="Broker fee in GBP")
 
-    @field_validator('supplier')
-    @classmethod
-    def strip_supplier(cls, v):
-        return v.strip() if v else v
-
-    @field_validator('dayUnitRate', 'nightUnitRate', 'eveningUnitRate', 'standingRate',
-                     'nonCommissionDayRate', 'nonCommissionNightRate', 'nonCommissionEveningRate',
-                     'nonCommissionStandingRate')
-    @classmethod
-    def validate_all_rates(cls, v, info):
-        return check_rate(v, info.field_name)
-
-    @field_validator('brokerServiceCharge')
-    @classmethod
-    def validate_broker_charge(cls, v):
-        return check_broker_charge(v)
 
 
 class CallbackOfferedGasRateOut(BaseModel):
@@ -892,30 +921,7 @@ class CallbackOfferedGasRateOut(BaseModel):
 
 
 
-class CallbackOfferedGasRateCreate(BaseModel):
-    contractLength: Optional[str] = Field(
-        None, max_length=50,
-        description="Contract length (e.g. 1 Year)"
-    )
-    supplier: Optional[str] = Field(
-        None, max_length=255,
-        description="Supplier name for offered rate"
-    )
-    unitRate: Optional[float] = Field(None, description="Unit rate in p/kWh")
-    standingRate: Optional[float] = Field(None, description="Standing charge in p/day")
-    nonCommissionUnitRate: Optional[float] = Field(None, description="Unit rate (non-commission)")
-    nonCommissionStandingRate: Optional[float] = Field(None, description="Standing charge (non-commission)")
-    brokerServiceCharge: Optional[float] = Field(None, description="Broker fee in GBP")
 
-    @field_validator('unitRate', 'standingRate', 'nonCommissionUnitRate', 'nonCommissionStandingRate')
-    @classmethod
-    def validate_all_rates(cls, v, info):
-        return check_rate(v, info.field_name)
-
-    @field_validator('brokerServiceCharge')
-    @classmethod
-    def validate_broker_charge(cls, v):
-        return check_broker_charge(v)
 
 
 # ─── Transfer Offered Rates ─────────────────────────────
