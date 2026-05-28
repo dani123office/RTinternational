@@ -382,8 +382,8 @@ class ManagerCallbackCreate(BaseModel):
     mpan: Optional[str] = Field(None, max_length=100)
     mprn: Optional[str] = Field(None, max_length=100)
     msn: Optional[str] = Field(None, max_length=100)
-    offeredElectricityRates: Optional[List[CallbackOfferedElectricityRateCreate]] = None
-    offeredGasRates: Optional[List[CallbackOfferedGasRateCreate]] = None
+    offeredElectricityRates: Optional[List['CallbackOfferedElectricityRateCreate']] = None
+    offeredGasRates: Optional[List['CallbackOfferedGasRateCreate']] = None
 
     @field_validator('accountNumber')
     @classmethod
