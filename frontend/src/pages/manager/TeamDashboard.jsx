@@ -296,7 +296,7 @@ export default function TeamDashboard() {
                                 <span style={{ color: '#94a3b8' }}> {' \u00B7 '}{item._date.toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })}</span>
                               </p>
                             </div>
-                            <StatusBadge status={item.cotStatus || item.status} />
+                            <StatusBadge status={item.cotStatus || item.status} type={item._type} />
                           </div>
                         )
                       })}

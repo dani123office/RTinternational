@@ -64,7 +64,7 @@ export default function AdminTransferDetail() {
           <div className="bg-gradient-to-r from-indigo-600 to-blue-600 text-white p-6 rounded-xl flex items-center justify-between">
             <div>
               <div className="flex items-center gap-2 mb-2">
-                <StatusBadge status={t.status} />
+                <StatusBadge status={t.status} type="transfer" />
                 <span className="text-xs font-semibold rounded-full px-3 py-1 bg-white/20 capitalize">{t.utilityType}</span>
               </div>
               <h1 className="text-2xl font-bold">{c?.businessName || 'Transfer'}</h1>
@@ -111,7 +111,7 @@ export default function AdminTransferDetail() {
               <div className="rt-card-body">
                 <Field label="Agent">{t.agentName}</Field>
                 <Field label="Supplier">{t.supplier}</Field>
-                <Field label="Status"><StatusBadge status={t.status} /></Field>
+                <Field label="Status"><StatusBadge status={t.status} type="transfer" /></Field>
                 <Field label="Outcome">{t.outcome}</Field>
                 <Field label="Account No.">{t.accountNumber}</Field>
                 <Field label="MPAN">{t.mpan}</Field>

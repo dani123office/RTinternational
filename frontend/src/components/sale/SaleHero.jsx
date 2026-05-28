@@ -14,7 +14,7 @@ export default function SaleHero({ sale, customer }) {
       
       <div className="relative z-10">
         <div className="flex items-center gap-3 mb-4">
-          <StatusBadge status={sale.cotStatus} />
+          <StatusBadge status={sale.cotStatus} type="sale" />
           <span className="text-xs font-semibold rounded-full px-3 py-1 bg-white/20 capitalize backdrop-blur-sm">
             {customer?.utilityType || 'N/A'}
           </span>

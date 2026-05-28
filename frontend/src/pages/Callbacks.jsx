@@ -131,7 +131,7 @@ export default function Callbacks() {
             {!isUrgent ? d.toLocaleDateString('en-GB', { day: 'numeric', month: 'short' }) + ', ' : ''}
             {d.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' })}
           </div>
-          <StatusBadge status={isOverdue ? 'overdue' : cb.status} />
+          <StatusBadge status={isOverdue ? 'overdue' : cb.status} type="callback" />
           <div style={{color:'#d1d5db',display:'flex'}}>
             <ArrowRight size={14} />
           </div>

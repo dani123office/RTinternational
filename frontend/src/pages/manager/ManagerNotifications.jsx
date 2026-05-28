@@ -63,7 +63,7 @@ export default function ManagerNotifications() {
                         {n.timestamp ? new Date(n.timestamp).toLocaleString('en-GB') : ''}
                       </p>
                     </div>
-                    <StatusBadge status={n.action} />
+                    <StatusBadge status={n.action} type={n.type} />
                   </div>
                 )
               })}

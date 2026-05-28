@@ -105,7 +105,7 @@ export default function ManagerTransfers() {
     { 
       header: 'Status', 
       width: '110px',
-      cell: (row) => <StatusBadge status={row.status} /> 
+      cell: (row) => <StatusBadge status={row.status} type="transfer" /> 
     },
     {
       header: 'Actions',

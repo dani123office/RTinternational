@@ -61,7 +61,7 @@ export default function AdminSaleDetail() {
           <div className="bg-gradient-to-r from-amber-600 to-orange-500 text-white p-6 rounded-xl flex items-center justify-between">
             <div>
               <div className="flex items-center gap-2 mb-2">
-                <StatusBadge status={s.cotStatus} />
+                <StatusBadge status={s.cotStatus} type="sale" />
               </div>
               <h1 className="text-2xl font-bold">{s.ownerFullName || c?.businessName || 'Sale'}</h1>
               <p className="text-amber-200 text-sm mt-1">{c?.businessName || ''}</p>
@@ -94,7 +94,7 @@ export default function AdminSaleDetail() {
               <div className="rt-card-header"><div className="rt-card-header-left"><div className="rt-card-icon"><Banknote size={15} /></div><span className="rt-card-title">Sale Details</span></div></div>
               <div className="rt-card-body">
                 <Field label="Agent">{s.agentName}</Field>
-                <Field label="Status"><StatusBadge status={s.cotStatus} /></Field>
+                <Field label="Status"><StatusBadge status={s.cotStatus} type="sale" /></Field>
                 <Field label="Owner Name">{s.ownerFullName}</Field>
                 <Field label="Home Address">{s.homeAddress}</Field>
                 <Field label="DOB">{s.dateOfBirth ? new Date(s.dateOfBirth).toLocaleDateString('en-GB') : ''}</Field>

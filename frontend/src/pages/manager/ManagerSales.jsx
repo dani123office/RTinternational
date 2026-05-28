@@ -116,7 +116,7 @@ export default function ManagerSales() {
     {
       header: 'Status',
       width: '110px',
-      cell: (row) => <StatusBadge status={row.cotStatus} />
+      cell: (row) => <StatusBadge status={row.cotStatus} type="sale" />
     },
     {
       header: 'Business Type',

@@ -81,7 +81,7 @@ export default function RecordDetailModal({ isOpen, onClose, record, type, agent
             <h3 className="text-base font-semibold text-slate-900">
               {isCallback ? 'Callback' : 'Transfer'} #{record.id}
             </h3>
-            <StatusBadge status={record.status} />
+            <StatusBadge status={record.status} type={type} />
           </div>
           <button onClick={onClose} className="w-8 h-8 rounded-lg border-0 bg-slate-50 text-slate-400 cursor-pointer flex items-center justify-center hover:bg-slate-100 transition-colors">
             <X size={16} />

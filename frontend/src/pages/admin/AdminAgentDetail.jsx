@@ -9,7 +9,7 @@ import { APP_STYLES } from '@/lib/styles'
 import DataTable from '@/components/shared/DataTable'
 import LoadingSpinner from '@/components/shared/LoadingSpinner'
 
-function StatusBadge({ status }) {
+function StatusBadge({ status, type }) {
   const colors = {
     pending: { bg: '#fffbeb', text: '#d97706' },
     completed: { bg: '#f0fdf4', text: '#16a34a' },
@@ -22,12 +22,23 @@ function StatusBadge({ status }) {
     hold: { bg: '#f1f5f9', text: '#64748b' },
   }
   const c = colors[status] || { bg: '#f1f5f9', text: '#64748b' }
+  const statusKey = (status || '').toLowerCase()
+  let label = status?.replace(/([A-Z])/g, ' $1').trim() || 'N/A'
+  if (statusKey === 'done' || statusKey === 'completed') {
+    if (type === 'callback') {
+      label = 'Callback Complete'
+    } else if (type === 'transfer') {
+      label = 'Transfer Complete'
+    } else if (type === 'sale') {
+      label = 'Sale Complete'
+    }
+  }
   return (
     <span style={{
       padding: '2px 8px', borderRadius: '6px', background: c.bg, color: c.text,
       fontWeight: 600, fontSize: '0.72rem', textTransform: 'capitalize',
     }}>
-      {status?.replace(/([A-Z])/g, ' $1').trim() || 'N/A'}
+      {label}
     </span>
   )
 }
@@ -105,7 +116,7 @@ export default function AdminAgentDetail() {
       },
     },
     { header: 'Date', cell: (row) => row.createdAt ? new Date(row.createdAt).toLocaleDateString('en-GB') : 'N/A' },
-    { header: 'Status', cell: (row) => <StatusBadge status={row.status || row.cotStatus} /> },
+    { header: 'Status', cell: (row) => <StatusBadge status={row.status || row.cotStatus} type={activeTab === 'Transfers' ? 'transfer' : 'sale'} /> },
     {
       header: '',
       cell: (row) => (

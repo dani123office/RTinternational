@@ -47,7 +47,7 @@ export default function Sales() {
       ),
     },
     { header: 'Owner', cell: (row) => <span className="text-sm text-gray-700">{row.ownerFullName || '-'}</span> },
-    { header: 'Status', cell: (row) => <StatusBadge status={row.cotStatus} /> },
+    { header: 'Status', cell: (row) => <StatusBadge status={row.cotStatus} type="sale" /> },
     {
       header: 'Business Type',
       cell: (row) => <span className="text-sm text-gray-600 capitalize">{formatCamel(row.businessType) || '-'}</span>,

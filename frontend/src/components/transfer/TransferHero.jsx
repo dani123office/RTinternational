@@ -26,7 +26,7 @@ export default function TransferHero({ transfer, customer }) {
   return (
     <div className="bg-indigo-600 text-white p-6 rounded-xl flex flex-col gap-3 relative overflow-hidden">
       <div className="flex gap-2 items-center">
-        <StatusBadge status={transfer.status} />
+        <StatusBadge status={transfer.status} type="transfer" />
         <span className="text-xs font-semibold rounded-full px-3 py-1 bg-indigo-500 capitalize border border-indigo-400">
           {customer.utilityType}
         </span>
@@ -73,7 +73,7 @@ export default function TransferHero({ transfer, customer }) {
             display: 'inline-block',
           }}
         >
-          {transfer.status || 'Pending'}
+          {statusLower === 'completed' || statusLower === 'done' ? 'Transfer Complete' : (transfer.status || 'Pending')}
         </span>
       </div>
     </div>

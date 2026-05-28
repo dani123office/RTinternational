@@ -390,7 +390,7 @@ export default function AgentDetail() {
       </span>
     )},
     { header: 'Date', cell: (row) => row.createdAt ? new Date(row.createdAt).toLocaleDateString('en-GB') : 'N/A' },
-    { header: 'Status', cell: (row) => <StatusBadge status={row.status || row.cotStatus} /> },
+    { header: 'Status', cell: (row) => <StatusBadge status={row.status || row.cotStatus} type={activeTab === 'Callbacks' ? 'callback' : activeTab === 'Transfers' ? 'transfer' : 'sale'} /> },
     {
       header: '',
       cell: (row) => (
@@ -521,7 +521,7 @@ export default function AgentDetail() {
                               {item.createdAt ? new Date(item.createdAt).toLocaleDateString('en-GB') : 'N/A'}
                             </p>
                           </div>
-                          <StatusBadge status={item.status || item.cotStatus} />
+                          <StatusBadge status={item.status || item.cotStatus} type={item._type} />
                         </div>
                       )
                     })
@@ -620,7 +620,7 @@ export default function AgentDetail() {
                 </div>
                 <div>
                   <label className="rt-label">Status</label>
-                  <StatusBadge status={viewItem?.status || viewItem?.cotStatus} />
+                  <StatusBadge status={viewItem?.status || viewItem?.cotStatus} type={activeType} />
                 </div>
               </div>
               {viewItem?.utilityType && (

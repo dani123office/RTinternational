@@ -25,7 +25,7 @@ export default function CallbackHero({ callback, customer }) {
       {/* 1. TOP ROW: Badges Container */}
       <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: '12px' }}>
         <div style={{ display: 'inline-flex' }}>
-          <StatusBadge status={callback.status} />
+          <StatusBadge status={callback.status} type="callback" />
         </div>
         <span
           style={{

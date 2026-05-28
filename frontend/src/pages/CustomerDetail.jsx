@@ -11,14 +11,25 @@ import CustomerInfoCard from '@/components/shared/CustomerInfoCard'
 import MeterDetailsCard from '@/components/shared/MeterDetailsCard'
 import DeleteCustomerDialog from '@/components/customer/DeleteCustomerDialog'
 
-function StatusBadge({ status }) {
-  const cfg = STATUS_CONFIG[status] || { label: status, bg: '#f1f5f9', color: '#475569' }
+function StatusBadge({ status, type }) {
+  const statusKey = (status || '').toLowerCase()
+  const cfg = STATUS_CONFIG[statusKey] || { label: status, bg: '#f1f5f9', color: '#475569' }
+  let label = cfg.label
+  if (statusKey === 'done' || statusKey === 'completed') {
+    if (type === 'callback') {
+      label = 'Callback Complete'
+    } else if (type === 'transfer') {
+      label = 'Transfer Complete'
+    } else if (type === 'sale') {
+      label = 'Sale Complete'
+    }
+  }
   return (
     <span
       className="text-xs font-semibold px-2.5 py-1 rounded-lg shrink-0"
       style={{ backgroundColor: cfg.bg, color: cfg.color, textTransform: 'capitalize' }}
     >
-      {cfg.label}
+      {label}
     </span>
   )
 }
@@ -163,7 +174,7 @@ export default function CustomerDetail() {
                           <Clock size={14} className="text-slate-400" />
                           {formatDateTime(c.scheduledDateTime || c.scheduledDate)}
                         </span>
-                        <StatusBadge status={c.status} />
+                        <StatusBadge status={c.status} type="callback" />
                       </div>
                       {c.notes && (
                         <div className="text-slate-600 bg-white p-3 rounded-lg border border-slate-100 mt-1">
@@ -260,7 +271,7 @@ export default function CustomerDetail() {
                             <span className="font-bold text-slate-800">Transfer #{t.id}</span>
                             <span className="text-xs text-slate-400 font-medium capitalize">({t.utilityType || 'electricity'})</span>
                           </div>
-                          <StatusBadge status={t.status} />
+                          <StatusBadge status={t.status} type="transfer" />
                         </div>
                         
                         <div className="grid grid-cols-2 gap-3 text-xs text-slate-600 bg-white p-3 rounded-lg border border-slate-100">
@@ -414,7 +425,7 @@ export default function CustomerDetail() {
                     >
                       <div className="flex items-center justify-between gap-3">
                         <span className="font-bold text-slate-800">Sale Application #{s.id}</span>
-                        <StatusBadge status={s.cotStatus || 'submitted'} />
+                        <StatusBadge status={s.cotStatus || 'submitted'} type="sale" />
                       </div>
                       
                       <div className="grid grid-cols-2 gap-3 text-xs text-slate-600 bg-white p-3 rounded-lg border border-slate-100">
