@@ -97,6 +97,10 @@ def _build_callback_out(c: CallBack, customer: Customer = None) -> CallBackOut:
         offeredElectricityRates=_elec_rates_out(c),
         offeredGasRates=_gas_rates_out(c),
         transferId=transfer_id,
+        accountNumber=c.account_number,
+        mpan=c.mpan,
+        mprn=c.mprn,
+        msn=c.msn,
         linkedTransferAccountNumber=t.account_number if t else None,
         linkedTransferMpan=t.mpan if t else None,
         linkedTransferMprn=t.mprn if t else None,
@@ -229,6 +233,14 @@ def update_callback(id: int, dto: CallBackUpdate, current_user: User = Depends(g
             callback.outcome = dto.outcome
         if dto.notInterestedReason is not None:
             callback.not_interested_reason = dto.notInterestedReason
+        if dto.accountNumber is not None:
+            callback.account_number = dto.accountNumber
+        if dto.mpan is not None:
+            callback.mpan = dto.mpan
+        if dto.mprn is not None:
+            callback.mprn = dto.mprn
+        if dto.msn is not None:
+            callback.msn = dto.msn
 
         if dto.offeredElectricityRates is not None:
             if dto.offeredElectricityRates:

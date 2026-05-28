@@ -987,6 +987,10 @@ class CallBackOut(BaseModel):
     offeredElectricityRates: List[CallbackOfferedElectricityRateOut] = []
     offeredGasRates: List[CallbackOfferedGasRateOut] = []
     transferId: Optional[int] = None
+    accountNumber: Optional[str] = None
+    mpan: Optional[str] = None
+    mprn: Optional[str] = None
+    msn: Optional[str] = None
     linkedTransferAccountNumber: Optional[str] = None
     linkedTransferMpan: Optional[str] = None
     linkedTransferMprn: Optional[str] = None
@@ -1045,6 +1049,10 @@ class CallBackUpdate(BaseModel):
         None, description="Utility type (electricity or gas)"
     )
     postcode: Optional[str] = Field(None, max_length=20)
+    accountNumber: Optional[str] = Field(None, max_length=100, description="Account number with supplier")
+    mpan: Optional[str] = Field(None, max_length=100, description="MPAN (electricity supply number)")
+    mprn: Optional[str] = Field(None, max_length=100, description="MPRN (gas supply number)")
+    msn: Optional[str] = Field(None, max_length=100, description="Meter serial number")
     electricityRates: Optional[List[ElectricityMeterCreate]] = None
     gasRates: Optional[List[GasMeterCreate]] = None
 
@@ -1092,6 +1100,26 @@ class CallBackUpdate(BaseModel):
     @classmethod
     def validate_postcode(cls, v):
         return check_postcode(v)
+
+    @field_validator('accountNumber')
+    @classmethod
+    def validate_account(cls, v):
+        return check_optional_str(v, 'accountNumber', max_len=100)
+
+    @field_validator('mpan')
+    @classmethod
+    def validate_mpan(cls, v):
+        return check_optional_str(v, 'mpan', max_len=100)
+
+    @field_validator('mprn')
+    @classmethod
+    def validate_mprn(cls, v):
+        return check_optional_str(v, 'mprn', max_len=100)
+
+    @field_validator('msn')
+    @classmethod
+    def validate_msn(cls, v):
+        return check_optional_str(v, 'msn', max_len=100)
 
 
 # ─── Transfer ────────────────────────────────────────────
