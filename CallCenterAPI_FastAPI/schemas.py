@@ -384,6 +384,32 @@ class ManagerCallbackCreate(BaseModel):
     notes: Optional[str] = None
     status: Optional[str] = "pending"
     transferId: Optional[int] = None
+    accountNumber: Optional[str] = Field(None, max_length=100)
+    mpan: Optional[str] = Field(None, max_length=100)
+    mprn: Optional[str] = Field(None, max_length=100)
+    msn: Optional[str] = Field(None, max_length=100)
+    offeredElectricityRates: Optional[List[CallbackOfferedElectricityRateCreate]] = None
+    offeredGasRates: Optional[List[CallbackOfferedGasRateCreate]] = None
+
+    @field_validator('accountNumber')
+    @classmethod
+    def validate_account(cls, v):
+        return check_optional_str(v, 'accountNumber', max_len=100)
+
+    @field_validator('mpan')
+    @classmethod
+    def validate_mpan(cls, v):
+        return check_optional_str(v, 'mpan', max_len=100)
+
+    @field_validator('mprn')
+    @classmethod
+    def validate_mprn(cls, v):
+        return check_optional_str(v, 'mprn', max_len=100)
+
+    @field_validator('msn')
+    @classmethod
+    def validate_msn(cls, v):
+        return check_optional_str(v, 'msn', max_len=100)
 
 
 class ManagerTransferCreate(BaseModel):
@@ -1014,6 +1040,10 @@ class CallBackCreate(BaseModel):
         None, max_length=2000,
         description="Callback notes"
     )
+    accountNumber: Optional[str] = Field(None, max_length=100, description="Account number with supplier")
+    mpan: Optional[str] = Field(None, max_length=100, description="MPAN (electricity supply number)")
+    mprn: Optional[str] = Field(None, max_length=100, description="MPRN (gas supply number)")
+    msn: Optional[str] = Field(None, max_length=100, description="Meter serial number")
     offeredElectricityRates: Optional[List[CallbackOfferedElectricityRateCreate]] = None
     offeredGasRates: Optional[List[CallbackOfferedGasRateCreate]] = None
 
@@ -1028,6 +1058,26 @@ class CallBackCreate(BaseModel):
     @classmethod
     def validate_notes(cls, v):
         return check_optional_str(v, 'notes', max_len=2000)
+
+    @field_validator('accountNumber')
+    @classmethod
+    def validate_account(cls, v):
+        return check_optional_str(v, 'accountNumber', max_len=100)
+
+    @field_validator('mpan')
+    @classmethod
+    def validate_mpan(cls, v):
+        return check_optional_str(v, 'mpan', max_len=100)
+
+    @field_validator('mprn')
+    @classmethod
+    def validate_mprn(cls, v):
+        return check_optional_str(v, 'mprn', max_len=100)
+
+    @field_validator('msn')
+    @classmethod
+    def validate_msn(cls, v):
+        return check_optional_str(v, 'msn', max_len=100)
 
 
 class CallBackUpdate(BaseModel):

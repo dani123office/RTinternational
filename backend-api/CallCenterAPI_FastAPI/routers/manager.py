@@ -311,6 +311,14 @@ def create_manager_callback(
             if data.notes:
                 cb.notes = (cb.notes or "") + f"\n[Rescheduled by Manager] " + data.notes
             cb.status = data.status or "pending"
+            if data.accountNumber is not None:
+                cb.account_number = data.accountNumber
+            if data.mpan is not None:
+                cb.mpan = data.mpan
+            if data.mprn is not None:
+                cb.mprn = data.mprn
+            if data.msn is not None:
+                cb.msn = data.msn
         else:
             cb = CallBack(
                 employee_id=data.employeeId,
@@ -319,6 +327,10 @@ def create_manager_callback(
                 scheduled_datetime=data.scheduledDateTime,
                 notes=data.notes,
                 status=data.status or "pending",
+                account_number=data.accountNumber,
+                mpan=data.mpan,
+                mprn=data.mprn,
+                msn=data.msn,
             )
             db.add(cb)
             print("cb added")
@@ -345,6 +357,31 @@ def create_manager_callback(
             cb.gas_noncom_unit_rate = transfer.gas_noncom_unit_rate
             cb.gas_noncom_standing = transfer.gas_noncom_standing
             cb.gas_broker_charge = transfer.gas_broker_charge
+        else:
+            if data.offeredElectricityRates:
+                r = data.offeredElectricityRates[0]
+                cb.elec_offer_contract_length = r.contractLength
+                cb.elec_offer_supplier = r.supplier
+                cb.elec_offer_meter_type = r.meterType
+                cb.elec_offer_commission_type = r.commissionType
+                cb.elec_commission_day_rate = r.dayUnitRate
+                cb.elec_commission_night_rate = r.nightUnitRate
+                cb.elec_commission_evening_rate = r.eveningUnitRate
+                cb.elec_commission_standing = r.standingRate
+                cb.elec_noncom_day_rate = r.nonCommissionDayRate
+                cb.elec_noncom_night_rate = r.nonCommissionNightRate
+                cb.elec_noncom_evening_rate = r.nonCommissionEveningRate
+                cb.elec_noncom_standing = r.nonCommissionStandingRate
+                cb.elec_broker_charge = r.brokerServiceCharge
+            if data.offeredGasRates:
+                r = data.offeredGasRates[0]
+                cb.gas_offer_contract_length = r.contractLength
+                cb.gas_offer_supplier = r.supplier
+                cb.gas_commission_unit_rate = r.unitRate
+                cb.gas_commission_standing = r.standingRate
+                cb.gas_noncom_unit_rate = r.nonCommissionUnitRate
+                cb.gas_noncom_standing = r.nonCommissionStandingRate
+                cb.gas_broker_charge = r.brokerServiceCharge
 
         db.flush()
         print(f"cb flushed, cb.id={cb.id}")
