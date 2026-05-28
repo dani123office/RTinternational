@@ -18,6 +18,14 @@ if DATABASE_URL and DATABASE_URL.startswith("postgresql://"):
     if "+psycopg2" not in DATABASE_URL and "+psycopg" not in DATABASE_URL and "+pg8000" not in DATABASE_URL:
         DATABASE_URL = DATABASE_URL.replace("postgresql://", "postgresql+pg8000://", 1)
 
+# Check if SSL is required before we strip query parameters
+ssl_required = False
+if DATABASE_URL:
+    if "sslmode=require" in DATABASE_URL or "sslmode=prefer" in DATABASE_URL:
+        ssl_required = True
+    elif "localhost" not in DATABASE_URL and "127.0.0.1" not in DATABASE_URL and "sqlite" not in DATABASE_URL:
+        ssl_required = True
+
 # Strip all query params — pg8000 doesn't accept URL query params as connect() kwargs
 if DATABASE_URL and "?" in DATABASE_URL:
     parsed = urlparse(DATABASE_URL)
@@ -42,15 +50,23 @@ def _mask_database_url(url):
 
 # Create engine with proper configuration for serverless
 try:
+    connect_args = {}
+    if "sqlite" in DATABASE_URL:
+        connect_args = {
+            "timeout": 10,
+            "check_same_thread": False
+        }
+    elif ssl_required:
+        connect_args = {
+            "ssl": True
+        }
+
     engine = create_engine(
         DATABASE_URL, 
         echo=False, 
         pool_pre_ping=True, 
         poolclass=NullPool,
-        connect_args={
-            "timeout": 10,
-            "check_same_thread": False
-        } if "sqlite" in DATABASE_URL else {}
+        connect_args=connect_args
     )
 except Exception as e:
     print(f"Warning: Database engine creation failed: {e}")
