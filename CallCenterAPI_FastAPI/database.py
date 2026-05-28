@@ -6,7 +6,7 @@ from urllib.parse import urlparse
 
 DATABASE_URL = os.environ.get(
     "POSTGRES_URL",
-    os.environ.get("DATABASE_URL", "postgresql://postgres:postgres@localhost:5432/callcenter")
+    os.environ.get("DATABASE_URL", "sqlite:///CallCenterAPI_FastAPI/callcenter.db")
 )
 
 # Handle postgres:// URLs (old format)
