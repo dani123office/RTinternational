@@ -91,10 +91,10 @@ export default function CallbackDetail() {
       }))
     : customer?.electricityMeters || []
   const accountDetails = {
-    accountNumber: fallbackTransfer?.accountNumber || callback?.linkedTransferAccountNumber,
-    mpan: fallbackTransfer?.mpan || callback?.linkedTransferMpan || customer?.electricityMeters?.[0]?.supplyNumber,
-    mprn: fallbackTransfer?.mprn || callback?.linkedTransferMprn,
-    msn: fallbackTransfer?.msn || callback?.linkedTransferMsn,
+    accountNumber: callback?.accountNumber || fallbackTransfer?.accountNumber || callback?.linkedTransferAccountNumber,
+    mpan: callback?.mpan || fallbackTransfer?.mpan || callback?.linkedTransferMpan || customer?.electricityMeters?.[0]?.supplyNumber,
+    mprn: callback?.mprn || fallbackTransfer?.mprn || callback?.linkedTransferMprn,
+    msn: callback?.msn || fallbackTransfer?.msn || callback?.linkedTransferMsn,
   }
   const mergedForRates = {
     ...callback,
