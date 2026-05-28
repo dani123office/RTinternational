@@ -56,7 +56,7 @@ try:
             "timeout": 10,
             "check_same_thread": False
         }
-    elif ssl_required:
+    elif ssl_required and "+pg8000" not in DATABASE_URL:
         connect_args = {
             "ssl": True
         }

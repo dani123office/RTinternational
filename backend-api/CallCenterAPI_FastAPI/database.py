@@ -57,8 +57,12 @@ try:
             "check_same_thread": False
         }
     elif ssl_required:
+        import ssl
+        ssl_context = ssl.create_default_context()
+        ssl_context.check_hostname = False
+        ssl_context.verify_mode = ssl.CERT_NONE
         connect_args = {
-            "ssl": True
+            "ssl_context": ssl_context
         }
 
     engine = create_engine(
