@@ -38,8 +38,12 @@ export function useTransferDetail() {
       await deleteTransfer(transferId)
       toast('Transfer deleted', 'success')
       navigate('/transfers')
-    } catch {
-      toast('Failed to delete transfer', 'error')
+    } catch (err) {
+      const detail = err.response?.data?.detail
+      const msg = typeof detail === 'string' ? detail
+        : Array.isArray(detail) ? detail.map(d => d.msg).join('; ')
+        : detail?.message || err.message || 'Failed to delete transfer'
+      toast(msg, 'error')
     }
   }
 

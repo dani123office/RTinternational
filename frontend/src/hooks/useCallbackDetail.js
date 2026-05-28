@@ -111,8 +111,12 @@ export function useCallbackDetail(id, navigate) {
       await deleteCallback(callbackId)
       toast('Callback deleted successfully', 'success')
       navigate('/callbacks')
-    } catch {
-      toast('Failed to delete callback. Please try again.', 'error')
+    } catch (err) {
+      const detail = err.response?.data?.detail
+      const msg = typeof detail === 'string' ? detail
+        : Array.isArray(detail) ? detail.map(d => d.msg).join('; ')
+        : detail?.message || err.message || 'Failed to delete callback. Please try again.'
+      toast(msg, 'error')
     }
   }
 

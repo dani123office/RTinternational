@@ -48,11 +48,14 @@ Fix 500 errors (local and Vercel) in the RT International call center FastAPI ap
 10. **Fixed 405 on `/api/auth/login`** — Added `rewrites` to `vercel.json` to route all traffic through Python function.
 11. **Fixed `sslmode` TypeError** — Stripped all URL query params from DATABASE_URL, since pg8000 doesn't accept any as `connect()` kwargs.
 12. **Fixed 400 on `PUT /api/callbacks/{id}`** — `CallBackUpdate` schema was missing `accountNumber`, `mpan`, `mprn`, `msn` fields that the PUT handler accesses on the DTO object. Pydantic v2 raises `AttributeError` when accessing undeclared fields, caught by the generic `except Exception` and returned as 400. Added the missing fields to `CallBackUpdate` in both `schemas.py` copies.
+13. **Fixed delete error reporting** — caught database exceptions on backend deletion of customers to return a clear 400 Bad Request error detail (e.g. for foreign key constraints) rather than a generic 500 error. Updated frontend hooks (`useCustomerDetail`, `useCallbackDetail`, `useSaleDetail`, `useTransferDetail`, `useManagerCallbackDetail`) to capture and display the actual backend error details in toast notifications instead of a generic failure message.
 
 ## Root Causes (continued)
 - **400 on PUT /api/callbacks/{id}**: `CallBackUpdate` schema (used for `update_callback` PUT endpoint) was missing `accountNumber`, `mpan`, `mprn`, `msn` fields that the PUT handler accessed via `dto.accountNumber` etc. Pydantic v2 raises `AttributeError` on undeclared field access, caught by `except Exception` and returned as 400. `CallBackCreate` (used for POST) already had these fields — `CallBackUpdate` was simply incomplete. → Fixed by adding the four fields to `CallBackUpdate`.
+- **Generic 500 / uninformative delete error**: When customer deletion failed due to database constraints (foreign keys like linked callbacks/transfers/sales), the raw Exception bubbled up to the generic exception handler, returning a generic 500 "Something went wrong" message. Additionally, frontend try-catch blocks discarded the caught error objects and displayed generic "Failed to delete" alerts. → Fixed by catching exceptions on delete_customer in python to return detailed 400 errors, and extracting error details on frontend hooks to show in toasts.
 
 ## Verification
 1. Push to GitHub → Vercel auto-deploys
 2. Check `https://rt-international.vercel.app/` for frontend (should load SPA)
 3. Check `https://rt-international.vercel.app/api/auth/users` (should 401 with JSON body, not 500)
+

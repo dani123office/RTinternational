@@ -76,8 +76,12 @@ export function useSaleDetail() {
       await deleteSale(saleId)
       toast('Sale deleted', 'success')
       navigate('/sales')
-    } catch {
-      toast('Failed to delete sale', 'error')
+    } catch (err) {
+      const detail = err.response?.data?.detail
+      const msg = typeof detail === 'string' ? detail
+        : Array.isArray(detail) ? detail.map(d => d.msg).join('; ')
+        : detail?.message || err.message || 'Failed to delete sale'
+      toast(msg, 'error')
     }
   }
 
