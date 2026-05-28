@@ -177,9 +177,16 @@ async def http_exception_handler(request, exc):
 
 @app.exception_handler(Exception)
 async def generic_exception_handler(request, exc):
+    import traceback, sys
+    traceback.print_exc(file=sys.stderr)
     return JSONResponse(
         status_code=500,
-        content={"detail": "Something went wrong. Please try again later."}
+        content={
+            "detail": "Something went wrong. Please try again later.",
+            "error_type": type(exc).__name__,
+            "error_message": str(exc),
+            "traceback": traceback.format_exc()
+        }
     )
 
 
