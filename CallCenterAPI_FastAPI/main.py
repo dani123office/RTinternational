@@ -248,10 +248,13 @@ def on_startup():
         print("Warning: Database engine is not initialized. Skipping database setup.")
         print("Ensure DATABASE_URL or POSTGRES_URL environment variable is properly set.")
         return
-    
+
+    if os.environ.get("VERCEL"):
+        print("Running on Vercel — skipping heavy startup DB operations (tables already exist).")
+        return
+
     try:
         Base.metadata.create_all(bind=engine)
-        # Add missing columns if table already exists (create_all doesn't ALTER)
         from sqlalchemy import text, inspect as sa_inspect
         inspector = sa_inspect(engine)
         for table_name, table in Base.metadata.tables.items():
@@ -266,7 +269,7 @@ def on_startup():
                     print(f"Added missing column '{col.name}' to '{table_name}'")
     except Exception as e:
         print(f"Warning: Failed to create database tables: {e}")
-    
+
     db = SessionLocal()
     try:
         def _hash(pw: str = "password"):
