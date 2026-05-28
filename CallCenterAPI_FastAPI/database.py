@@ -82,12 +82,67 @@ class Base(DeclarativeBase):
     pass
 
 
+_db_initialized = False
+
+
+def _ensure_tables():
+    global _db_initialized
+    if _db_initialized or engine is None:
+        return
+    try:
+        Base.metadata.create_all(bind=engine)
+        from sqlalchemy import text, inspect as sa_inspect
+        inspector = sa_inspect(engine)
+        for table_name, table in Base.metadata.tables.items():
+            existing_columns = {c["name"] for c in inspector.get_columns(table_name)}
+            for col in table.columns:
+                if col.name not in existing_columns:
+                    col_type = col.type.compile(engine.dialect)
+                    nullable = "NULL" if col.nullable else "NOT NULL"
+                    with engine.connect() as conn:
+                        conn.execute(text(f"ALTER TABLE {table_name} ADD COLUMN {col.name} {col_type} {nullable}"))
+                        conn.commit()
+                    print(f"Added missing column '{col.name}' to '{table_name}'")
+    except Exception as e:
+        print(f"Warning: Failed to ensure database tables: {e}")
+
+    # Seed default users if they don't exist
+    try:
+        import bcrypt
+        from .models import User
+        db = SessionLocal()
+        try:
+            def _hash(pw: str = "password"):
+                return bcrypt.hashpw(pw.encode("utf-8"), bcrypt.gensalt()).decode("utf-8")
+
+            def _ensure_user(email, defaults):
+                existing = db.query(User).filter(User.email == email).first()
+                if not existing:
+                    u = User(email=email, **defaults)
+                    db.add(u)
+                    db.flush()
+                    return u
+                return existing
+
+            _ensure_user("admin@test.com", dict(name="Admin User", password_hash=_hash(), role="admin", is_active=1))
+            _ensure_user("sunny@rt.com", dict(name="Sunny", password_hash=_hash("123456"), role="manager", is_active=1))
+
+            db.commit()
+        finally:
+            db.close()
+    except Exception as e:
+        print(f"Warning: Failed to seed default users: {e}")
+
+    _db_initialized = True
+
+
 def get_db():
     if engine is None:
         raise RuntimeError(
             "Database engine is not initialized. "
             "Please ensure DATABASE_URL or POSTGRES_URL environment variable is set."
         )
+    _ensure_tables()
     db = SessionLocal()
     try:
         yield db
