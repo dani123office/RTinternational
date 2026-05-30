@@ -1,5 +1,5 @@
 import { APP_STYLES } from '@/lib/styles'
-import { Loader2, ArrowLeft, FileText, Trash2, Activity, CheckCircle, PhoneCall, ArrowLeftRight } from 'lucide-react'
+import { Loader2, ArrowLeft, FileText, Trash2, Activity, CheckCircle, PhoneCall, ArrowLeftRight, Edit } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
 import { useSaleDetail } from '@/hooks/useSaleDetail'
 import { Select } from '@/components/ui/select'
@@ -188,6 +188,9 @@ export default function SaleDetail() {
             )}
 
             <div className="rt-actions">
+              <button onClick={() => navigate(`/sales/${sale.id}/edit`)} className="rt-btn-outline" style={{ marginRight: '8px' }}>
+                <Edit size={16} /> Edit Sale
+              </button>
               <button onClick={() => setShowDelete(true)} className="rt-btn-danger">
                 <Trash2 size={16} /> Delete Sale
               </button>

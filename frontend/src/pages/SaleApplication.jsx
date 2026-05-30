@@ -1,6 +1,7 @@
 import { APP_STYLES } from '@/lib/styles'
-import { useState } from 'react'
-import { useNavigate, useLocation } from 'react-router-dom'
+import { useState, useEffect } from 'react'
+import { useNavigate, useLocation, useParams } from 'react-router-dom'
+import api from '@/lib/api'
 import { useDataStore } from '@/store/dataStore'
 import { useAuthStore } from '@/store/authStore'
 import { useManagerStore } from '@/store/managerStore'
@@ -79,8 +80,11 @@ const mapGasMeter = (m, i) => ({
 export default function SaleApplication() {
   const navigate = useNavigate()
   const location = useLocation()
+  const { id } = useParams()
+  const isEdit = Boolean(id)
+  const saleId = Number(id)
   const { toast } = useToast()
-  const { createCustomer, updateCustomer, createTransfer, updateTransfer, createSale, loadSales } = useDataStore()
+  const { createCustomer, updateCustomer, createTransfer, updateTransfer, createSale, updateSale, loadSales } = useDataStore()
   const { getCurrentUserId, user } = useAuthStore()
   const isManager = user?.role === 'manager'
   const managerStore = useManagerStore()
@@ -88,6 +92,118 @@ export default function SaleApplication() {
   const state = location.state || {}
   const prefill = state.prefillData || state || {}
   const customer = prefill.customer || {}
+
+  const [loadingEditData, setLoadingEditData] = useState(isEdit)
+  const [editIds, setEditIds] = useState({ customerId: null, transferId: null })
+
+  useEffect(() => {
+    if (!isEdit) return
+    const fetchSaleDetails = async () => {
+      try {
+        const res = await api.get(`/api/sales/${saleId}`)
+        const s = res.data
+        
+        let lt = null
+        if (s.transferId) {
+          const resT = await api.get(`/api/transfers/${s.transferId}`)
+          lt = resT.data
+        }
+        
+        const cust = s.customer || {}
+        const eRates = lt?.offeredElectricityRates || []
+        const gRates = lt?.offeredGasRates || []
+        const hasRates = (eRates.length > 0) || (gRates.length > 0)
+
+        setForm({
+          businessName: cust.businessName || '',
+          businessPhone: cust.businessPhone || '',
+          businessAddress: cust.businessAddress || '',
+          postcode: cust.postcode || '',
+          ownerName: cust.ownerName || '',
+          ownerPhone: cust.ownerPhone || '',
+          email: cust.email || '',
+          utilityType: cust.utilityType || 'electricity',
+          elecMeters: (cust.electricityMeters && cust.electricityMeters.length)
+            ? cust.electricityMeters.map((m, i) => ({
+                meterNumber: m.meterNumber || i + 1,
+                currentSupplier: m.currentSupplier || '', supplyNumber: m.supplyNumber || '',
+                dayUnitRate: m.dayUnitRate?.toString() || '', nightUnitRate: m.nightUnitRate?.toString() || '',
+                eveningUnitRate: m.eveningUnitRate?.toString() || '', standingRate: m.standingRate?.toString() || '',
+                monthlyBill: m.monthlyBill?.toString() || '', contractEndDate: normDate(m.contractEndDate) || '',
+              }))
+            : [{ ...DEFAULT_ELEC_METER }],
+          gasMeters: (cust.gasMeters && cust.gasMeters.length)
+            ? cust.gasMeters.map((m, i) => ({
+                meterNumber: m.meterNumber || i + 1,
+                currentSupplier: m.currentSupplier || '', unitRate: m.unitRate?.toString() || '',
+                standingRate: m.standingRate?.toString() || '', monthlyBill: m.monthlyBill?.toString() || '',
+                contractEndDate: normDate(m.contractEndDate) || '',
+              }))
+            : [{ ...DEFAULT_GAS_METER }],
+          mpan: lt?.mpan || '',
+          mprn: lt?.mprn || '',
+          msn: lt?.msn || '',
+          accountNumber: lt?.accountNumber || '',
+          date: lt?.scheduledDateTime?.substring(0, 10) || '',
+          time: lt?.scheduledDateTime?.substring(11, 16) || '',
+          transferNotes: lt?.notes || '',
+          showOfferRates: hasRates,
+          elecSupplier: eRates[0]?.supplier || '',
+          elecContractLength: eRates[0]?.contractLength || '1 Year',
+          elecMeterType: eRates[0]?.meterType || 'Standard',
+          elecCommissionType: eRates[0]?.commissionType || 'Commission',
+          elecCommission: {
+            dayUnitRate: eRates[0]?.dayUnitRate?.toString() || '',
+            nightUnitRate: eRates[0]?.nightUnitRate?.toString() || '',
+            eveningUnitRate: eRates[0]?.eveningUnitRate?.toString() || '',
+            standingRate: eRates[0]?.standingRate?.toString() || '',
+          },
+          elecNonCommission: {
+            dayUnitRate: (eRates[0]?.nonCommissionDayRate || eRates[0]?.nonCommissionDayUnitRate)?.toString() || '',
+            nightUnitRate: eRates[0]?.nonCommissionNightRate?.toString() || '',
+            eveningUnitRate: eRates[0]?.nonCommissionEveningRate?.toString() || '',
+            standingRate: eRates[0]?.nonCommissionStandingRate?.toString() || '',
+            brokerServiceCharge: eRates[0]?.brokerServiceCharge?.toString() || '',
+          },
+          gasSupplier: gRates[0]?.supplier || '',
+          gasContractLength: gRates[0]?.contractLength || '1 Year',
+          gasCommissionType: gRates[0]?.commissionType || 'Commission',
+          gasCommission: {
+            dayUnitRate: (gRates[0]?.unitRate || gRates[0]?.dayUnitRate)?.toString() || '',
+            standingRate: gRates[0]?.standingRate?.toString() || '',
+          },
+          gasNonCommission: {
+            dayUnitRate: (gRates[0]?.nonCommissionUnitRate || gRates[0]?.nonCommissionDayRate || gRates[0]?.nonCommissionDayUnitRate)?.toString() || '',
+            standingRate: gRates[0]?.nonCommissionStandingRate?.toString() || '',
+            brokerServiceCharge: gRates[0]?.brokerServiceCharge?.toString() || '',
+          },
+          ownerFullName: s.ownerFullName || '',
+          homeAddress: s.homeAddress || '',
+          dateOfBirth: s.dateOfBirth ? s.dateOfBirth.substring(0, 10) : '',
+          businessType: s.businessType || 'soleTrader',
+          billFrequency: s.billFrequency || 'monthly',
+          paymentMethod: s.paymentMethod || 'bankTransfer',
+          bankName: s.bankName || '',
+          accountType: s.accountType || '',
+          accountTitle: s.accountTitle || '',
+          sortCode: s.sortCode || '',
+          bankAccountNumber: s.bankAccountNumber || '',
+          notes: s.notes || '',
+        })
+        
+        setEditIds({
+          customerId: s.customerId,
+          transferId: s.transferId
+        })
+      } catch (err) {
+        console.error(err)
+        toast('Failed to load sale details for editing', 'error')
+      } finally {
+        setLoadingEditData(false)
+      }
+    }
+    fetchSaleDetails()
+  }, [isEdit, saleId, toast])
 
   const [form, setForm] = useState(() => {
     const eRates = prefill.offeredElectricityRates || prefill.offeredRates?.electricity || []
@@ -345,7 +461,7 @@ export default function SaleApplication() {
         gasRates,
       }
 
-      let finalCustomerId = state.customerId || prefill.id || null
+      let finalCustomerId = editIds.customerId || state.customerId || prefill.id || null
       if (finalCustomerId) {
         await updateCustomer(finalCustomerId, customerPayload)
       } else {
@@ -389,7 +505,7 @@ export default function SaleApplication() {
         }] : [],
       }
 
-      let finalTransferId = state.transferId
+      let finalTransferId = editIds.transferId || state.transferId
       if (finalTransferId) {
         await updateTransfer(finalTransferId, transferPayload)
       } else {
@@ -401,53 +517,60 @@ export default function SaleApplication() {
         finalTransferId = newTransfer.id
       }
 
-      // 3. Submit Sale Application
-      if (isManager) {
-        const targetAgentId = prefill.employeeId || customer.employeeId || state.employeeId || null
-        if (!targetAgentId) {
-          throw new Error('Could not determine agent for this sale')
+      // 3. Submit or Update Sale Application
+      const salePayload = {
+        ownerFullName: form.ownerFullName.trim(),
+        homeAddress: form.homeAddress.trim(),
+        dateOfBirth: form.dateOfBirth ? new Date(form.dateOfBirth).toISOString().split('T')[0] : null,
+        businessType: form.businessType,
+        billFrequency: form.billFrequency,
+        paymentMethod: form.paymentMethod,
+        bankName: form.bankName || null,
+        accountType: form.accountType || null,
+        accountTitle: form.accountTitle || null,
+        sortCode: form.sortCode || null,
+        bankAccountNumber: form.bankAccountNumber || null,
+        notes: form.notes || null,
+      }
+
+      if (isEdit) {
+        if (isManager) {
+          await managerStore.updateSale(saleId, salePayload)
+          await managerStore.loadSales()
+          toast('Sale updated successfully', 'success')
+          navigate(`/sales/${saleId}`)
+        } else {
+          await updateSale(saleId, salePayload)
+          await loadSales()
+          toast('Sale updated successfully', 'success')
+          navigate(`/sales/${saleId}`)
         }
-        await managerStore.createSale({
-          employeeId: targetAgentId,
-          customerId: finalCustomerId,
-          transferId: finalTransferId,
-          ownerFullName: form.ownerFullName.trim(),
-          homeAddress: form.homeAddress.trim(),
-          dateOfBirth: form.dateOfBirth ? new Date(form.dateOfBirth).toISOString().split('T')[0] : null,
-          businessType: form.businessType,
-          billFrequency: form.billFrequency,
-          paymentMethod: form.paymentMethod,
-          bankName: form.bankName || null,
-          accountType: form.accountType || null,
-          accountTitle: form.accountTitle || null,
-          sortCode: form.sortCode || null,
-          bankAccountNumber: form.bankAccountNumber || null,
-          notes: form.notes || null,
-        })
-        await managerStore.loadSales()
-        toast('Sale application submitted successfully', 'success')
-        navigate('/manager/sales')
       } else {
-        await createSale({
-          employeeId: uid,
-          customerId: finalCustomerId,
-          transferId: finalTransferId,
-          ownerFullName: form.ownerFullName.trim(),
-          homeAddress: form.homeAddress.trim(),
-          dateOfBirth: form.dateOfBirth ? new Date(form.dateOfBirth).toISOString().split('T')[0] : null,
-          businessType: form.businessType,
-          billFrequency: form.billFrequency,
-          paymentMethod: form.paymentMethod,
-          bankName: form.bankName || null,
-          accountType: form.accountType || null,
-          accountTitle: form.accountTitle || null,
-          sortCode: form.sortCode || null,
-          bankAccountNumber: form.bankAccountNumber || null,
-          notes: form.notes || null,
-        })
-        await loadSales()
-        toast('Sale application submitted successfully', 'success')
-        navigate('/sales')
+        if (isManager) {
+          const targetAgentId = prefill.employeeId || customer.employeeId || state.employeeId || null
+          if (!targetAgentId) {
+            throw new Error('Could not determine agent for this sale')
+          }
+          await managerStore.createSale({
+            employeeId: targetAgentId,
+            customerId: finalCustomerId,
+            transferId: finalTransferId,
+            ...salePayload,
+          })
+          await managerStore.loadSales()
+          toast('Sale application submitted successfully', 'success')
+          navigate('/manager/sales')
+        } else {
+          await createSale({
+            employeeId: uid,
+            customerId: finalCustomerId,
+            transferId: finalTransferId,
+            ...salePayload,
+          })
+          await loadSales()
+          toast('Sale application submitted successfully', 'success')
+          navigate('/sales')
+        }
       }
     } catch (err) {
       const d = err.response?.data?.detail
@@ -455,6 +578,24 @@ export default function SaleApplication() {
     } finally {
       setLoading(false)
     }
+  }
+
+  if (loadingEditData) {
+    return (
+      <>
+        <style>{APP_STYLES}</style>
+        <div className="rt-page">
+          <div className="flex justify-center items-center min-h-[60vh]">
+            <div className="rt-card" style={{ padding: '40px' }}>
+              <div className="flex flex-col items-center gap-3">
+                <Loader2 className="h-8 w-8 rt-spin text-indigo-500" />
+                <p className="text-sm text-gray-500 font-medium">Loading sale details...</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </>
+    )
   }
 
   return (
@@ -465,12 +606,16 @@ export default function SaleApplication() {
           
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '28px' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
-              <button className="rt-back-btn" type="button" onClick={() => navigate(isManager ? '/manager/sales' : '/sales')}>
+              <button className="rt-back-btn" type="button" onClick={() => navigate(isEdit ? `/sales/${saleId}` : (isManager ? '/manager/sales' : '/sales'))}>
                 <ArrowLeft size={17} />
               </button>
               <div>
-                <h1 style={{ fontSize: '22px', fontWeight: 800, color: '#0f172a', letterSpacing: '-0.5px', margin: 0 }}>Sale Application</h1>
-                <p style={{ fontSize: '13px', color: '#64748b', margin: '3px 0 0', fontFamily: "'DM Sans',sans-serif" }}>Complete the customer, transfer, and sale information</p>
+                <h1 style={{ fontSize: '22px', fontWeight: 800, color: '#0f172a', letterSpacing: '-0.5px', margin: 0 }}>
+                  {isEdit ? 'Edit Sale Application' : 'Sale Application'}
+                </h1>
+                <p style={{ fontSize: '13px', color: '#64748b', margin: '3px 0 0', fontFamily: "'DM Sans',sans-serif" }}>
+                  {isEdit ? 'Update the customer, transfer, and sale information' : 'Complete the customer, transfer, and sale information'}
+                </p>
               </div>
             </div>
             <AiFormFiller onFill={handleAiFill} />
@@ -762,7 +907,7 @@ export default function SaleApplication() {
 
             <div className="rt-actions">
               <button type="submit" className="rt-btn-primary" disabled={loading}>
-                {loading ? <><Loader2 size={16} className="rt-spin" /> Saving…</> : <><Save size={16} /> Submit Sale Application</>}
+                {loading ? <><Loader2 size={16} className="rt-spin" /> Saving…</> : <><Save size={16} /> {isEdit ? 'Save Changes' : 'Submit Sale Application'}</>}
               </button>
             </div>
           </form>
