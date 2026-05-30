@@ -17,7 +17,7 @@ const ITEMS_PER_PAGE = 10
 
 const formatCamel = (str) => {
   if (!str) return ''
-  const clean = str.replace(/rans/i, 'trans')
+  const clean = str.replace(/bankRansfer/i, 'bankTransfer').replace(/(?<!t)rans/i, 'trans')
   return clean.replace(/([A-Z])/g, ' $1').trim()
 }
 

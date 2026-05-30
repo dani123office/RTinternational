@@ -8,7 +8,7 @@ import { APP_STYLES } from '@/lib/styles'
 
 const formatCamel = (str) => {
   if (!str) return ''
-  const clean = str.replace(/rans/i, 'trans')
+  const clean = str.replace(/bankRansfer/i, 'bankTransfer').replace(/(?<!t)rans/i, 'trans')
   return clean.replace(new RegExp('([A-Z])', 'g'), ' ').trim()
 }
 

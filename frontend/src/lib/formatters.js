@@ -58,7 +58,7 @@ export const normalizeDate = (value) => {
 
 export const formatPaymentMethod = (value) => {
   if (!value) return 'N/A'
-  const clean = value.replace(/rans/i, 'trans')
+  const clean = value.replace(/bankRansfer/i, 'bankTransfer').replace(/(?<!t)rans/i, 'trans')
   const spaced = clean.replace(/([A-Z])/g, ' $1').trim()
   return spaced.split(' ').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ')
 }
