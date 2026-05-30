@@ -1,10 +1,12 @@
 import { APP_STYLES } from '@/lib/styles'
-import { Loader2, ArrowLeft, FileText, Trash2, Activity, CheckCircle, PhoneCall, ArrowLeftRight, Edit } from 'lucide-react'
+import { Loader2, ArrowLeft, FileText, Trash2, Activity, CheckCircle, PhoneCall, ArrowLeftRight, Edit, Calendar } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
 import { useSaleDetail } from '@/hooks/useSaleDetail'
 import { Select } from '@/components/ui/select'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter, DialogClose } from '@/components/ui/dialog'
 import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
 import SaleHero from '@/components/sale/SaleHero'
 import PaymentDetailsCard from '@/components/sale/PaymentDetailsCard'
 import CustomerInfoCard from '@/components/shared/CustomerInfoCard'
@@ -63,7 +65,11 @@ export default function SaleDetail() {
   const {
     sale, linkedTransfer, linkedCallback,
     showDelete, setShowDelete,
+    showReschedule, setShowReschedule,
+    rescheduleDate, setRescheduleDate,
+    rescheduleTime, setRescheduleTime,
     handleStatusChange, handleDelete,
+    handleRescheduleCallback,
     loading, error,
   } = useSaleDetail()
   const { user } = useAuthStore()
@@ -188,6 +194,11 @@ export default function SaleDetail() {
             )}
 
             <div className="rt-actions">
+              {linkedCallback && (
+                <button onClick={() => setShowReschedule(true)} className="rt-btn-outline" style={{ marginRight: '8px' }}>
+                  <PhoneCall size={16} /> Reschedule Callback
+                </button>
+              )}
               <button onClick={() => navigate(`/sales/${sale.id}/edit`)} className="rt-btn-outline" style={{ marginRight: '8px' }}>
                 <Edit size={16} /> Edit Sale
               </button>
@@ -213,6 +224,45 @@ export default function SaleDetail() {
           <DialogFooter className="justify-center">
             <Button variant="outline" onClick={() => setShowDelete(false)}>Cancel</Button>
             <Button variant="destructive" onClick={handleDelete}>Delete</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={showReschedule} onOpenChange={(o) => !o && setShowReschedule(false)}>
+        <DialogContent className="max-w-sm w-full">
+          <DialogClose onClose={() => setShowReschedule(false)} />
+          <DialogHeader>
+            <div className="mx-auto w-12 h-12 rounded-2xl bg-indigo-50 flex items-center justify-center mb-3">
+              <Calendar size={22} color="#6366f1" />
+            </div>
+            <DialogTitle className="text-lg text-center">Reschedule Callback</DialogTitle>
+            <DialogDescription className="text-center text-slate-500">
+              Set a new date and time window for future outreach.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 my-4">
+            <div className="flex flex-col gap-1.5">
+              <Label className="text-xs font-semibold uppercase tracking-wide text-slate-500">Date</Label>
+              <Input
+                type="date"
+                value={rescheduleDate}
+                onChange={(e) => setRescheduleDate(e.target.value)}
+                className="w-full rounded-xl border-slate-200 focus:border-indigo-400 focus:ring-indigo-300"
+              />
+            </div>
+            <div className="flex flex-col gap-1.5">
+              <Label className="text-xs font-semibold uppercase tracking-wide text-slate-500">Time</Label>
+              <Input
+                type="time"
+                value={rescheduleTime}
+                onChange={(e) => setRescheduleTime(e.target.value)}
+                className="w-full rounded-xl border-slate-200 focus:border-indigo-400 focus:ring-indigo-300"
+              />
+            </div>
+          </div>
+          <DialogFooter className="justify-center gap-2">
+            <Button variant="outline" onClick={() => setShowReschedule(false)}>Cancel</Button>
+            <Button onClick={handleRescheduleCallback}>Save Date</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>

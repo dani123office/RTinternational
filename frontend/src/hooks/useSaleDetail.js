@@ -16,9 +16,12 @@ export function useSaleDetail() {
   const managerStore = useManagerStore()
   
   const store = isManager ? managerStore : dataStore
-  const { sales, transfers, callbacks, updateSale, deleteSale, loadSales, loadTransfers, loadCallbacks } = store
+  const { sales, transfers, callbacks, updateSale, deleteSale, updateCallback, loadSales, loadTransfers, loadCallbacks } = store
   
   const [showDelete, setShowDelete] = useState(false)
+  const [showReschedule, setShowReschedule] = useState(false)
+  const [rescheduleDate, setRescheduleDate] = useState('')
+  const [rescheduleTime, setRescheduleTime] = useState('10:00')
   const [loadingDetail, setLoadingDetail] = useState(true)
   
   const saleId = Number(id)
@@ -62,6 +65,29 @@ export function useSaleDetail() {
     return callbacks.find((c) => c.id === linkedTransfer.callBackId)
   }, [linkedTransfer, callbacks])
 
+  useEffect(() => {
+    if (showReschedule && linkedCallback?.scheduledDateTime) {
+      setRescheduleDate(linkedCallback.scheduledDateTime.substring(0, 10))
+      setRescheduleTime(linkedCallback.scheduledDateTime.substring(11, 16))
+    }
+  }, [showReschedule, linkedCallback])
+
+  const handleRescheduleCallback = async () => {
+    if (!linkedCallback) return
+    if (!rescheduleDate) {
+      toast('Please select a valid date', 'error')
+      return
+    }
+    try {
+      const scheduledDateTime = `${rescheduleDate}T${rescheduleTime}:00`
+      await updateCallback(linkedCallback.id, { scheduledDateTime })
+      toast('Callback rescheduled successfully', 'success')
+      setShowReschedule(false)
+    } catch {
+      toast('Failed to reschedule callback', 'error')
+    }
+  }
+
   const handleStatusChange = async (newStatus) => {
     try {
       await updateSale(saleId, { cotStatus: newStatus })
@@ -92,9 +118,16 @@ export function useSaleDetail() {
     
     showDelete,
     setShowDelete,
+    showReschedule,
+    setShowReschedule,
+    rescheduleDate,
+    setRescheduleDate,
+    rescheduleTime,
+    setRescheduleTime,
 
     handleStatusChange,
     handleDelete,
+    handleRescheduleCallback,
     loading: store.isLoading || loadingDetail,
     error: store.error,
   }
