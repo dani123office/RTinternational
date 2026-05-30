@@ -80,7 +80,11 @@ export function useSaleDetail() {
     }
     try {
       const scheduledDateTime = `${rescheduleDate}T${rescheduleTime}:00`
-      await updateCallback(linkedCallback.id, { scheduledDateTime })
+      await updateCallback(linkedCallback.id, { 
+        scheduledDateTime,
+        status: 'pending',
+        outcome: 'rescheduled'
+      })
       toast('Callback rescheduled successfully', 'success')
       setShowReschedule(false)
     } catch {
