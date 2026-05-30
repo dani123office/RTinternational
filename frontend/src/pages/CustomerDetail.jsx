@@ -5,7 +5,7 @@ import { useEffect } from 'react'
 import { useCustomerDetail } from '@/hooks/useCustomerDetail'
 import { useDataStore } from '@/store/dataStore'
 import { STATUS_CONFIG } from '@/lib/constants'
-import { formatDateTime, formatRate, formatDate, formatCurrency } from '@/lib/formatters'
+import { formatDateTime, formatRate, formatDate, formatCurrency, formatPaymentMethod } from '@/lib/formatters'
 import CustomerHero from '@/components/customer/CustomerHero'
 import CustomerInfoCard from '@/components/shared/CustomerInfoCard'
 import MeterDetailsCard from '@/components/shared/MeterDetailsCard'
@@ -464,7 +464,7 @@ export default function CustomerDetail() {
                       <div className="bg-orange-50/40 p-3 rounded-lg border border-orange-100/50 text-xs flex flex-col gap-2">
                         <span className="font-bold text-orange-950 flex items-center gap-1.5">
                           <CreditCard size={13} />
-                          Payment & Bank Details ({s.paymentMethod || 'Direct Debit'})
+                          Payment & Bank Details ({formatPaymentMethod(s.paymentMethod || 'directDebit')})
                         </span>
                         {(s.bankName || s.bankAccountNumber) && (
                           <div className="grid grid-cols-2 gap-2 text-orange-900 mt-1">

@@ -3,6 +3,7 @@ import { useParams, Link } from 'react-router-dom'
 import { ArrowLeft, Mail, Phone, MapPin, FileText, Banknote, Calendar } from 'lucide-react'
 import api, { endpoints } from '@/lib/api'
 import { APP_STYLES } from '@/lib/styles'
+import { formatPaymentMethod } from '@/lib/formatters'
 import StatusBadge from '@/components/shared/StatusBadge'
 import LoadingSpinner from '@/components/shared/LoadingSpinner'
 
@@ -100,7 +101,7 @@ export default function AdminSaleDetail() {
                 <Field label="DOB">{s.dateOfBirth ? new Date(s.dateOfBirth).toLocaleDateString('en-GB') : ''}</Field>
                 <Field label="Business Type">{s.businessType}</Field>
                 <Field label="Bill Frequency">{s.billFrequency}</Field>
-                <Field label="Payment Method">{s.paymentMethod}</Field>
+                <Field label="Payment Method">{formatPaymentMethod(s.paymentMethod)}</Field>
                 <Field label="COT Date">{s.cotDate ? new Date(s.cotDate).toLocaleDateString('en-GB') : ''}</Field>
               </div>
             </div>

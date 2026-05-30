@@ -55,3 +55,10 @@ export const normalizeDate = (value) => {
   if (Number.isNaN(date.getTime())) return null
   return date.toISOString().split('T')[0]
 }
+
+export const formatPaymentMethod = (value) => {
+  if (!value) return 'N/A'
+  const clean = value.replace(/rans/i, 'trans')
+  const spaced = clean.replace(/([A-Z])/g, ' $1').trim()
+  return spaced.split(' ').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ')
+}

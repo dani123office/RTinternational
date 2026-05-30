@@ -15,7 +15,11 @@ import { useToast } from '@/components/ui/toastContext'
 
 const ITEMS_PER_PAGE = 10
 
-const formatCamel = (str) => str ? str.replace(/([A-Z])/g, ' $1').trim() : ''
+const formatCamel = (str) => {
+  if (!str) return ''
+  const clean = str.replace(/rans/i, 'trans')
+  return clean.replace(/([A-Z])/g, ' $1').trim()
+}
 
 const STATUS_OPTIONS = [
   { value: 'chasing', label: 'Chasing' },

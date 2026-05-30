@@ -6,7 +6,11 @@ import StatusBadge from '@/components/shared/StatusBadge'
 import { Plus, PoundSterling, Loader2 } from 'lucide-react'
 import { APP_STYLES } from '@/lib/styles'
 
-const formatCamel = (str) => str ? str.replace(new RegExp('([A-Z])', 'g'), ' ').trim() : ''
+const formatCamel = (str) => {
+  if (!str) return ''
+  const clean = str.replace(/rans/i, 'trans')
+  return clean.replace(new RegExp('([A-Z])', 'g'), ' ').trim()
+}
 
 const H1_STYLE = { fontSize: '22px', fontWeight: 800, color: '#0f172a', letterSpacing: '-0.5px', margin: 0 }
 

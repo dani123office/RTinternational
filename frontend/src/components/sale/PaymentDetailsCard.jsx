@@ -1,4 +1,5 @@
 import { Landmark } from 'lucide-react'
+import { formatPaymentMethod } from '@/lib/formatters'
 
 export default function PaymentDetailsCard({ sale }) {
   if (!sale) return null
@@ -16,8 +17,8 @@ export default function PaymentDetailsCard({ sale }) {
         {sale.paymentMethod && (
           <div>
             <span className="text-slate-500">Method</span>
-            <p className="font-semibold text-slate-900 mt-1 capitalize">
-              {sale.paymentMethod.replace(/([A-Z])/g, ' ').trim()}
+            <p className="font-semibold text-slate-900 mt-1">
+              {formatPaymentMethod(sale.paymentMethod)}
             </p>
           </div>
         )}
