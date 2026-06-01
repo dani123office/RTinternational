@@ -51,25 +51,18 @@ async function playTone({ frequency = 880, type = 'triangle', duration = 350, ga
   }
 }
 
+function playMP3(src) {
+  try {
+    const audio = new Audio(src)
+    audio.volume = 0.3
+    audio.play().catch(() => {})
+  } catch {
+    // ignore
+  }
+}
+
 function playWhatsAppSound() {
-  playTone({
-    frequency: 1568,
-    type: 'sine',
-    duration: 120,
-    gainValue: 0.06,
-    attack: 0.003,
-    release: 0.08,
-  })
-  setTimeout(() => {
-    playTone({
-      frequency: 1318,
-      type: 'sine',
-      duration: 160,
-      gainValue: 0.05,
-      attack: 0.003,
-      release: 0.1,
-    })
-  }, 100)
+  playMP3('/sounds/notification.mp3')
 }
 
 export function playCallbackSound() {
