@@ -3,7 +3,7 @@ import { useDataStore } from '@/store/dataStore'
 import { useManagerStore } from '@/store/managerStore'
 import { useAuthStore } from '@/store/authStore'
 
-export default function Poller({ interval = 15000 }) {
+export default function Poller({ interval = 60000 }) {
   const loadCallbacks = useDataStore((s) => s.loadCallbacks)
   const loadCustomers = useDataStore((s) => s.loadCustomers)
   const loadTransfers = useDataStore((s) => s.loadTransfers)
