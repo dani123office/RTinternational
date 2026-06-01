@@ -252,9 +252,10 @@ export default function AdminAgentDetail() {
                   pageSize={10}
                   searchKey={(row) => `${row.id} ${row.customer?.businessName || ''} ${row.customer?.ownerName || ''} ${row.ownerFullName || ''} ${row.supplier || ''}`}
                   onRowClick={(row) => {
-                    if (activeTab === 'Callbacks') navigate(`/admin/callbacks/${row.id}`)
-                    else if (activeTab === 'Transfers') navigate(`/admin/transfers/${row.id}`)
-                    else navigate(`/admin/sales/${row.id}`)
+                    const to = activeTab === 'Callbacks' ? `/admin/callbacks/${row.id}`
+                      : activeTab === 'Transfers' ? `/admin/transfers/${row.id}`
+                      : `/admin/sales/${row.id}`
+                    navigate(to, { state: { agentId: Number(id) } })
                   }}
                 />
               )}

@@ -1,4 +1,4 @@
-import { useParams, useNavigate } from 'react-router-dom'
+import { useParams, useNavigate, useLocation } from 'react-router-dom'
 import { Loader2, ArrowLeft, FileText, PhoneCall, PoundSterling, ArrowLeftRight } from 'lucide-react'
 
 import { APP_STYLES } from '@/lib/styles'
@@ -48,8 +48,11 @@ function LinkedRow({ icon: Icon, iconBg, iconColor, label, sub, onClick }) {
 export default function CallbackDetail() {
   const { id } = useParams()
   const navigate = useNavigate()
+  const location = useLocation()
   const { user } = useAuthStore()
   const isManager = user?.role === 'manager'
+  const isAdmin = user?.role === 'admin'
+  const agentId = location.state?.agentId
 
   const {
     callback, customer, linkedTransfers, linkedSales, loading, converting,
@@ -114,7 +117,7 @@ export default function CallbackDetail() {
 
           {/* Header Action Button */}
           <div className="rt-page-header mb-2">
-            <button className="rt-back-btn" onClick={() => navigate(isManager ? '/manager' : '/callbacks')} aria-label="Back">
+            <button className="rt-back-btn" onClick={() => navigate(isAdmin && agentId ? `/admin/agents/${agentId}` : isManager ? '/manager' : '/callbacks')} aria-label="Back">
               <ArrowLeft size={17} />
             </button>
           </div>
