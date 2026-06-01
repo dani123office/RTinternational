@@ -66,6 +66,32 @@ export default function CallbackActions({
           gap: '10px'
         }}
       >
+        {/* Reschedule Button — always visible */}
+        <button
+          type="button"
+          onClick={onReschedule}
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: '8px',
+            padding: '10px 16px',
+            backgroundColor: '#ffffff',
+            color: '#475569',
+            border: '1px solid #cbd5e1',
+            borderRadius: '12px',
+            fontSize: '14px',
+            fontWeight: 600,
+            cursor: 'pointer',
+            boxShadow: '0 1px 2px rgba(0,0,0,0.05)',
+            transition: 'all 0.2s'
+          }}
+          onMouseEnter={(e) => { e.target.style.backgroundColor = '#f8fafc'; e.target.style.borderColor = '#94a3b8'; }}
+          onMouseLeave={(e) => { e.target.style.backgroundColor = '#ffffff'; e.target.style.borderColor = '#cbd5e1'; }}
+        >
+          <Calendar size={16} style={{ color: '#94a3b8' }} />
+          Reschedule
+        </button>
+
         {!isDone && (
           <>
             {/* Not Interested Button */}
@@ -92,32 +118,6 @@ export default function CallbackActions({
             >
               <X size={16} style={{ color: '#94a3b8' }} />
               Not Interested
-            </button>
-
-            {/* Reschedule Button */}
-            <button
-              type="button"
-              onClick={onReschedule}
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: '8px',
-                padding: '10px 16px',
-                backgroundColor: '#ffffff',
-                color: '#475569',
-                border: '1px solid #cbd5e1',
-                borderRadius: '12px',
-                fontSize: '14px',
-                fontWeight: 600,
-                cursor: 'pointer',
-                boxShadow: '0 1px 2px rgba(0,0,0,0.05)',
-                transition: 'all 0.2s'
-              }}
-              onMouseEnter={(e) => { e.target.style.backgroundColor = '#f8fafc'; e.target.style.borderColor = '#94a3b8'; }}
-              onMouseLeave={(e) => { e.target.style.backgroundColor = '#ffffff'; e.target.style.borderColor = '#cbd5e1'; }}
-            >
-              <Calendar size={16} style={{ color: '#94a3b8' }} />
-              Reschedule
             </button>
 
             {/* Edit Info Button */}
@@ -156,14 +156,14 @@ export default function CallbackActions({
                 alignItems: 'center',
                 gap: '8px',
                 padding: '10px 20px',
-                backgroundColor: '#4f46e5', // Deep rich indigo solid color
+                backgroundColor: '#4f46e5',
                 color: '#ffffff',
                 border: 'none',
                 borderRadius: '12px',
                 fontSize: '14px',
                 fontWeight: 700,
                 cursor: 'pointer',
-                boxShadow: '0 4px 10px rgba(79, 70, 229, 0.25)', // Premium purple shadow glow
+                boxShadow: '0 4px 10px rgba(79, 70, 229, 0.25)',
                 opacity: converting ? 0.7 : 1,
                 transition: 'all 0.2s'
               }}
