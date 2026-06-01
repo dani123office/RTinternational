@@ -131,7 +131,11 @@ export function useCallbackDetail(id, navigate) {
 
     try {
       const scheduledDateTime = `${rescheduleDate}T${rescheduleTime}:00`
-      await updateCallback(callbackId, { scheduledDateTime })
+      await updateCallback(callbackId, {
+        scheduledDateTime,
+        status: 'pending',
+        outcome: null,
+      })
 
       toast('Callback rescheduled successfully', 'success')
       setShowReschedule(false)
