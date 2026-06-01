@@ -3,7 +3,7 @@ import { useAuthStore } from '@/store/authStore'
 import { useToast } from '@/components/ui/toastContext'
 import api from '@/lib/api'
 import { APP_STYLES } from '@/lib/styles'
-import { Loader2, User, Mail, Phone, Shield, Key, Calendar, Save, Building2, Percent } from 'lucide-react'
+import { Loader2, User, Mail, Phone, Shield, Key, Calendar, Save, Building2, Percent, UserSquare2, CreditCard, Briefcase, DollarSign, Heart, BadgePercent } from 'lucide-react'
 
 export default function ProfileSettings() {
   const { user } = useAuthStore()
@@ -289,6 +289,78 @@ export default function ProfileSettings() {
               </div>
             </div>
           </div>
+
+          {/* Staff Details Section */}
+          {profile && (profile.fatherName || profile.cnic || profile.department || profile.designation || profile.monthlySalary || profile.dateOfBirth || profile.dateOfJoining || profile.emergContactName || profile.emergContactNumber) && (
+            <div className="rt-card rt-fade rt-d3" style={{ marginBottom: '24px' }}>
+              <div className="rt-card-header">
+                <div className="rt-card-header-left">
+                  <div className="rt-card-icon" style={{ background: 'rgba(99,102,241,0.1)' }}>
+                    <UserSquare2 size={16} color="#6366f1" />
+                  </div>
+                  <span className="rt-card-title">Employment & Staff Details</span>
+                </div>
+              </div>
+              <div className="rt-card-body" style={{ padding: '24px 28px' }}>
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '18px 28px' }}>
+                  {profile.fatherName && (
+                    <div>
+                      <p style={{ fontSize: '11px', fontWeight: 700, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.5px', margin: '0 0 4px' }}>Father's Name</p>
+                      <p style={{ fontSize: '14px', fontWeight: 600, color: '#0f172a', margin: 0 }}>{profile.fatherName}</p>
+                    </div>
+                  )}
+                  {profile.cnic && (
+                    <div>
+                      <p style={{ fontSize: '11px', fontWeight: 700, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.5px', margin: '0 0 4px' }}>CNIC</p>
+                      <p style={{ fontSize: '14px', fontWeight: 600, color: '#0f172a', margin: 0 }}>{profile.cnic}</p>
+                    </div>
+                  )}
+                  {profile.designation && (
+                    <div>
+                      <p style={{ fontSize: '11px', fontWeight: 700, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.5px', margin: '0 0 4px' }}>Designation</p>
+                      <p style={{ fontSize: '14px', fontWeight: 600, color: '#0f172a', margin: 0 }}>{profile.designation}</p>
+                    </div>
+                  )}
+                  {profile.department && (
+                    <div>
+                      <p style={{ fontSize: '11px', fontWeight: 700, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.5px', margin: '0 0 4px' }}>Department</p>
+                      <p style={{ fontSize: '14px', fontWeight: 600, color: '#0f172a', margin: 0 }}>{profile.department}</p>
+                    </div>
+                  )}
+                  {profile.monthlySalary !== null && profile.monthlySalary !== undefined && (
+                    <div>
+                      <p style={{ fontSize: '11px', fontWeight: 700, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.5px', margin: '0 0 4px' }}>Monthly Salary</p>
+                      <p style={{ fontSize: '14px', fontWeight: 600, color: '#0f172a', margin: 0 }}>£{Number(profile.monthlySalary).toLocaleString()}</p>
+                    </div>
+                  )}
+                  {profile.phone && (
+                    <div>
+                      <p style={{ fontSize: '11px', fontWeight: 700, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.5px', margin: '0 0 4px' }}>Telephone</p>
+                      <p style={{ fontSize: '14px', fontWeight: 600, color: '#0f172a', margin: 0 }}>{profile.phone}</p>
+                    </div>
+                  )}
+                  {profile.dateOfBirth && (
+                    <div>
+                      <p style={{ fontSize: '11px', fontWeight: 700, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.5px', margin: '0 0 4px' }}>Date of Birth</p>
+                      <p style={{ fontSize: '14px', fontWeight: 600, color: '#0f172a', margin: 0 }}>{new Date(profile.dateOfBirth).toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' })}</p>
+                    </div>
+                  )}
+                  {profile.dateOfJoining && (
+                    <div>
+                      <p style={{ fontSize: '11px', fontWeight: 700, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.5px', margin: '0 0 4px' }}>Date of Joining</p>
+                      <p style={{ fontSize: '14px', fontWeight: 600, color: '#0f172a', margin: 0 }}>{new Date(profile.dateOfJoining).toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' })}</p>
+                    </div>
+                  )}
+                  {profile.emergContactName && (
+                    <div>
+                      <p style={{ fontSize: '11px', fontWeight: 700, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.5px', margin: '0 0 4px' }}>Emergency Contact</p>
+                      <p style={{ fontSize: '14px', fontWeight: 600, color: '#0f172a', margin: 0 }}>{profile.emergContactName}{profile.emergContactNumber ? ` (${profile.emergContactNumber})` : ''}</p>
+                    </div>
+                  )}
+                </div>
+              </div>
+            </div>
+          )}
 
           {/* Save Button */}
           <div className="rt-fade rt-d4" style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: '40px' }}>

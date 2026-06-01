@@ -7,6 +7,7 @@ from ..models import User
 from .auth import get_current_user
 from pydantic import BaseModel, Field
 from typing import Optional
+from datetime import date
 
 router = APIRouter(prefix="/api/profile", tags=["profile"])
 
@@ -22,6 +23,15 @@ class ProfileOut(BaseModel):
     managerId: Optional[int] = None
     createdAt: Optional[str] = None
     updatedAt: Optional[str] = None
+    fatherName: Optional[str] = None
+    monthlySalary: Optional[float] = 0.0
+    cnic: Optional[str] = None
+    department: Optional[str] = None
+    designation: Optional[str] = None
+    dateOfBirth: Optional[date] = None
+    dateOfJoining: Optional[date] = None
+    emergContactName: Optional[str] = None
+    emergContactNumber: Optional[str] = None
 
 
 
@@ -47,6 +57,15 @@ def get_profile(current_user: User = Depends(get_current_user)):
         managerId=current_user.manager_id,
         createdAt=current_user.created_at.isoformat() if current_user.created_at else None,
         updatedAt=current_user.updated_at.isoformat() if current_user.updated_at else None,
+        fatherName=current_user.father_name,
+        monthlySalary=current_user.monthly_salary,
+        cnic=current_user.cnic,
+        department=current_user.department,
+        designation=current_user.designation,
+        dateOfBirth=current_user.date_of_birth,
+        dateOfJoining=current_user.date_of_joining,
+        emergContactName=current_user.emerg_contact_name,
+        emergContactNumber=current_user.emerg_contact_number,
     )
 
 
@@ -91,4 +110,13 @@ def update_profile(
         managerId=current_user.manager_id,
         createdAt=current_user.created_at.isoformat() if current_user.created_at else None,
         updatedAt=current_user.updated_at.isoformat() if current_user.updated_at else None,
+        fatherName=current_user.father_name,
+        monthlySalary=current_user.monthly_salary,
+        cnic=current_user.cnic,
+        department=current_user.department,
+        designation=current_user.designation,
+        dateOfBirth=current_user.date_of_birth,
+        dateOfJoining=current_user.date_of_joining,
+        emergContactName=current_user.emerg_contact_name,
+        emergContactNumber=current_user.emerg_contact_number,
     )

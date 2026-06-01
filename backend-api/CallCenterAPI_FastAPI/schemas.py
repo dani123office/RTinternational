@@ -257,6 +257,16 @@ class UserOut(BaseModel):
     role: str
     isActive: int
     managerId: Optional[int] = None
+    phone: Optional[str] = None
+    fatherName: Optional[str] = None
+    monthlySalary: Optional[float] = 0.0
+    cnic: Optional[str] = None
+    department: Optional[str] = None
+    designation: Optional[str] = None
+    dateOfBirth: Optional[date] = None
+    dateOfJoining: Optional[date] = None
+    emergContactName: Optional[str] = None
+    emergContactNumber: Optional[str] = None
 
 
 
@@ -267,6 +277,16 @@ class AgentOut(BaseModel):
     role: str
     isActive: int
     managerId: Optional[int] = None
+    phone: Optional[str] = None
+    fatherName: Optional[str] = None
+    monthlySalary: Optional[float] = 0.0
+    cnic: Optional[str] = None
+    department: Optional[str] = None
+    designation: Optional[str] = None
+    dateOfBirth: Optional[date] = None
+    dateOfJoining: Optional[date] = None
+    emergContactName: Optional[str] = None
+    emergContactNumber: Optional[str] = None
 
 
 
@@ -307,6 +327,16 @@ class CreateAgentRequest(BaseModel):
     email: str
     password: str
     managerId: int
+    fatherName: Optional[str] = None
+    monthlySalary: Optional[float] = 0.0
+    cnic: Optional[str] = None
+    phone: Optional[str] = None
+    department: Optional[str] = None
+    designation: Optional[str] = None
+    dateOfBirth: Optional[date] = None
+    dateOfJoining: Optional[date] = None
+    emergContactName: Optional[str] = None
+    emergContactNumber: Optional[str] = None
 
 
 class AssignAgentRequest(BaseModel):

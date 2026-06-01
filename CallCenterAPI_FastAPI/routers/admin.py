@@ -73,6 +73,16 @@ def create_agent(data: CreateAgentRequest, admin: User = Depends(require_admin),
             role="agent",
             manager_id=data.managerId,
             is_active=1,
+            father_name=data.fatherName,
+            monthly_salary=data.monthlySalary,
+            cnic=data.cnic,
+            phone=data.phone,
+            department=data.department,
+            designation=data.designation,
+            date_of_birth=data.dateOfBirth,
+            date_of_joining=data.dateOfJoining,
+            emerg_contact_name=data.emergContactName,
+            emerg_contact_number=data.emergContactNumber,
         )
         db.add(user)
         db.commit()
@@ -84,6 +94,7 @@ def create_agent(data: CreateAgentRequest, admin: User = Depends(require_admin),
     except Exception as e:
         db.rollback()
         raise HTTPException(status_code=400, detail=f"Failed to create agent: {str(e)}")
+        raise HTTPException(status_code=400, detail=f"Failed to create agent: {str(e)}")
 
 
 @router.get("/users")
@@ -94,6 +105,16 @@ def get_all_users(admin: User = Depends(require_admin), db: Session = Depends(ge
             "id": u.id, "name": u.name, "email": u.email,
             "role": u.role, "isActive": 1 if u.is_active else 0,
             "managerId": u.manager_id,
+            "phone": u.phone,
+            "fatherName": u.father_name,
+            "monthlySalary": u.monthly_salary,
+            "cnic": u.cnic,
+            "department": u.department,
+            "designation": u.designation,
+            "dateOfBirth": u.date_of_birth.isoformat() if u.date_of_birth else None,
+            "dateOfJoining": u.date_of_joining.isoformat() if u.date_of_joining else None,
+            "emergContactName": u.emerg_contact_name,
+            "emergContactNumber": u.emerg_contact_number,
             "createdAt": u.created_at.isoformat() if u.created_at else None,
         }
         for u in users
@@ -216,6 +237,16 @@ def get_agent_detail(
         agent=AgentOut(
             id=agent.id, name=agent.name, email=agent.email,
             role=agent.role, isActive=agent.is_active, managerId=agent.manager_id,
+            phone=agent.phone,
+            fatherName=agent.father_name,
+            monthlySalary=agent.monthly_salary,
+            cnic=agent.cnic,
+            department=agent.department,
+            designation=agent.designation,
+            dateOfBirth=agent.date_of_birth,
+            dateOfJoining=agent.date_of_joining,
+            emergContactName=agent.emerg_contact_name,
+            emergContactNumber=agent.emerg_contact_number,
         ),
         callbacks=[_build_callback_out(c, c.customer) for c in callbacks],
         transfers=[_transfer_out(t, t.customer) for t in transfers],
@@ -224,6 +255,16 @@ def get_agent_detail(
             agent=AgentOut(
                 id=agent.id, name=agent.name, email=agent.email,
                 role=agent.role, isActive=agent.is_active, managerId=agent.manager_id,
+                phone=agent.phone,
+                fatherName=agent.father_name,
+                monthlySalary=agent.monthly_salary,
+                cnic=agent.cnic,
+                department=agent.department,
+                designation=agent.designation,
+                dateOfBirth=agent.date_of_birth,
+                dateOfJoining=agent.date_of_joining,
+                emergContactName=agent.emerg_contact_name,
+                emergContactNumber=agent.emerg_contact_number,
             ),
             callbacks=ac, transfers=at, sales=as_, conversionRate=a_cr,
         ),
@@ -382,7 +423,7 @@ def reset_user_password(
 def overall_stats(admin: User = Depends(require_admin), db: Session = Depends(get_db)):
     total_agents = db.query(func.count(User.id)).filter(User.role == "agent", User.is_active == True).scalar() or 0
     total_managers = db.query(func.count(User.id)).filter(User.role == "manager", User.is_active == True).scalar() or 0
-    total_cb = db.query(func.count(CallBack.id)).filter(CallBack.scheduled_datetime.isnot(None)).scalar() or 0
+    total_cb = db.query(func.count(CallBack.id)).scalar() or 0
     total_tr = db.query(func.count(Transfer.id)).scalar() or 0
     total_sa = db.query(func.count(Sale.id)).scalar() or 0
     total_opps = total_tr
@@ -403,7 +444,7 @@ def performance_overview(admin: User = Depends(require_admin), db: Session = Dep
     for m in managers:
         a_ids = [a.id for a in db.query(User).filter(User.manager_id == m.id, User.is_active == True).all()]
         if a_ids:
-            cb = db.query(func.count(CallBack.id)).filter(CallBack.employee_id.in_(a_ids), CallBack.scheduled_datetime.isnot(None)).scalar() or 0
+            cb = db.query(func.count(CallBack.id)).filter(CallBack.employee_id.in_(a_ids)).scalar() or 0
             tr = db.query(func.count(Transfer.id)).filter(Transfer.employee_id.in_(a_ids)).scalar() or 0
             sa = db.query(func.count(Sale.id)).filter(Sale.employee_id.in_(a_ids)).scalar() or 0
         else:
@@ -418,7 +459,7 @@ def performance_overview(admin: User = Depends(require_admin), db: Session = Dep
     agents = db.query(User).filter(User.role == "agent", User.is_active == True).all()
     mgr_names = {m.id: m.name for m in db.query(User).filter(User.role == "manager", User.is_active == True).all()}
     for a in agents:
-        cb = db.query(func.count(CallBack.id)).filter(CallBack.employee_id == a.id, CallBack.scheduled_datetime.isnot(None)).scalar() or 0
+        cb = db.query(func.count(CallBack.id)).filter(CallBack.employee_id == a.id).scalar() or 0
         tr = db.query(func.count(Transfer.id)).filter(Transfer.employee_id == a.id).scalar() or 0
         sa = db.query(func.count(Sale.id)).filter(Sale.employee_id == a.id).scalar() or 0
         agents_data.append(AgentKpi(

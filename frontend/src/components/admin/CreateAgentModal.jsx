@@ -1,8 +1,13 @@
 import { useState } from 'react'
-import { X } from 'lucide-react'
+import { X, User, Mail, Lock, Briefcase, DollarSign, CreditCard, Phone, Building2, BadgePercent, Calendar, Heart, Users } from 'lucide-react'
 
 export default function CreateAgentModal({ isOpen, onClose, onSave, managers }) {
-  const [form, setForm] = useState({ name: '', email: '', password: '', managerId: '' })
+  const [form, setForm] = useState({
+    name: '', email: '', password: '', managerId: '',
+    fatherName: '', monthlySalary: '', cnic: '', phone: '',
+    department: '', designation: '', dateOfBirth: '', dateOfJoining: '',
+    emergContactName: '', emergContactNumber: '',
+  })
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
 
@@ -13,52 +18,127 @@ export default function CreateAgentModal({ isOpen, onClose, onSave, managers }) 
     if (!form.managerId) { setError('Please assign a manager'); return }
     setLoading(true); setError('')
     try {
-      await onSave({ ...form, managerId: Number(form.managerId) })
-      setForm({ name: '', email: '', password: '', managerId: '' })
+      await onSave({
+        ...form,
+        managerId: Number(form.managerId),
+        monthlySalary: form.monthlySalary ? Number(form.monthlySalary) : 0,
+      })
+      setForm({
+        name: '', email: '', password: '', managerId: '',
+        fatherName: '', monthlySalary: '', cnic: '', phone: '',
+        department: '', designation: '', dateOfBirth: '', dateOfJoining: '',
+        emergContactName: '', emergContactNumber: '',
+      })
       onClose()
     } catch (e) {
       setError(e.response?.data?.detail || 'Failed to create agent')
     } finally { setLoading(false) }
   }
 
+  const set = (key) => (e) => setForm({ ...form, [key]: e.target.value })
   const noManagers = !managers || managers.length === 0
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm" onClick={onClose}>
-      <div className="bg-white rounded-2xl w-[90%] max-w-[440px] shadow-2xl" onClick={e => e.stopPropagation()}>
-        <div className="flex items-center justify-between px-6 py-5 border-b border-slate-100">
-          <h3 className="text-base font-semibold text-slate-900">Create Agent</h3>
+      <div className="bg-white rounded-2xl w-[90%] max-w-[620px] shadow-2xl max-h-[90vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
+        <div className="flex items-center justify-between px-6 py-5 border-b border-slate-100 sticky top-0 bg-white z-10">
+          <h3 className="text-base font-semibold text-slate-900">Add New Staff Member</h3>
           <button onClick={onClose} className="w-8 h-8 rounded-lg border-0 bg-slate-50 text-slate-400 cursor-pointer flex items-center justify-center hover:bg-slate-100 transition-colors">
             <X size={16} />
           </button>
         </div>
-        <div className="p-6 flex flex-col gap-3">
+        <div className="p-6 flex flex-col gap-4">
           {error && <p className="text-[0.8rem] text-red-500 p-2 bg-red-50 rounded-lg">{error}</p>}
           {noManagers && (
             <p className="text-[0.8rem] text-amber-600 p-2 bg-amber-50 rounded-lg border border-amber-200">
               Please create a manager first
             </p>
           )}
-          <div>
-            <label className="rt-label">Name</label>
-            <input value={form.name} onChange={e => setForm({ ...form, name: e.target.value })} placeholder="Enter name"
-              className="rt-input" />
+
+          <div className="rt-grid2">
+            <div>
+              <label className="rt-label flex items-center gap-1.5"><User size={13} /> Full Name *</label>
+              <input value={form.name} onChange={set('name')} placeholder="Enter full name" className="rt-input" />
+            </div>
+            <div>
+              <label className="rt-label flex items-center gap-1.5"><User size={13} /> Father's Name</label>
+              <input value={form.fatherName} onChange={set('fatherName')} placeholder="Enter father's name" className="rt-input" />
+            </div>
           </div>
-          <div>
-            <label className="rt-label">Email</label>
-            <input type="email" value={form.email} onChange={e => setForm({ ...form, email: e.target.value })} placeholder="Enter email"
-              className="rt-input" />
+
+          <div className="rt-grid2">
+            <div>
+              <label className="rt-label flex items-center gap-1.5"><Mail size={13} /> Email *</label>
+              <input type="email" value={form.email} onChange={set('email')} placeholder="Enter email" className="rt-input" />
+            </div>
+            <div>
+              <label className="rt-label flex items-center gap-1.5"><Briefcase size={13} /> Role *</label>
+              <select value="employee" disabled className="rt-input">
+                <option value="employee">Employee</option>
+              </select>
+            </div>
           </div>
-          <div>
-            <label className="rt-label">Password</label>
-            <input type="password" value={form.password} onChange={e => setForm({ ...form, password: e.target.value })} placeholder="Enter password"
-              className="rt-input" />
+
+          <div className="rt-grid2">
+            <div>
+              <label className="rt-label flex items-center gap-1.5"><Lock size={13} /> Password *</label>
+              <input type="password" value={form.password} onChange={set('password')} placeholder="Enter password" className="rt-input" />
+            </div>
+            <div>
+              <label className="rt-label flex items-center gap-1.5"><DollarSign size={13} /> Monthly Salary</label>
+              <input type="number" value={form.monthlySalary} onChange={set('monthlySalary')} placeholder="0.00" className="rt-input" />
+            </div>
           </div>
+
+          <div className="rt-grid2">
+            <div>
+              <label className="rt-label flex items-center gap-1.5"><CreditCard size={13} /> CNIC</label>
+              <input value={form.cnic} onChange={set('cnic')} placeholder="Enter CNIC number" className="rt-input" />
+            </div>
+            <div>
+              <label className="rt-label flex items-center gap-1.5"><Phone size={13} /> Telephone</label>
+              <input type="tel" value={form.phone} onChange={set('phone')} placeholder="Enter telephone number" className="rt-input" />
+            </div>
+          </div>
+
+          <div className="rt-grid2">
+            <div>
+              <label className="rt-label flex items-center gap-1.5"><Building2 size={13} /> Department</label>
+              <input value={form.department} onChange={set('department')} placeholder="Enter department" className="rt-input" />
+            </div>
+            <div>
+              <label className="rt-label flex items-center gap-1.5"><BadgePercent size={13} /> Designation</label>
+              <input value={form.designation} onChange={set('designation')} placeholder="Enter designation" className="rt-input" />
+            </div>
+          </div>
+
+          <div className="rt-grid2">
+            <div>
+              <label className="rt-label flex items-center gap-1.5"><Calendar size={13} /> Date of Birth</label>
+              <input type="date" value={form.dateOfBirth} onChange={set('dateOfBirth')} className="rt-input" />
+            </div>
+            <div>
+              <label className="rt-label flex items-center gap-1.5"><Calendar size={13} /> Date of Joining</label>
+              <input type="date" value={form.dateOfJoining} onChange={set('dateOfJoining')} className="rt-input" />
+            </div>
+          </div>
+
+          <div className="rt-grid2">
+            <div>
+              <label className="rt-label flex items-center gap-1.5"><Heart size={13} /> Emerg. Contact Name</label>
+              <input value={form.emergContactName} onChange={set('emergContactName')} placeholder="Enter emergency contact" className="rt-input" />
+            </div>
+            <div>
+              <label className="rt-label flex items-center gap-1.5"><Phone size={13} /> Emerg. Contact Number</label>
+              <input type="tel" value={form.emergContactNumber} onChange={set('emergContactNumber')} placeholder="Enter emergency number" className="rt-input" />
+            </div>
+          </div>
+
           <div>
-            <label className="rt-label">Assigned Manager *</label>
+            <label className="rt-label flex items-center gap-1.5"><Users size={13} /> Assigned Manager *</label>
             <select
               value={form.managerId}
-              onChange={e => setForm({ ...form, managerId: e.target.value })}
+              onChange={set('managerId')}
               disabled={noManagers}
               className="rt-input"
             >
@@ -72,7 +152,7 @@ export default function CreateAgentModal({ isOpen, onClose, onSave, managers }) 
         <div className="flex items-center justify-end gap-2 px-6 py-4 border-t border-slate-100">
           <button onClick={onClose} className="rt-btn-outline text-sm">Cancel</button>
           <button onClick={handleSave} disabled={loading || noManagers} className="rt-btn-primary text-sm">
-            {loading ? 'Creating...' : 'Create Agent'}
+            {loading ? 'Creating...' : 'Add Staff Member'}
           </button>
         </div>
       </div>

@@ -3,7 +3,7 @@ import { useParams, useNavigate, Link } from 'react-router-dom'
 import { useAdminStore } from '@/store/adminStore'
 import {
   ArrowLeft, User, ArrowLeftRight, PoundSterling,
-  TrendingUp, Mail, Calendar,
+  TrendingUp, Mail, Calendar, UserSquare2, CreditCard, Briefcase, DollarSign, Heart, BadgePercent, Building2,
 } from 'lucide-react'
 import { APP_STYLES } from '@/lib/styles'
 import DataTable from '@/components/shared/DataTable'
@@ -164,6 +164,80 @@ export default function AdminAgentDetail() {
               </div>
             </div>
           </div>
+
+          {/* Staff Profile Info */}
+          {(agent.fatherName || agent.cnic || agent.department || agent.designation || agent.monthlySalary || agent.phone || agent.dateOfBirth || agent.dateOfJoining || agent.emergContactName || agent.emergContactNumber) && (
+            <div className="rt-card rt-fade rt-d1" style={{ marginBottom: '20px' }}>
+              <div className="rt-card-header">
+                <div className="rt-card-header-left">
+                  <div className="rt-card-icon" style={{ background: 'rgba(99,102,241,0.1)' }}>
+                    <UserSquare2 size={16} color="#6366f1" />
+                  </div>
+                  <span className="rt-card-title">Staff Profile Info</span>
+                </div>
+              </div>
+              <div className="rt-card-body" style={{ padding: '20px 24px' }}>
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '16px 24px' }}>
+                  {agent.fatherName && (
+                    <div>
+                      <p style={{ fontSize: '10px', fontWeight: 700, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.5px', margin: '0 0 3px' }}>Father's Name</p>
+                      <p style={{ fontSize: '13px', fontWeight: 600, color: '#0f172a', margin: 0 }}>{agent.fatherName}</p>
+                    </div>
+                  )}
+                  {agent.cnic && (
+                    <div>
+                      <p style={{ fontSize: '10px', fontWeight: 700, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.5px', margin: '0 0 3px' }}>CNIC</p>
+                      <p style={{ fontSize: '13px', fontWeight: 600, color: '#0f172a', margin: 0 }}>{agent.cnic}</p>
+                    </div>
+                  )}
+                  {agent.phone && (
+                    <div>
+                      <p style={{ fontSize: '10px', fontWeight: 700, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.5px', margin: '0 0 3px' }}>Telephone</p>
+                      <p style={{ fontSize: '13px', fontWeight: 600, color: '#0f172a', margin: 0 }}>{agent.phone}</p>
+                    </div>
+                  )}
+                  {agent.designation && (
+                    <div>
+                      <p style={{ fontSize: '10px', fontWeight: 700, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.5px', margin: '0 0 3px' }}>Designation</p>
+                      <p style={{ fontSize: '13px', fontWeight: 600, color: '#0f172a', margin: 0 }}>{agent.designation}</p>
+                    </div>
+                  )}
+                  {agent.department && (
+                    <div>
+                      <p style={{ fontSize: '10px', fontWeight: 700, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.5px', margin: '0 0 3px' }}>Department</p>
+                      <p style={{ fontSize: '13px', fontWeight: 600, color: '#0f172a', margin: 0 }}>{agent.department}</p>
+                    </div>
+                  )}
+                  {agent.monthlySalary !== null && agent.monthlySalary !== undefined && (
+                    <div>
+                      <p style={{ fontSize: '10px', fontWeight: 700, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.5px', margin: '0 0 3px' }}>Monthly Salary</p>
+                      <p style={{ fontSize: '13px', fontWeight: 600, color: '#0f172a', margin: 0 }}>£{Number(agent.monthlySalary).toLocaleString()}</p>
+                    </div>
+                  )}
+                  {agent.dateOfBirth && (
+                    <div>
+                      <p style={{ fontSize: '10px', fontWeight: 700, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.5px', margin: '0 0 3px' }}>Date of Birth</p>
+                      <p style={{ fontSize: '13px', fontWeight: 600, color: '#0f172a', margin: 0 }}>{new Date(agent.dateOfBirth).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}</p>
+                    </div>
+                  )}
+                  {agent.dateOfJoining && (
+                    <div>
+                      <p style={{ fontSize: '10px', fontWeight: 700, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.5px', margin: '0 0 3px' }}>Date of Joining</p>
+                      <p style={{ fontSize: '13px', fontWeight: 600, color: '#0f172a', margin: 0 }}>{new Date(agent.dateOfJoining).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}</p>
+                    </div>
+                  )}
+                  {agent.emergContactName && (
+                    <div>
+                      <p style={{ fontSize: '10px', fontWeight: 700, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.5px', margin: '0 0 3px' }}>Emergency Contact</p>
+                      <p style={{ fontSize: '13px', fontWeight: 600, color: '#0f172a', margin: 0 }}>
+                        {agent.emergContactName}{agent.emergContactNumber ? ` (${agent.emergContactNumber})` : ''}
+                      </p>
+                    </div>
+                  )}
+                </div>
+              </div>
+            </div>
+          )}
 
           <div className="grid grid-cols-1 sm:grid-cols-4 gap-4 mb-6 rt-fade rt-d1">
             <div className="rt-card p-5 flex items-center gap-4">
