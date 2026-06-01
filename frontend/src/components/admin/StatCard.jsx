@@ -14,12 +14,15 @@ const animateValue = (target, setDisplay) => {
 export default function StatCard({ icon: Icon, label, value, accent, subtext, progress, onClick }) {
   const [display, setDisplay] = useState(0)
   const ref = useRef(null)
-  const done = useRef(null)
+  const prevValue = useRef(undefined)
 
   useEffect(() => {
+    if (prevValue.current === value) return
+    prevValue.current = value
+    setDisplay(0)
     const obs = new IntersectionObserver(([e]) => {
-      if (e.isIntersecting && !done.current) {
-        done.current = true
+      if (e.isIntersecting) {
+        obs.disconnect()
         animateValue(Number(value) || 0, setDisplay)
       }
     }, { threshold: 0.3 })
