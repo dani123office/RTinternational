@@ -10,7 +10,6 @@ function getAudioContext() {
   return audioContext
 }
 
-// Proactively resume AudioContext on first user interaction
 function attachResumeHandler() {
   if (resumeHandlerAttached || !AudioContextClass) return
   resumeHandlerAttached = true
@@ -55,14 +54,24 @@ async function playTone({ frequency = 880, type = 'triangle', duration = 350, ga
   }
 }
 
-export function playToastSound() {
-  playTone({ frequency: 950, type: 'triangle', duration: 260, gainValue: 0.1, attack: 0.02, release: 0.08 })
+export function playWhatsAppSound() {
+  playTone({ frequency: 1318, type: 'sine', duration: 180, gainValue: 0.045, attack: 0.005, release: 0.15 })
+  setTimeout(() => {
+    playTone({ frequency: 1108, type: 'sine', duration: 220, gainValue: 0.038, attack: 0.005, release: 0.18 })
+  }, 120)
 }
 
 export function playCallbackSound() {
-  playTone({ frequency: 920, type: 'sine', duration: 360, gainValue: 0.12, attack: 0.015, release: 0.1 })
+  playWhatsAppSound()
+}
+
+export function playToastSound() {
+  playTone({ frequency: 1047, type: 'sine', duration: 200, gainValue: 0.08, attack: 0.01, release: 0.08 })
 }
 
 export function playNotificationSound() {
-  playTone({ frequency: 740, type: 'triangle', duration: 320, gainValue: 0.1, attack: 0.02, release: 0.09 })
+  playTone({ frequency: 880, type: 'sine', duration: 250, gainValue: 0.09, attack: 0.01, release: 0.1 })
+  setTimeout(() => {
+    playTone({ frequency: 1108, type: 'sine', duration: 200, gainValue: 0.07, attack: 0.01, release: 0.08 })
+  }, 180)
 }
