@@ -1,27 +1,37 @@
-const AudioContextClass = window.AudioContext || window.webkitAudioContext
+const AudioContextClass = typeof window !== 'undefined' ? (window.AudioContext || window.webkitAudioContext) : null
 let audioContext = null
 let canPlay = false
 
 function onUserInteraction() {
   if (canPlay) return
   canPlay = true
+  if (!audioContext && AudioContextClass) {
+    audioContext = new AudioContextClass()
+  }
   if (audioContext && audioContext.state === 'suspended') {
     audioContext.resume().catch(() => {})
   }
 }
 
-document.addEventListener('click', onUserInteraction, { once: true })
-document.addEventListener('touchstart', onUserInteraction, { once: true })
-document.addEventListener('keydown', onUserInteraction, { once: true })
+if (typeof document !== 'undefined') {
+  document.addEventListener('click', onUserInteraction, { once: true })
+  document.addEventListener('touchstart', onUserInteraction, { once: true })
+  document.addEventListener('pointerdown', onUserInteraction, { once: true })
+  document.addEventListener('keydown', onUserInteraction, { once: true })
+}
 
-function playTone({ frequency = 880, type = 'sine', duration = 350, gainValue = 0.04, attack = 0.003, release = 0.1 }) {
+async function playTone({ frequency = 880, type = 'sine', duration = 350, gainValue = 0.04, attack = 0.003, release = 0.1 }) {
   if (!canPlay) return
   if (!AudioContextClass) return
   if (!audioContext || audioContext.state === 'closed') {
     audioContext = new AudioContextClass()
   }
   if (audioContext.state === 'suspended') {
-    audioContext.resume().catch(() => {})
+    try {
+      await audioContext.resume()
+    } catch {
+      return
+    }
   }
   if (audioContext.state !== 'running') return
 
