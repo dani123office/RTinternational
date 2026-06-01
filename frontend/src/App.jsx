@@ -36,6 +36,7 @@ import AdminAgentDetail from '@/pages/admin/AdminAgentDetail'
 import AdminManagerDetail from '@/pages/admin/AdminManagerDetail'
 import AdminTransferDetail from '@/pages/admin/AdminTransferDetail'
 import AdminCallbackDetail from '@/pages/admin/AdminCallbackDetail'
+import AdminTransfers from '@/pages/admin/AdminTransfers'
 import AdminSaleDetail from '@/pages/admin/AdminSaleDetail'
 import AdminCallbacks from '@/pages/admin/AdminCallbacks'
 
@@ -110,6 +111,7 @@ export default function App() {
         <Route path="agents/:id" element={<AdminAgentDetail />} />
         <Route path="callbacks" element={<AdminCallbacks />} />
         <Route path="callbacks/:id" element={<AdminCallbackDetail />} />
+        <Route path="transfers" element={<AdminTransfers />} />
         <Route path="transfers/:id" element={<AdminTransferDetail />} />
         <Route path="sales/:id" element={<AdminSaleDetail />} />
         <Route path="analytics" element={<AdminDashboard />} />
