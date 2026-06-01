@@ -427,6 +427,14 @@ export default function SaleApplication() {
       if (toNum(nc.standingRate) > toNum(c.standingRate)) { toast('Gas non-commission Standing Charge cannot exceed commission Standing Charge', 'error'); return false }
     }
 
+    if (form.utilityType !== 'gas') {
+      const firstElectricitySupply = form.elecMeters?.[0]?.supplyNumber?.trim() || form.mpan?.trim()
+      if (!firstElectricitySupply) {
+        toast('Please enter the electricity supply number: MPAN or the first electricity meter supply number.', 'error')
+        return false
+      }
+    }
+
     // Sales validations
     if (!form.ownerFullName.trim()) { toast('Owner Full Name is required', 'error'); return false }
     if (!form.dateOfBirth) { toast('Date of Birth is required', 'error'); return false }

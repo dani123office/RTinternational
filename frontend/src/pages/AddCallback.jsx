@@ -435,13 +435,20 @@ export default function AddCallback() {
         employeeId:uid,
       }
 
-      const firstElectricitySupply = form.utilityType !== 'gas' ? form.elecMeters?.[0]?.supplyNumber || form.mpan || null : null
+      const firstElectricitySupply = form.utilityType !== 'gas'
+        ? form.elecMeters?.[0]?.supplyNumber?.trim() || form.mpan?.trim() || null
+        : null
+      if (form.utilityType !== 'gas' && !firstElectricitySupply) {
+        toast('Please enter the electricity supply number: MPAN or the first electricity meter supply number.', 'error')
+        return
+      }
+
       const callbackPayload = {
         employeeId:        uid,
         scheduledDateTime: `${form.scheduledDate}T${form.scheduledTime}:00`,
         notes:             form.notes || null,
         accountNumber:     form.accountNumber || null,
-        mpan:              firstElectricitySupply,
+        mpan:              firstElectricitySupply || undefined,
         mprn:              form.mprn || null,
         msn:               form.msn || null,
         offeredElectricityRates: form.showOfferRates && form.utilityType !== 'gas' ? [{
