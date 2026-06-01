@@ -26,9 +26,28 @@ export default function AdminSaleDetail() {
   const [error, setError] = useState(null)
 
   useEffect(() => {
-    api.get(`${endpoints.sales}/${id}`)
-      .then(res => { setData(res.data); setLoading(false) })
-      .catch(err => { setError(err.response?.data?.detail || 'Failed to load sale'); setLoading(false) })
+    const load = async () => {
+      try {
+        // try admin endpoint if available
+        if (endpoints.admin && endpoints.admin.saleDetail) {
+          const res = await api.get(endpoints.admin.saleDetail(id))
+          setData(res.data)
+        } else {
+          const res = await api.get(`${endpoints.sales}/${id}`)
+          setData(res.data)
+        }
+      } catch (err) {
+        try {
+          const res2 = await api.get(`${endpoints.sales}/${id}`)
+          setData(res2.data)
+        } catch (err2) {
+          setError(err2.response?.data?.detail || 'Failed to load sale')
+        }
+      } finally {
+        setLoading(false)
+      }
+    }
+    load()
   }, [id])
 
   if (loading) return (

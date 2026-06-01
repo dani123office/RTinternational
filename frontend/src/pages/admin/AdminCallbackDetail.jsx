@@ -28,9 +28,23 @@ export default function AdminCallbackDetail() {
   const [error, setError] = useState(null)
 
   useEffect(() => {
-    api.get(endpoints.admin.callbackDetail(id))
-      .then(res => { setData(res.data); setLoading(false) })
-      .catch(err => { setError(err.response?.data?.detail || 'Failed to load callback'); setLoading(false) })
+    const load = async () => {
+      try {
+        const res = await api.get(endpoints.admin.callbackDetail(id))
+        setData(res.data)
+      } catch (err) {
+        // fallback to public endpoint
+        try {
+          const res2 = await api.get(`/api/callbacks/${id}`)
+          setData(res2.data)
+        } catch (err2) {
+          setError(err2.response?.data?.detail || 'Failed to load callback')
+        }
+      } finally {
+        setLoading(false)
+      }
+    }
+    load()
   }, [id])
 
   if (loading) return (
