@@ -3,7 +3,7 @@ import { useParams, useNavigate, Link } from 'react-router-dom'
 import { useAdminStore } from '@/store/adminStore'
 import {
   ArrowLeft, User, PhoneCall, ArrowLeftRight, PoundSterling,
-  TrendingUp, Eye, Mail,
+  TrendingUp, Eye, Mail, Calendar,
 } from 'lucide-react'
 import { APP_STYLES } from '@/lib/styles'
 import DataTable from '@/components/shared/DataTable'
@@ -43,7 +43,7 @@ function StatusBadge({ status, type }) {
   )
 }
 
-const tabs = ['Transfers', 'Sales']
+const tabs = ['Callbacks', 'Transfers', 'Sales']
 
 export default function AdminAgentDetail() {
   const { id } = useParams()
@@ -57,10 +57,11 @@ export default function AdminAgentDetail() {
 
   const agent     = selectedAgent?.agent
   const stats     = selectedAgent?.stats
+  const callbacks = selectedAgent?.callbacks || []
   const transfers = selectedAgent?.transfers || []
   const sales     = selectedAgent?.sales || []
 
-  const activeItems = activeTab === 'Transfers' ? transfers : sales
+  const activeItems = activeTab === 'Callbacks' ? callbacks : activeTab === 'Transfers' ? transfers : sales
 
   const filteredData = useMemo(() => {
     if (!statusFilter) return activeItems
@@ -90,40 +91,48 @@ export default function AdminAgentDetail() {
     )
   }
 
+  const isCallbacks = activeTab === 'Callbacks'
+  const isTransfers = activeTab === 'Transfers'
+
   const tableColumns = [
     { header: 'ID', cell: (row) => <span className="font-semibold text-slate-800">#{row.id}</span> },
     {
       header: 'Business Name',
       cell: (row) => (
-        <span className="font-semibold text-slate-900 truncate max-w-[160px] inline-block" title={row.customer?.businessName || row.ownerFullName || 'N/A'}>
-          {row.customer?.businessName || row.ownerFullName || 'N/A'}
+        <span className="font-semibold text-slate-900 truncate max-w-[160px] inline-block" title={row.customer?.businessName || row.customer?.ownerName || 'N/A'}>
+          {row.customer?.businessName || row.customer?.ownerName || 'N/A'}
         </span>
       ),
     },
     {
       header: 'Owner',
       cell: (row) => (
-        <span className="text-slate-500 text-[0.78rem] truncate max-w-[120px] inline-block" title={row.customer?.ownerName || row.ownerFullName || '-'}>
-          {row.customer?.ownerName || row.ownerFullName || '-'}
+        <span className="text-slate-500 text-[0.78rem] truncate max-w-[120px] inline-block" title={row.customer?.ownerName || '-'}>
+          {row.customer?.ownerName || '-'}
         </span>
       ),
     },
     {
-      header: activeTab === 'Transfers' ? 'Supplier' : 'Payment',
+      header: isCallbacks ? 'Scheduled' : isTransfers ? 'Supplier' : 'Payment',
       cell: (row) => {
-        const val = activeTab === 'Transfers' ? row.supplier : row.paymentMethod
+        if (isCallbacks) {
+          const d = row.scheduledDateTime || row.scheduledDate
+          return d ? new Date(d).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' }) : '-'
+        }
+        const val = isTransfers ? row.supplier : row.paymentMethod
         return <span className="text-slate-700 text-[0.78rem]">{val || '-'}</span>
       },
     },
     { header: 'Date', cell: (row) => row.createdAt ? new Date(row.createdAt).toLocaleDateString('en-GB') : 'N/A' },
-    { header: 'Status', cell: (row) => <StatusBadge status={row.status || row.cotStatus} type={activeTab === 'Transfers' ? 'transfer' : 'sale'} /> },
+    { header: 'Status', cell: (row) => <StatusBadge status={row.status || row.cotStatus} type={isCallbacks ? 'callback' : isTransfers ? 'transfer' : 'sale'} /> },
     {
       header: '',
       cell: (row) => (
         <div className="flex gap-1 justify-end" onClick={(e) => e.stopPropagation()}>
           <button
             onClick={() => {
-              if (activeTab === 'Transfers') navigate(`/admin/transfers/${row.id}`)
+              if (isCallbacks) navigate(`/callbacks/${row.id}`)
+              else if (isTransfers) navigate(`/admin/transfers/${row.id}`)
               else navigate(`/admin/sales/${row.id}`)
             }}
             className="p-1.5 rounded-lg border-0 bg-slate-50 text-slate-400 cursor-pointer hover:bg-blue-50 hover:text-blue-500 transition-colors"
@@ -136,9 +145,11 @@ export default function AdminAgentDetail() {
     },
   ]
 
-  const statusOptions = activeTab === 'Transfers'
-    ? ['pending', 'completed', 'failed', 'chasing', 'cotInProgress', 'hold']
-    : ['chasing', 'cotInProgress', 'done', 'hold']
+  const statusOptions = isCallbacks
+    ? ['pending', 'done', 'not_interested']
+    : isTransfers
+      ? ['pending', 'completed', 'failed', 'chasing', 'cotInProgress', 'hold']
+      : ['chasing', 'cotInProgress', 'done', 'hold']
 
   return (
     <>
@@ -172,7 +183,16 @@ export default function AdminAgentDetail() {
             </div>
           </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6 rt-fade rt-d1">
+          <div className="grid grid-cols-1 sm:grid-cols-4 gap-4 mb-6 rt-fade rt-d1">
+            <div className="rt-card p-5 flex items-center gap-4">
+              <div className="w-10 h-10 rounded-xl flex items-center justify-center" style={{ background: '#eef2ff' }}>
+                <Calendar size={18} color="#6366f1" />
+              </div>
+              <div>
+                <p className="text-xs font-semibold text-slate-400 uppercase tracking-wide">Callbacks</p>
+                <p className="text-2xl font-extrabold text-slate-900">{stats?.callbacks || 0}</p>
+              </div>
+            </div>
             <div className="rt-card p-5 flex items-center gap-4">
               <div className="w-10 h-10 rounded-xl flex items-center justify-center" style={{ background: '#f0fdf4' }}>
                 <ArrowLeftRight size={18} color="#16a34a" />
@@ -214,7 +234,7 @@ export default function AdminAgentDetail() {
                   {tab}
                   <span className="ml-2 text-xs px-1.5 py-0.5 rounded-full"
                     style={{ background: activeTab === tab ? '#eef2ff' : '#f8fafc', color: activeTab === tab ? '#6366f1' : '#94a3b8' }}>
-                    {tab === 'Transfers' ? transfers.length : sales.length}
+                    {tab === 'Callbacks' ? callbacks.length : tab === 'Transfers' ? transfers.length : sales.length}
                   </span>
                 </button>
               ))}

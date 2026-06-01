@@ -199,10 +199,11 @@ def get_agent_detail(
     if not agent:
         raise HTTPException(status_code=404, detail="Agent not found")
 
+    callbacks = db.query(CallBack).filter(CallBack.employee_id == agent.id).all()
     transfers = db.query(Transfer).filter(Transfer.employee_id == agent.id).all()
     sales = db.query(Sale).filter(Sale.employee_id == agent.id).all()
 
-    ac = 0
+    ac = len(callbacks)
     at = len(transfers)
     as_ = len(sales)
     a_total = ac + at
@@ -213,7 +214,7 @@ def get_agent_detail(
             id=agent.id, name=agent.name, email=agent.email,
             role=agent.role, isActive=agent.is_active, managerId=agent.manager_id,
         ),
-        callbacks=[],
+        callbacks=[_build_callback_out(c, c.customer) for c in callbacks],
         transfers=[_transfer_out(t, t.customer) for t in transfers],
         sales=[_sale_out(s, s.customer) for s in sales],
         stats=AgentStats(
