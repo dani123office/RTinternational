@@ -1,18 +1,8 @@
 const AudioContextClass = window.AudioContext || window.webkitAudioContext
 let audioContext = null
-let resumeHandlerAttached = false
-
-function getAudioContext() {
-  if (!AudioContextClass) return null
-  if (!audioContext || audioContext.state === 'closed') {
-    audioContext = new AudioContextClass()
-  }
-  return audioContext
-}
 
 function attachResumeHandler() {
-  if (resumeHandlerAttached || !AudioContextClass) return
-  resumeHandlerAttached = true
+  if (!AudioContextClass) return
   const resume = () => {
     if (audioContext && audioContext.state === 'suspended') {
       audioContext.resume().catch(() => {})
@@ -25,17 +15,23 @@ function attachResumeHandler() {
 attachResumeHandler()
 
 async function playTone({ frequency = 880, type = 'triangle', duration = 350, gainValue = 0.04, attack = 0.02, release = 0.1 }) {
-  const ctx = getAudioContext()
-  if (!ctx) return
+  if (!AudioContextClass) return
+  if (!audioContext || audioContext.state === 'closed') {
+    audioContext = new AudioContextClass()
+  }
+  if (audioContext.state === 'suspended') {
+    try {
+      await audioContext.resume()
+    } catch {
+      return // browser blocks audio — bail silently
+    }
+  }
+  if (audioContext.state !== 'running') return
 
   try {
-    if (ctx.state === 'suspended') {
-      await ctx.resume().catch(() => {})
-    }
-
-    const oscillator = ctx.createOscillator()
-    const gain = ctx.createGain()
-    const now = ctx.currentTime
+    const oscillator = audioContext.createOscillator()
+    const gain = audioContext.createGain()
+    const now = audioContext.currentTime
     const releaseStart = Math.max(now + duration - release, now + attack + 0.01)
 
     oscillator.type = type
@@ -46,7 +42,7 @@ async function playTone({ frequency = 880, type = 'triangle', duration = 350, ga
     gain.gain.exponentialRampToValueAtTime(0.0001, now + duration)
 
     oscillator.connect(gain)
-    gain.connect(ctx.destination)
+    gain.connect(audioContext.destination)
     oscillator.start(now)
     oscillator.stop(now + duration)
   } catch {
