@@ -4,7 +4,7 @@ import { useAdminStore } from '@/store/adminStore'
 import { useAuthStore } from '@/store/authStore'
 import {
   BarChart3, Users, UserCog, PhoneCall, ArrowLeftRight,
-  PoundSterling, TrendingUp, Activity, Shield, Search, X, Clock, BarChart2
+  PoundSterling, TrendingUp, Activity, Shield, Search, X, Clock, BarChart2, RefreshCw
 } from 'lucide-react'
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts'
 import { APP_STYLES } from '@/lib/styles'
@@ -37,10 +37,24 @@ export default function AdminDashboard() {
     return h < 12 ? 'Good morning' : h < 17 ? 'Good afternoon' : 'Good evening'
   }, [])
 
+  const [refreshing, setRefreshing] = useState(false)
+
+  const handleRefresh = async () => {
+    setRefreshing(true)
+    await Promise.all([loadOverallStats(), loadPerformanceOverview(), loadBusinessFeed()])
+    setRefreshing(false)
+  }
+
   useEffect(() => {
     loadOverallStats()
     loadPerformanceOverview()
     loadBusinessFeed()
+    const interval = setInterval(() => {
+      loadOverallStats()
+      loadPerformanceOverview()
+      loadBusinessFeed()
+    }, 60000)
+    return () => clearInterval(interval)
   }, [loadOverallStats, loadPerformanceOverview, loadBusinessFeed])
 
   const stats = overallStats
@@ -92,6 +106,14 @@ export default function AdminDashboard() {
             <h1 className="text-xl sm:text-2xl font-bold text-slate-900 tracking-tight capitalize">
               {greeting}, {user?.name?.split(' ')[0] || 'Admin'}
             </h1>
+            <button
+              onClick={handleRefresh}
+              disabled={refreshing}
+              className="ml-auto flex items-center gap-1.5 text-xs font-bold text-slate-500 bg-slate-100 hover:bg-slate-200 disabled:opacity-50 px-3 py-1.5 rounded-lg border-none cursor-pointer transition-colors"
+            >
+              <RefreshCw size={13} className={refreshing ? 'rt-spin' : ''} />
+              {refreshing ? 'Refreshing...' : 'Refresh'}
+            </button>
           </div>
           <p className="text-sm text-slate-400 mt-1">
             {isAnalytics ? 'Detailed comparative charts and statistics metrics' : isActivity ? 'Complete audit trail of system events and actions' : 'Company-wide analytics and performance overview'}
