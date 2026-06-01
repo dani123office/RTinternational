@@ -54,7 +54,7 @@ async function playTone({ frequency = 880, type = 'triangle', duration = 350, ga
   }
 }
 
-export function playWhatsAppSound() {
+function playWhatsAppSound() {
   playTone({ frequency: 1318, type: 'sine', duration: 180, gainValue: 0.045, attack: 0.005, release: 0.15 })
   setTimeout(() => {
     playTone({ frequency: 1108, type: 'sine', duration: 220, gainValue: 0.038, attack: 0.005, release: 0.18 })
