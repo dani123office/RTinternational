@@ -33,28 +33,23 @@ export default function Poller({ interval = 15000 }) {
       }
     }
 
-    // only poll when tab is visible
     function start() {
       if (timerRef.current) return
       cancelledRef.current = false
 
       const run = async () => {
-        // mark as running to prevent concurrent schedulers
         timerRef.current = 'running'
         try {
           await doRefresh()
         } finally {
-          // if stop requested or tab hidden or unmounted, don't schedule next
-          if (!mounted || cancelledRef.current || document.visibilityState !== 'visible') {
+          if (!mounted || cancelledRef.current) {
             timerRef.current = null
             return
           }
-          // schedule next run
           timerRef.current = setTimeout(run, interval)
         }
       }
 
-      // start first run immediately
       run()
     }
 
@@ -66,22 +61,11 @@ export default function Poller({ interval = 15000 }) {
       timerRef.current = null
     }
 
-    function handleVisibility() {
-      if (document.visibilityState === 'visible') {
-        start()
-      } else {
-        stop()
-      }
-    }
-
-    // start polling only if visible now
-    if (document.visibilityState === 'visible') start()
-    document.addEventListener('visibilitychange', handleVisibility)
+    start()
 
     return () => {
       mounted = false
       stop()
-      document.removeEventListener('visibilitychange', handleVisibility)
     }
   }, [interval, loadCallbacks, loadTransfers, loadSales, loadCustomers, loadNotifications, user])
 
