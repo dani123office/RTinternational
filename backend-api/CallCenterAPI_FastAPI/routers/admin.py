@@ -379,7 +379,7 @@ def reset_user_password(
 def overall_stats(admin: User = Depends(require_admin), db: Session = Depends(get_db)):
     total_agents = db.query(func.count(User.id)).filter(User.role == "agent", User.is_active == 1).scalar() or 0
     total_managers = db.query(func.count(User.id)).filter(User.role == "manager", User.is_active == 1).scalar() or 0
-    total_cb = db.query(func.count(CallBack.id)).filter(CallBack.scheduled_datetime.isnot(None)).scalar() or 0
+    total_cb = db.query(func.count(CallBack.id)).scalar() or 0
     total_tr = db.query(func.count(Transfer.id)).scalar() or 0
     total_sa = db.query(func.count(Sale.id)).scalar() or 0
     total_opps = total_tr
@@ -399,7 +399,7 @@ def performance_overview(admin: User = Depends(require_admin), db: Session = Dep
     managers = db.query(User).filter(User.role == "manager", User.is_active == 1).all()
     for m in managers:
         a_ids = [a.id for a in db.query(User).filter(User.manager_id == m.id, User.is_active == 1).all()]
-        cb = db.query(func.count(CallBack.id)).filter(CallBack.employee_id.in_(a_ids) if a_ids else False, CallBack.scheduled_datetime.isnot(None)).scalar() or 0
+        cb = db.query(func.count(CallBack.id)).filter(CallBack.employee_id.in_(a_ids) if a_ids else False).scalar() or 0
         tr = db.query(func.count(Transfer.id)).filter(Transfer.employee_id.in_(a_ids) if a_ids else False).scalar() or 0
         sa = db.query(func.count(Sale.id)).filter(Sale.employee_id.in_(a_ids) if a_ids else False).scalar() or 0
         managers_data.append(ManagerKpi(
@@ -412,7 +412,7 @@ def performance_overview(admin: User = Depends(require_admin), db: Session = Dep
     agents = db.query(User).filter(User.role == "agent", User.is_active == 1).all()
     mgr_names = {m.id: m.name for m in db.query(User).filter(User.role == "manager", User.is_active == 1).all()}
     for a in agents:
-        cb = db.query(func.count(CallBack.id)).filter(CallBack.employee_id == a.id, CallBack.scheduled_datetime.isnot(None)).scalar() or 0
+        cb = db.query(func.count(CallBack.id)).filter(CallBack.employee_id == a.id).scalar() or 0
         tr = db.query(func.count(Transfer.id)).filter(Transfer.employee_id == a.id).scalar() or 0
         sa = db.query(func.count(Sale.id)).filter(Sale.employee_id == a.id).scalar() or 0
         agents_data.append(AgentKpi(
