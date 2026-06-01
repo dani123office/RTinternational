@@ -52,10 +52,24 @@ async function playTone({ frequency = 880, type = 'triangle', duration = 350, ga
 }
 
 function playWhatsAppSound() {
-  playTone({ frequency: 1318, type: 'sine', duration: 180, gainValue: 0.045, attack: 0.005, release: 0.15 })
+  playTone({
+    frequency: 1568,
+    type: 'sine',
+    duration: 120,
+    gainValue: 0.06,
+    attack: 0.003,
+    release: 0.08,
+  })
   setTimeout(() => {
-    playTone({ frequency: 1108, type: 'sine', duration: 220, gainValue: 0.038, attack: 0.005, release: 0.18 })
-  }, 120)
+    playTone({
+      frequency: 1318,
+      type: 'sine',
+      duration: 160,
+      gainValue: 0.05,
+      attack: 0.003,
+      release: 0.1,
+    })
+  }, 100)
 }
 
 export function playCallbackSound() {
