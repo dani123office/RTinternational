@@ -281,10 +281,11 @@ export function useTransferForm(locationState, navigate) {
         customerId = customer.id
       }
 
+      const firstElectricitySupply = form.utilityType !== 'gas' ? form.elecMeters?.[0]?.supplyNumber || form.mpan : form.mpan
       const transfer = await createTransfer({
         customerId,
         accountNumber: form.accountNumber || null,
-        mpan: form.mpan || null,
+        mpan: firstElectricitySupply || null,
         mprn: form.mprn || null,
         msn: form.msn || null,
         notes: form.notes || null,
@@ -312,12 +313,13 @@ export function useTransferForm(locationState, navigate) {
       })
 
       if (form.scheduleAsCallback && form.scheduledDate) {
+        const callbackMpan = form.utilityType !== 'gas' ? form.elecMeters?.[0]?.supplyNumber || form.mpan : form.mpan
         await createCallback({
           customerId,
           scheduledDateTime: `${form.scheduledDate}T${form.scheduledTime || '10:00'}:00`,
           notes: form.notes || null,
           accountNumber: form.accountNumber || null,
-          mpan: form.mpan || null,
+          mpan: callbackMpan || null,
           mprn: form.mprn || null,
           msn: form.msn || null,
           offeredElectricityRates: form.showOfferRates && form.utilityType !== 'gas' ? [{

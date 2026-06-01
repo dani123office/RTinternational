@@ -470,11 +470,12 @@ export default function SaleApplication() {
       }
 
       // 2. Prepare Transfer Payload
+      const firstElectricitySupply = form.elecMeters?.[0]?.supplyNumber || form.mpan || null
       const transferPayload = {
         utilityType: form.utilityType,
         accountNumber: form.accountNumber || null,
         notes: form.transferNotes || null,
-        mpan: form.utilityType !== 'gas' ? form.mpan || null : null,
+        mpan: form.utilityType !== 'gas' ? firstElectricitySupply : null,
         mprn: form.utilityType !== 'electricity' ? form.mprn || null : null,
         msn: form.msn || null,
         scheduledDateTime: form.date ? `${form.date}T${form.time || '10:00'}:00` : null,
@@ -687,11 +688,6 @@ export default function SaleApplication() {
               <div className="rt-grid2">
                 {(form.utilityType === 'electricity' || form.utilityType === 'both') && (
                   <>
-                    <div>
-                      <Field label="MPAN (Supply Number)">
-                        <input className="rt-input" placeholder="e.g. 04 1234 5678 901" value={form.mpan} onChange={(e) => setField('mpan', e.target.value)} />
-                      </Field>
-                    </div>
                     <div>
                       <Field label="MSN (Meter Serial No)">
                         <input className="rt-input" placeholder="e.g. 12A3456789" value={form.msn} onChange={(e) => setField('msn', e.target.value)} />

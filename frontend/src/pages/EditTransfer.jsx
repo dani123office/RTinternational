@@ -329,12 +329,13 @@ export default function EditTransfer() {
         }),
       ])
 
+      const transferMpan = form.utilityType !== 'gas' ? form.elecMeters?.[0]?.supplyNumber || form.mpan : null
       const transferPayload = {
         utilityType: form.utilityType || undefined,
         supplier: form.supplier || undefined,
         status: form.status || undefined,
         accountNumber: form.accountNumber || undefined,
-        mpan: form.mpan || undefined,
+        mpan: transferMpan || undefined,
         mprn: form.mprn || undefined,
         msn: form.msn || undefined,
         notes: form.notes || undefined,
@@ -534,11 +535,6 @@ export default function EditTransfer() {
               <div className="rt-grid2">
                 {(form.utilityType === 'electricity' || form.utilityType === 'both') && (
                   <>
-                    <div>
-                      <Field label="MPAN (Supply Number)">
-                        <input className="rt-input" placeholder="e.g. 04 1234 5678 901" value={form.mpan} onChange={(e) => setField('mpan', e.target.value)} />
-                      </Field>
-                    </div>
                     <div>
                       <Field label="MSN (Meter Serial No)">
                         <input className="rt-input" placeholder="e.g. 12A3456789" value={form.msn} onChange={(e) => setField('msn', e.target.value)} />

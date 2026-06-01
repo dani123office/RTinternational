@@ -435,12 +435,13 @@ export default function AddCallback() {
         employeeId:uid,
       }
 
+      const firstElectricitySupply = form.utilityType !== 'gas' ? form.elecMeters?.[0]?.supplyNumber || form.mpan || null : null
       const callbackPayload = {
         employeeId:        uid,
         scheduledDateTime: `${form.scheduledDate}T${form.scheduledTime}:00`,
         notes:             form.notes || null,
         accountNumber:     form.accountNumber || null,
-        mpan:              form.mpan || null,
+        mpan:              firstElectricitySupply,
         mprn:              form.mprn || null,
         msn:               form.msn || null,
         offeredElectricityRates: form.showOfferRates && form.utilityType !== 'gas' ? [{
@@ -471,7 +472,7 @@ export default function AddCallback() {
         if (callbackData?.transferId) {
           await api.put(`/api/transfers/${callbackData.transferId}`, {
             accountNumber: form.accountNumber || undefined,
-            mpan: form.mpan || undefined,
+            mpan: firstElectricitySupply || undefined,
             mprn: form.mprn || undefined,
             msn: form.msn || undefined,
           }).catch(() => {})
@@ -578,7 +579,6 @@ export default function AddCallback() {
               <div style={{display:'grid', gridTemplateColumns:'1fr 1fr', gap:'16px'}}>
                 {(form.utilityType==='electricity'||form.utilityType==='both') && (
                   <>
-                    <div><InputField label="MPAN (Supply Number)"><input className="rt-input" value={form.mpan} onChange={(e)=>upd('mpan',e.target.value)} placeholder="e.g. 04 1234 5678 901"/></InputField></div>
                     <div><InputField label="MSN (Meter Serial No)"><input className="rt-input" value={form.msn} onChange={(e)=>upd('msn',e.target.value)} placeholder="e.g. 12A3456789"/></InputField></div>
                   </>
                 )}

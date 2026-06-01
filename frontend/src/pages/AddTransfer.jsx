@@ -134,11 +134,6 @@ export default function AddTransfer() {
                 {(form.utilityType === 'electricity' || form.utilityType === 'both') && (
                   <>
                     <div>
-                      <Field label="MPAN (Supply Number)">
-                        <input className="rt-input" placeholder="e.g. 04 1234 5678 901" value={form.mpan} onChange={(e) => setField('mpan', e.target.value)} />
-                      </Field>
-                    </div>
-                    <div>
                       <Field label="MSN (Meter Serial No)">
                         <input className="rt-input" placeholder="e.g. 12A3456789" value={form.msn} onChange={(e) => setField('msn', e.target.value)} />
                       </Field>

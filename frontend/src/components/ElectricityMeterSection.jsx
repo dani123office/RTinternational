@@ -30,6 +30,7 @@ export default function ElectricityMeterSection({ meters, onUpdate, onAdd, onRem
               )}
             </div>
             <div><Label>Current Supplier</Label><Input value={meter.currentSupplier || ''} onChange={(e) => updateMeter(idx, 'currentSupplier', e.target.value)} /></div>
+            <div><Label>MPAN / Supply Number</Label><Input value={meter.supplyNumber || ''} onChange={(e) => updateMeter(idx, 'supplyNumber', e.target.value)} placeholder="e.g. 04 1234 5678 901" /></div>
             <div className="grid grid-cols-2 gap-3">
               <div><Label>Day Unit Rate (p/kWh)</Label><Input type="number" step="0.01" value={meter.dayUnitRate || ''} onChange={(e) => updateMeter(idx, 'dayUnitRate', e.target.value)} /></div>
               <div><Label>Night Unit Rate (p/kWh)</Label><Input type="number" step="0.01" value={meter.nightUnitRate || ''} onChange={(e) => updateMeter(idx, 'nightUnitRate', e.target.value)} /></div>
