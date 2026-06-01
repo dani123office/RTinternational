@@ -164,15 +164,18 @@ export default function AdminDashboard() {
                     </ResponsiveContainer>
                   </div>
                   <div className="w-full flex flex-col gap-2 mt-2">
-                    {pipelinePieData.map((d) => (
-                      <div key={d.name} className="flex items-center justify-between py-1 border-b border-slate-50 text-xs">
-                        <div className="flex items-center gap-2">
-                          <div className="w-2.5 h-2.5 rounded-sm" style={{ background: d.color }} />
-                          <span className="font-semibold text-slate-600">{d.name}</span>
+                    {pipelinePieData.map((d) => {
+                      const route = d.name === 'Callbacks' ? '/admin/callbacks' : d.name === 'Transfers' ? '/admin/transfers' : '/admin/sales'
+                      return (
+                        <div key={d.name} onClick={() => navigate(route)} className="flex items-center justify-between py-1 border-b border-slate-50 text-xs cursor-pointer hover:bg-slate-50/50">
+                          <div className="flex items-center gap-2">
+                            <div className="w-2.5 h-2.5 rounded-sm" style={{ background: d.color }} />
+                            <span className="font-semibold text-slate-600">{d.name}</span>
+                          </div>
+                          <span className="font-bold text-slate-900">{d.value}</span>
                         </div>
-                        <span className="font-bold text-slate-900">{d.value}</span>
-                      </div>
-                    ))}
+                      )
+                    })}
                   </div>
                 </div>
               </div>
