@@ -173,8 +173,8 @@ def check_email(v):
 
 
 def check_utility(v):
-    if v and v not in ('electricity', 'gas'):
-        raise ValueError('Utility type should be either "electricity" or "gas"')
+    if v and v not in ('electricity', 'gas', 'both'):
+        raise ValueError('Utility type should be either "electricity", "gas", or "both"')
     return v
 
 
