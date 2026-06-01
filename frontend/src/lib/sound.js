@@ -32,19 +32,20 @@ async function playTone({ frequency = 880, type = 'triangle', duration = 350, ga
     const oscillator = audioContext.createOscillator()
     const gain = audioContext.createGain()
     const now = audioContext.currentTime
-    const releaseStart = Math.max(now + duration - release, now + attack + 0.01)
+    const durSec = duration / 1000
+    const releaseStart = Math.max(now + durSec - release, now + attack + 0.01)
 
     oscillator.type = type
     oscillator.frequency.value = frequency
     gain.gain.setValueAtTime(0.0001, now)
     gain.gain.exponentialRampToValueAtTime(gainValue, now + attack)
     gain.gain.setValueAtTime(gainValue, releaseStart)
-    gain.gain.exponentialRampToValueAtTime(0.0001, now + duration)
+    gain.gain.exponentialRampToValueAtTime(0.0001, now + durSec)
 
     oscillator.connect(gain)
     gain.connect(audioContext.destination)
     oscillator.start(now)
-    oscillator.stop(now + duration)
+    oscillator.stop(now + durSec)
   } catch {
     // ignore if audio cannot play
   }
