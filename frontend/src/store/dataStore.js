@@ -17,10 +17,10 @@ export const useDataStore = create((set, get) => ({
   isLoading: false,
   error: null,
 
-  loadCallbacks: async () => {
+  loadCallbacks: async (params = {}) => {
     set({ isLoading: true, error: null })
     try {
-      const res = await api.get(endpoints.callbacks)
+      const res = await api.get(endpoints.callbacks, { params })
       set({ callbacks: extractData(res), isLoading: false })
     } catch (err) {
       set({ error: getError(err) || 'Failed to load callbacks', isLoading: false })
@@ -46,10 +46,10 @@ export const useDataStore = create((set, get) => ({
     set((s) => ({ callbacks: s.callbacks.filter((c) => c.id !== id) }))
   },
 
-  loadTransfers: async () => {
+  loadTransfers: async (params = {}) => {
     set({ isLoading: true, error: null })
     try {
-      const res = await api.get(endpoints.transfers)
+      const res = await api.get(endpoints.transfers, { params })
       set({ transfers: extractData(res), isLoading: false })
     } catch (err) {
       set({ error: getError(err) || 'Failed to load transfers', isLoading: false })
@@ -75,10 +75,10 @@ export const useDataStore = create((set, get) => ({
     set((s) => ({ transfers: s.transfers.filter((t) => t.id !== id) }))
   },
 
-  loadSales: async () => {
+  loadSales: async (params = {}) => {
     set({ isLoading: true, error: null })
     try {
-      const res = await api.get(endpoints.sales)
+      const res = await api.get(endpoints.sales, { params })
       set({ sales: extractData(res), isLoading: false })
     } catch (err) {
       set({ error: getError(err) || 'Failed to load sales', isLoading: false })
@@ -104,10 +104,10 @@ export const useDataStore = create((set, get) => ({
     set((state) => ({ sales: state.sales.filter((s) => s.id !== id) }))
   },
 
-  loadCustomers: async () => {
+  loadCustomers: async (params = {}) => {
     set({ isLoading: true, error: null })
     try {
-      const res = await api.get(endpoints.customers)
+      const res = await api.get(endpoints.customers, { params })
       set({ customers: extractData(res), isLoading: false })
     } catch (err) {
       set({ error: getError(err) || 'Failed to load customers', isLoading: false })

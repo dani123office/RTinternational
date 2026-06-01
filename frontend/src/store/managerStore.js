@@ -143,10 +143,10 @@ export const useManagerStore = create((set) => ({
     set((state) => ({ sales: state.sales.filter((s) => s.id !== id) }))
   },
 
-  loadNotifications: async () => {
+  loadNotifications: async (params = {}) => {
     set({ isLoading: true, error: null })
     try {
-      const res = await api.get(endpoints.manager.notifications)
+      const res = await api.get(endpoints.manager.notifications, { params })
       set({ notifications: res.data, isLoading: false })
     } catch (err) {
       set({ error: getError(err) || 'Failed to load notifications', isLoading: false })

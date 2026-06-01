@@ -17,10 +17,11 @@ export default function Poller({ interval = 15000 }) {
     async function doRefresh() {
       if (!mounted) return
       try {
-        // refresh critical lists used across the UI
-        await Promise.all([loadCallbacks(), loadTransfers(), loadSales(), loadCustomers()])
+        // refresh critical lists used across the UI with cache-busting timestamp
+        const _t = Date.now()
+        await Promise.all([loadCallbacks({ _t }), loadTransfers({ _t }), loadSales({ _t }), loadCustomers({ _t })])
         // manager notifications separately
-        await loadNotifications()
+        await loadNotifications({ _t })
       } catch (e) {
         // ignore errors — individual loaders set their own error state
       }
