@@ -16,6 +16,8 @@ export default function Poller({ interval = 15000 }) {
 
     async function doRefresh() {
       if (!mounted) return
+      // skip if no token — avoids 401 → redirect loop
+      if (!localStorage.getItem('token') && !sessionStorage.getItem('token')) return
       try {
         // refresh critical lists used across the UI with cache-busting timestamp
         const _t = Date.now()

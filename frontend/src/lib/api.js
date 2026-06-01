@@ -1,5 +1,7 @@
 import axios from 'axios'
 
+let redirecting = false
+
 const api = axios.create({
   baseURL: '',
   headers: { 'Content-Type': 'application/json' },
@@ -17,7 +19,8 @@ api.interceptors.request.use((config) => {
 api.interceptors.response.use(
   (response) => response,
   (error) => {
-    if (error.response?.status === 401) {
+    if (error.response?.status === 401 && !redirecting) {
+      redirecting = true
       localStorage.removeItem('token')
       localStorage.removeItem('user')
       sessionStorage.removeItem('token')
