@@ -133,6 +133,8 @@ def get_callback(id: int, current_user: User = Depends(get_current_user), db: Se
         creator = db.query(User).filter(User.id == c.employee_id).first()
         if creator and creator.manager_id == current_user.id:
             is_auth = True
+    if not is_auth and current_user.role == "admin":
+        is_auth = True
             
     if not is_auth:
         raise HTTPException(status_code=403, detail="Not authorized to access this callback")
@@ -231,6 +233,8 @@ def update_callback(id: int, dto: CallBackUpdate, current_user: User = Depends(g
         creator = db.query(User).filter(User.id == callback.employee_id).first()
         if creator and creator.manager_id == current_user.id:
             is_auth = True
+    if not is_auth and current_user.role == "admin":
+        is_auth = True
             
     if not is_auth:
         raise HTTPException(status_code=403, detail="Not authorized to update this callback")
@@ -369,6 +373,8 @@ def delete_callback(id: int, current_user: User = Depends(get_current_user), db:
         creator = db.query(User).filter(User.id == callback.employee_id).first()
         if creator and creator.manager_id == current_user.id:
             is_auth = True
+    if not is_auth and current_user.role == "admin":
+        is_auth = True
             
     if not is_auth:
         raise HTTPException(status_code=403, detail="Not authorized to delete this callback")
