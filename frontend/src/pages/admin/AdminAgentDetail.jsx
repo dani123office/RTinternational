@@ -129,9 +129,9 @@ export default function AdminAgentDetail() {
       header: '',
       cell: (row) => (
         <div className="flex gap-1 justify-end" onClick={(e) => e.stopPropagation()}>
-          <button
+              <button
             onClick={() => {
-              if (isCallbacks) navigate(`/callbacks/${row.id}`)
+              if (isCallbacks) navigate(`/admin/callbacks/${row.id}`)
               else if (isTransfers) navigate(`/admin/transfers/${row.id}`)
               else navigate(`/admin/sales/${row.id}`)
             }}

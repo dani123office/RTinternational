@@ -537,6 +537,14 @@ def admin_sale_detail(sale_id: int, admin: User = Depends(require_admin), db: Se
     return _sale_out(sale, sale.customer)
 
 
+@router.get("/callbacks/{callback_id}")
+def admin_callback_detail(callback_id: int, admin: User = Depends(require_admin), db: Session = Depends(get_db)):
+    cb = db.query(CallBack).filter(CallBack.id == callback_id).first()
+    if not cb:
+        raise HTTPException(status_code=404, detail="Callback not found")
+    return _build_callback_out(cb, cb.customer)
+
+
 @router.get("/audit-log")
 def get_audit_log(admin: User = Depends(require_admin), db: Session = Depends(get_db)):
     logs = db.query(ActivityLog).order_by(ActivityLog.created_at.desc()).limit(100).all()

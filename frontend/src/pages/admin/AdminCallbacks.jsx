@@ -92,7 +92,7 @@ export default function AdminCallbacks() {
                         return (
                           <div
                             key={cb.id}
-                            onClick={() => navigate(`/callbacks/${cb.id}`)}
+                            onClick={() => navigate(`/admin/callbacks/${cb.id}`)}
                             className="rt-card-flat"
                             style={{ cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '12px' }}
                           >
