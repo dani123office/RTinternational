@@ -35,6 +35,7 @@ import PendingUsers from '@/pages/admin/PendingUsers'
 import AdminAgentDetail from '@/pages/admin/AdminAgentDetail'
 import AdminManagerDetail from '@/pages/admin/AdminManagerDetail'
 import AdminTransferDetail from '@/pages/admin/AdminTransferDetail'
+import AdminCallbackDetail from '@/pages/admin/AdminCallbackDetail'
 import AdminSaleDetail from '@/pages/admin/AdminSaleDetail'
 import AdminCallbacks from '@/pages/admin/AdminCallbacks'
 
@@ -108,7 +109,7 @@ export default function App() {
         <Route path="agents" element={<AgentsPage />} />
         <Route path="agents/:id" element={<AdminAgentDetail />} />
         <Route path="callbacks" element={<AdminCallbacks />} />
-        <Route path="callbacks/:id" element={<CallbackDetail />} />
+        <Route path="callbacks/:id" element={<AdminCallbackDetail />} />
         <Route path="transfers/:id" element={<AdminTransferDetail />} />
         <Route path="sales/:id" element={<AdminSaleDetail />} />
         <Route path="analytics" element={<AdminDashboard />} />
