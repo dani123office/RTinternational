@@ -36,6 +36,7 @@ import AdminAgentDetail from '@/pages/admin/AdminAgentDetail'
 import AdminManagerDetail from '@/pages/admin/AdminManagerDetail'
 import AdminTransferDetail from '@/pages/admin/AdminTransferDetail'
 import AdminSaleDetail from '@/pages/admin/AdminSaleDetail'
+import AdminCallbacks from '@/pages/admin/AdminCallbacks'
 
 function ProtectedRoute({ children }) {
   const { token } = useAuthStore()
@@ -106,7 +107,7 @@ export default function App() {
         <Route path="pending" element={<PendingUsers />} />
         <Route path="agents" element={<AgentsPage />} />
         <Route path="agents/:id" element={<AdminAgentDetail />} />
-        <Route path="callbacks" element={<Callbacks />} />
+        <Route path="callbacks" element={<AdminCallbacks />} />
         <Route path="callbacks/:id" element={<CallbackDetail />} />
         <Route path="transfers/:id" element={<AdminTransferDetail />} />
         <Route path="sales/:id" element={<AdminSaleDetail />} />

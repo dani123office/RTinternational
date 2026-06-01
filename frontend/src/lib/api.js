@@ -91,6 +91,8 @@ export const endpoints = {
     pendingUsers: '/api/admin/pending-users',
     approveUser: (id) => `/api/admin/approve-user/${id}`,
     resetUserPassword: (id) => `/api/admin/reset-user-password/${id}`,
+    callbacks: '/api/admin/callbacks',
+    callbackDetail: (id) => `/api/admin/callbacks/${id}`,
     overallStats: '/api/admin/overall-stats',
     performanceOverview: '/api/admin/performance-overview',
     businessFeed: '/api/admin/business-feed',
