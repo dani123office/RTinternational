@@ -72,8 +72,5 @@ export function playToastSound() {
 }
 
 export function playNotificationSound() {
-  playTone({ frequency: 880, type: 'sine', duration: 250, gainValue: 0.09, attack: 0.01, release: 0.1 })
-  setTimeout(() => {
-    playTone({ frequency: 1108, type: 'sine', duration: 200, gainValue: 0.07, attack: 0.01, release: 0.08 })
-  }, 180)
+  playMP3('/sounds/notification.mp3')
 }
