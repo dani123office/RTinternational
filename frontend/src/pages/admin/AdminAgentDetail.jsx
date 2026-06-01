@@ -2,8 +2,8 @@ import { useEffect, useState, useMemo } from 'react'
 import { useParams, useNavigate, Link } from 'react-router-dom'
 import { useAdminStore } from '@/store/adminStore'
 import {
-  ArrowLeft, User, PhoneCall, ArrowLeftRight, PoundSterling,
-  TrendingUp, Eye, Mail, Calendar,
+  ArrowLeft, User, ArrowLeftRight, PoundSterling,
+  TrendingUp, Mail, Calendar,
 } from 'lucide-react'
 import { APP_STYLES } from '@/lib/styles'
 import DataTable from '@/components/shared/DataTable'
@@ -125,24 +125,6 @@ export default function AdminAgentDetail() {
     },
     { header: 'Date', cell: (row) => row.createdAt ? new Date(row.createdAt).toLocaleDateString('en-GB') : 'N/A' },
     { header: 'Status', cell: (row) => <StatusBadge status={row.status || row.cotStatus} type={isCallbacks ? 'callback' : isTransfers ? 'transfer' : 'sale'} /> },
-    {
-      header: '',
-      cell: (row) => (
-        <div className="flex gap-1 justify-end" onClick={(e) => e.stopPropagation()}>
-              <button
-            onClick={() => {
-              if (isCallbacks) navigate(`/admin/callbacks/${row.id}`)
-              else if (isTransfers) navigate(`/admin/transfers/${row.id}`)
-              else navigate(`/admin/sales/${row.id}`)
-            }}
-            className="p-1.5 rounded-lg border-0 bg-slate-50 text-slate-400 cursor-pointer hover:bg-blue-50 hover:text-blue-500 transition-colors"
-            title="View Details"
-          >
-            <Eye size={14} />
-          </button>
-        </div>
-      ),
-    },
   ]
 
   const statusOptions = isCallbacks
@@ -270,7 +252,8 @@ export default function AdminAgentDetail() {
                   pageSize={10}
                   searchKey={(row) => `${row.id} ${row.customer?.businessName || ''} ${row.customer?.ownerName || ''} ${row.ownerFullName || ''} ${row.supplier || ''}`}
                   onRowClick={(row) => {
-                    if (activeTab === 'Transfers') navigate(`/admin/transfers/${row.id}`)
+                    if (activeTab === 'Callbacks') navigate(`/admin/callbacks/${row.id}`)
+                    else if (activeTab === 'Transfers') navigate(`/admin/transfers/${row.id}`)
                     else navigate(`/admin/sales/${row.id}`)
                   }}
                 />
