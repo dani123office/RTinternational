@@ -100,12 +100,12 @@ export default function AdminDashboard() {
 
         {/* Stats Grid */}
         <div className="rt-fade rt-d1 grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3 sm:gap-4 mb-6">
-          <StatCard icon={Users} label="Agents" value={stats?.totalAgents || 0} accent="linear-gradient(135deg, #6366f1, #4f46e5)" />
-          <StatCard icon={UserCog} label="Managers" value={stats?.totalManagers || 0} accent="linear-gradient(135deg, #8b5cf6, #7c3aed)" />
-          <StatCard icon={PhoneCall} label="Callbacks" value={stats?.totalCallbacks || 0} accent="linear-gradient(135deg, #3b82f6, #2563eb)" />
-          <StatCard icon={ArrowLeftRight} label="Transfers" value={stats?.totalTransfers || 0} accent="linear-gradient(135deg, #22c55e, #16a34a)" />
-          <StatCard icon={PoundSterling} label="Sales" value={stats?.totalSales || 0} accent="linear-gradient(135deg, #f59e0b, #d97706)" />
-          <StatCard icon={TrendingUp} label="Conversion" value={`${stats?.conversionRate || 0}%`} accent="linear-gradient(135deg, #ec4899, #db2777)" progress={stats?.conversionRate || 0} />
+          <StatCard icon={Users} label="Agents" value={stats?.totalAgents || 0} accent="linear-gradient(135deg, #6366f1, #4f46e5)" onClick={() => navigate('/admin/agents')} />
+          <StatCard icon={UserCog} label="Managers" value={stats?.totalManagers || 0} accent="linear-gradient(135deg, #8b5cf6, #7c3aed)" onClick={() => navigate('/admin/managers')} />
+          <StatCard icon={PhoneCall} label="Callbacks" value={stats?.totalCallbacks || 0} accent="linear-gradient(135deg, #3b82f6, #2563eb)" onClick={() => navigate('/admin/callbacks')} />
+          <StatCard icon={ArrowLeftRight} label="Transfers" value={stats?.totalTransfers || 0} accent="linear-gradient(135deg, #22c55e, #16a34a)" onClick={() => navigate('/admin/transfers')} />
+          <StatCard icon={PoundSterling} label="Sales" value={stats?.totalSales || 0} accent="linear-gradient(135deg, #f59e0b, #d97706)" onClick={() => navigate('/admin/sales')} />
+          <StatCard icon={TrendingUp} label="Conversion" value={`${stats?.conversionRate || 0}%`} accent="linear-gradient(135deg, #ec4899, #db2777)" progress={stats?.conversionRate || 0} onClick={() => navigate('/admin/analytics')} />
         </div>
 
         {/* Dynamic Views */}
@@ -322,7 +322,7 @@ export default function AdminDashboard() {
                   {perf?.topAgents?.length > 0 ? (
                     <div className="flex flex-col gap-2">
                       {perf.topAgents.map((a, i) => (
-                        <div key={a.id} className={`flex items-center gap-3 p-2.5 rounded-xl ${i === 0 ? 'bg-violet-50' : 'bg-slate-50'}`}>
+                        <div key={a.id} onClick={() => navigate(`/admin/agents/${a.id}`)} className={`flex items-center gap-3 p-2.5 rounded-xl ${i === 0 ? 'bg-violet-50' : 'bg-slate-50'} cursor-pointer hover:bg-slate-100`}>
                           <span className={`w-6 h-6 rounded-md flex items-center justify-center text-xs font-bold shrink-0 ${i < 3 ? 'text-white' : 'text-slate-500 bg-slate-200'}`}
                             style={{ background: i === 0 ? '#8b5cf6' : i === 1 ? '#6366f1' : i === 2 ? '#3b82f6' : undefined }}>
                             {i + 1}
@@ -355,10 +355,10 @@ export default function AdminDashboard() {
                   </div>
                   <button onClick={() => navigate('/admin/activity')} className="text-xs font-bold text-indigo-600 bg-transparent hover:text-indigo-800 border-none cursor-pointer">View all</button>
                 </div>
-                <div className="rt-card-body">
+                    <div className="rt-card-body">
                   <div className="flex flex-col gap-2 max-h-[320px] overflow-auto">
                     {feed.length > 0 ? feed.slice(0, 15).map((item, i) => (
-                      <div key={i} className={`flex items-center gap-2 p-2 rounded-lg text-sm ${i % 2 === 0 ? 'bg-slate-50' : ''}`}>
+                      <div key={i} onClick={() => { if (item.type === 'callback') navigate(`/admin/callbacks/${item.id}`); else if (item.type === 'transfer') navigate(`/admin/transfers/${item.id}`); else if (item.type === 'sale') navigate(`/admin/sales/${item.id}`) }} className={`flex items-center gap-2 p-2 rounded-lg text-sm ${i % 2 === 0 ? 'bg-slate-50' : ''} cursor-pointer hover:bg-slate-50`}>
                         <span className="w-1.5 h-1.5 rounded-full shrink-0" style={{
                           background: item.type === 'callback' ? '#6366f1' : item.type === 'transfer' ? '#22c55e' : '#f59e0b',
                         }} />
@@ -390,7 +390,7 @@ export default function AdminDashboard() {
                 {perf?.topManagers?.length > 0 ? (
                   <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
                     {perf.topManagers.slice(0, 6).map((m, i) => (
-                      <div key={m.id} className={`p-4 rounded-xl ${i === 0 ? 'bg-violet-50 border border-violet-200' : 'bg-slate-50 border border-transparent'}`}>
+                      <div key={m.id} onClick={() => navigate(`/admin/managers/${m.id}`)} className={`p-4 rounded-xl ${i === 0 ? 'bg-violet-50 border border-violet-200' : 'bg-slate-50 border border-transparent'} cursor-pointer hover:shadow-sm`}>
                         <div className="flex justify-between gap-2 mb-2">
                           <p className="text-sm font-semibold text-slate-900 truncate capitalize">{m.name}</p>
                           <span className="text-xs text-slate-500 shrink-0">{m.teamSize} agents</span>

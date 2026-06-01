@@ -11,7 +11,7 @@ const animateValue = (target, setDisplay) => {
   }, 1000 / steps)
 }
 
-export default function StatCard({ icon: Icon, label, value, accent, subtext, progress }) {
+export default function StatCard({ icon: Icon, label, value, accent, subtext, progress, onClick }) {
   const [display, setDisplay] = useState(0)
   const ref = useRef(null)
   const done = useRef(null)
@@ -30,7 +30,11 @@ export default function StatCard({ icon: Icon, label, value, accent, subtext, pr
   return (
     <div
       ref={ref}
-      className="bg-white/85 backdrop-blur-md rounded-2xl p-5 border border-slate-200/60 shadow-sm transition-all duration-200 hover:-translate-y-0.5"
+      onClick={onClick}
+      role={onClick ? 'button' : undefined}
+      tabIndex={onClick ? 0 : undefined}
+      onKeyDown={onClick ? (e) => { if (e.key === 'Enter' || e.key === ' ') onClick() } : undefined}
+      className={`bg-white/85 backdrop-blur-md rounded-2xl p-5 border border-slate-200/60 shadow-sm transition-all duration-200 hover:-translate-y-0.5 ${onClick ? 'cursor-pointer hover:shadow-md' : ''}`}
     >
       <div className="flex items-start justify-between">
         <div>
