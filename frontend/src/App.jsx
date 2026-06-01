@@ -71,9 +71,9 @@ export default function App() {
       <Route path="/" element={<ProtectedRoute><AppLayout /></ProtectedRoute>}>
         <Route index element={<RoleRoute allowedRoles={['agent']}><Dashboard /></RoleRoute>} />
         <Route path="profile" element={<ProfileSettings />} />
-        <Route path="callbacks" element={<RoleRoute allowedRoles={['agent']}><Callbacks /></RoleRoute>} />
+        <Route path="callbacks" element={<RoleRoute allowedRoles={['agent', 'admin']}><Callbacks /></RoleRoute>} />
         <Route path="callbacks/add" element={<RoleRoute allowedRoles={['agent']}><AddCallback /></RoleRoute>} />
-        <Route path="callbacks/:id" element={<RoleRoute allowedRoles={['agent', 'manager']}><CallbackDetail /></RoleRoute>} />
+        <Route path="callbacks/:id" element={<RoleRoute allowedRoles={['agent', 'manager', 'admin']}><CallbackDetail /></RoleRoute>} />
         <Route path="callbacks/:id/edit" element={<RoleRoute allowedRoles={['agent', 'manager']}><AddCallback /></RoleRoute>} />
         <Route path="transfers" element={<RoleRoute allowedRoles={['agent']}><Transfers /></RoleRoute>} />
         <Route path="transfers/add" element={<RoleRoute allowedRoles={['agent']}><AddTransfer /></RoleRoute>} />
@@ -106,6 +106,8 @@ export default function App() {
         <Route path="pending" element={<PendingUsers />} />
         <Route path="agents" element={<AgentsPage />} />
         <Route path="agents/:id" element={<AdminAgentDetail />} />
+        <Route path="callbacks" element={<Callbacks />} />
+        <Route path="callbacks/:id" element={<CallbackDetail />} />
         <Route path="transfers/:id" element={<AdminTransferDetail />} />
         <Route path="sales/:id" element={<AdminSaleDetail />} />
         <Route path="analytics" element={<AdminDashboard />} />
