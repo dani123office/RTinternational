@@ -8,7 +8,7 @@ from ..models import User, Customer, CallBack, Transfer, Sale, ActivityLog
 from .auth import require_admin
 from ..schemas import (
     CreateManagerRequest, CreateAgentRequest, AssignAgentRequest,
-    UpdateUserRequest, ApproveUserRequest, ResetUserPasswordRequest,
+    UpdateUserRequest, UpdateAgentStaffRequest, ApproveUserRequest, ResetUserPasswordRequest,
     OverallStats, ManagerKpi, AgentKpi, AgentDetail, AgentStats, AgentOut,
     AdminPerformanceOverview, BusinessFeedItem,
 )
@@ -269,6 +269,69 @@ def get_agent_detail(
             callbacks=ac, transfers=at, sales=as_, conversionRate=a_cr,
         ),
     )
+
+
+@router.put("/agents/{agent_id}")
+def update_agent_staff(
+    agent_id: int,
+    data: UpdateAgentStaffRequest,
+    admin: User = Depends(require_admin),
+    db: Session = Depends(get_db),
+):
+    try:
+        agent = db.query(User).filter(User.id == agent_id, User.role == "agent").first()
+        if not agent:
+            raise HTTPException(status_code=404, detail="Agent not found")
+        if data.name is not None:
+            agent.name = data.name
+        if data.email is not None:
+            clean = data.email.strip().lower()
+            existing = db.query(User).filter(User.email == clean, User.id != agent_id).first()
+            if existing:
+                raise HTTPException(status_code=400, detail="Email already in use")
+            agent.email = clean
+        if data.phone is not None:
+            agent.phone = data.phone or None
+        if data.fatherName is not None:
+            agent.father_name = data.fatherName or None
+        if data.monthlySalary is not None:
+            agent.monthly_salary = data.monthlySalary
+        if data.cnic is not None:
+            agent.cnic = data.cnic or None
+        if data.department is not None:
+            agent.department = data.department or None
+        if data.designation is not None:
+            agent.designation = data.designation or None
+        if data.dateOfBirth is not None:
+            agent.date_of_birth = data.dateOfBirth
+        if data.dateOfJoining is not None:
+            agent.date_of_joining = data.dateOfJoining
+        if data.emergContactName is not None:
+            agent.emerg_contact_name = data.emergContactName or None
+        if data.emergContactNumber is not None:
+            agent.emerg_contact_number = data.emergContactNumber or None
+        db.commit()
+        db.refresh(agent)
+        return AgentOut(
+            id=agent.id, name=agent.name, email=agent.email,
+            role=agent.role, isActive=agent.is_active, managerId=agent.manager_id,
+            phone=agent.phone,
+            fatherName=agent.father_name,
+            monthlySalary=agent.monthly_salary,
+            cnic=agent.cnic,
+            department=agent.department,
+            designation=agent.designation,
+            dateOfBirth=agent.date_of_birth,
+            dateOfJoining=agent.date_of_joining,
+            emergContactName=agent.emerg_contact_name,
+            emergContactNumber=agent.emerg_contact_number,
+        )
+    except HTTPException:
+        db.rollback()
+        raise
+    except Exception as e:
+        db.rollback()
+        raise HTTPException(status_code=400, detail=f"Failed to update agent: {str(e)}")
 
 
 @router.put("/user/{user_id}")

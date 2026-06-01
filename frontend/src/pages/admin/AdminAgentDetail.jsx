@@ -1,6 +1,9 @@
-import { useEffect, useState, useMemo } from 'react'
+import { useEffect, useState, useMemo, useCallback } from 'react'
 import { useParams, useNavigate, Link } from 'react-router-dom'
 import { useAdminStore } from '@/store/adminStore'
+import { useToast } from '@/components/ui/toastContext'
+import api, { endpoints } from '@/lib/api'
+import EditStaffModal from '@/components/admin/EditStaffModal'
 import {
   ArrowLeft, User, ArrowLeftRight, PoundSterling,
   TrendingUp, Mail, Calendar, UserSquare2, CreditCard, Briefcase, DollarSign, Heart, BadgePercent, Building2,
@@ -48,10 +51,19 @@ const tabs = ['Callbacks', 'Transfers', 'Sales']
 export default function AdminAgentDetail() {
   const { id } = useParams()
   const navigate = useNavigate()
+  const { toast } = useToast()
   const { selectedAgent, loadAdminAgentDetail, isLoading, error } = useAdminStore()
 
   const [activeTab, setActiveTab] = useState('Transfers')
   const [statusFilter, setStatusFilter] = useState('')
+  const [showEditModal, setShowEditModal] = useState(false)
+
+  const handleSaveStaff = useCallback(async (payload) => {
+    const res = await api.put(endpoints.admin.updateAgentStaff(Number(id)), payload)
+    await loadAdminAgentDetail(Number(id))
+    toast('Staff profile updated successfully', 'success')
+    return res.data
+  }, [id, loadAdminAgentDetail, toast])
 
   useEffect(() => { if (id) loadAdminAgentDetail(Number(id)) }, [id, loadAdminAgentDetail])
 
@@ -166,16 +178,18 @@ export default function AdminAgentDetail() {
           </div>
 
           {/* Staff Profile Info */}
-          {(agent.fatherName || agent.cnic || agent.department || agent.designation || agent.monthlySalary || agent.phone || agent.dateOfBirth || agent.dateOfJoining || agent.emergContactName || agent.emergContactNumber) && (
-            <div className="rt-card rt-fade rt-d1" style={{ marginBottom: '20px' }}>
-              <div className="rt-card-header">
-                <div className="rt-card-header-left">
-                  <div className="rt-card-icon" style={{ background: 'rgba(99,102,241,0.1)' }}>
-                    <UserSquare2 size={16} color="#6366f1" />
-                  </div>
-                  <span className="rt-card-title">Staff Profile Info</span>
+          <div className="rt-card rt-fade rt-d1" style={{ marginBottom: '20px' }}>
+            <div className="rt-card-header">
+              <div className="rt-card-header-left">
+                <div className="rt-card-icon" style={{ background: 'rgba(99,102,241,0.1)' }}>
+                  <UserSquare2 size={16} color="#6366f1" />
                 </div>
+                <span className="rt-card-title">Staff Profile Info</span>
               </div>
+              <button onClick={() => setShowEditModal(true)} className="text-xs font-bold text-indigo-600 bg-indigo-50 hover:bg-indigo-100 px-3 py-1.5 rounded-lg border-none cursor-pointer transition-colors flex items-center gap-1">
+                Edit Profile
+              </button>
+            </div>
               <div className="rt-card-body" style={{ padding: '20px 24px' }}>
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '16px 24px' }}>
                   {agent.fatherName && (
@@ -237,7 +251,6 @@ export default function AdminAgentDetail() {
                 </div>
               </div>
             </div>
-          )}
 
           <div className="grid grid-cols-1 sm:grid-cols-4 gap-4 mb-6 rt-fade rt-d1">
             <div className="rt-card p-5 flex items-center gap-4">
@@ -335,6 +348,13 @@ export default function AdminAgentDetail() {
               )}
             </div>
           </div>
+
+          <EditStaffModal
+            isOpen={showEditModal}
+            onClose={() => setShowEditModal(false)}
+            onSave={handleSaveStaff}
+            agent={agent}
+          />
 
         </div>
       </div>

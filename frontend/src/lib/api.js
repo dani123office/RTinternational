@@ -83,6 +83,7 @@ export const endpoints = {
     managerDetail: (id) => `/api/admin/managers/${id}`,
     agents: '/api/admin/agents',
     agentDetail: (id) => `/api/admin/agents/${id}`,
+    updateAgentStaff: (id) => `/api/admin/agents/${id}`,
     createManager: '/api/admin/create-manager',
     createAgent: '/api/admin/create-agent',
     updateUser: (id) => `/api/admin/user/${id}`,

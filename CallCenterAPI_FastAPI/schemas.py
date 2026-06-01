@@ -357,6 +357,21 @@ class UpdateUserRequest(BaseModel):
     managerId: Optional[int] = None
 
 
+class UpdateAgentStaffRequest(BaseModel):
+    name: Optional[str] = None
+    email: Optional[str] = None
+    phone: Optional[str] = None
+    fatherName: Optional[str] = None
+    monthlySalary: Optional[float] = 0.0
+    cnic: Optional[str] = None
+    department: Optional[str] = None
+    designation: Optional[str] = None
+    dateOfBirth: Optional[date] = None
+    dateOfJoining: Optional[date] = None
+    emergContactName: Optional[str] = None
+    emergContactNumber: Optional[str] = None
+
+
 class OverallStats(BaseModel):
     totalAgents: int
     totalManagers: int
