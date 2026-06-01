@@ -535,6 +535,14 @@ def admin_sales(
     return {"items": items, "total": total, "skip": skip, "limit": limit}
 
 
+@router.get("/sales/{sale_id}")
+def admin_sale_detail(sale_id: int, admin: User = Depends(require_admin), db: Session = Depends(get_db)):
+    sale = db.query(Sale).filter(Sale.id == sale_id).first()
+    if not sale:
+        raise HTTPException(status_code=404, detail="Sale not found")
+    return _sale_out(sale, sale.customer)
+
+
 @router.get("/audit-log")
 def get_audit_log(admin: User = Depends(require_admin), db: Session = Depends(get_db)):
     logs = db.query(ActivityLog).order_by(ActivityLog.created_at.desc()).limit(100).all()

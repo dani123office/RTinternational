@@ -1,3 +1,6 @@
+// There are two distinct notification sounds in public/sounds:
+// - notification.mp3: used for callback alerts
+// - not.mp3: used for general notifications and toast messages
 function playSound(file) {
   try {
     const audio = new Audio(`/sounds/${file}`)
@@ -9,6 +12,7 @@ function playSound(file) {
 }
 
 export function playCallbackSound() {
+  // callback tone intentionally uses the longer notification file
   playSound('notification.mp3')
 }
 

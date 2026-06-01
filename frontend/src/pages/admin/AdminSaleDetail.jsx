@@ -23,7 +23,7 @@ export default function AdminSaleDetail() {
   const [error, setError] = useState(null)
 
   useEffect(() => {
-    api.get(`${endpoints.sales}/${id}`)
+    api.get(endpoints.admin.saleDetail(id))
       .then(res => { setData(res.data); setLoading(false) })
       .catch(err => { setError(err.response?.data?.detail || 'Failed to load sale'); setLoading(false) })
   }, [id])

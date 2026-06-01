@@ -96,6 +96,7 @@ export const endpoints = {
     overallStats: '/api/admin/overall-stats',
     performanceOverview: '/api/admin/performance-overview',
     businessFeed: '/api/admin/business-feed',
+    saleDetail: (id) => `/api/admin/sales/${id}`,
   },
 }
 
