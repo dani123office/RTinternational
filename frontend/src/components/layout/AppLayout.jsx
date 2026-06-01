@@ -5,6 +5,7 @@ import TopBar from './TopBar'
 import ConnectionBanner from './ConnectionBanner'
 import { useDataStore } from '@/store/dataStore'
 import { useAuthStore } from '@/store/authStore'
+import { useAdminStore } from '@/store/adminStore'
 import { Loader2 } from 'lucide-react'
 import { useToast } from '@/components/ui/toastContext'
 
@@ -13,6 +14,7 @@ export default function AppLayout() {
   const isLoading = useDataStore((s) => s.isLoading)
   const error = useDataStore((s) => s.error)
   const user = useAuthStore((s) => s.user)
+  const { loadOverallStats, loadPerformanceOverview, loadBusinessFeed } = useAdminStore()
   const [sidebarCollapsed, setSidebarCollapsed] = useState(() => {
     return localStorage.getItem('sidebarCollapsed') === 'true'
   })
@@ -21,6 +23,12 @@ export default function AppLayout() {
 
   useEffect(() => {
     if (user?.role === 'agent') loadAll()
+    if (user?.role === 'admin') {
+      // ensure admin dashboard counts and feed are loaded even when on other admin pages
+      loadOverallStats()
+      loadPerformanceOverview()
+      loadBusinessFeed()
+    }
   }, [loadAll, user])
   
   useEffect(() => { localStorage.setItem('sidebarCollapsed', sidebarCollapsed) }, [sidebarCollapsed])
