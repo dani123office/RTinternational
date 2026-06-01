@@ -5,6 +5,7 @@ import { Toaster } from '@/components/ui/toast'
 import App from './App.jsx'
 import CallbackNotifier from '@/components/CallbackNotifier'
 import ManagerNotifier from '@/components/ManagerNotifier'
+import Poller from '@/components/Poller'
 import './index.css'
 
 createRoot(document.getElementById('root')).render(
@@ -14,6 +15,7 @@ createRoot(document.getElementById('root')).render(
         <App />
         <CallbackNotifier />
         <ManagerNotifier />
+        <Poller />
       </Toaster>
     </BrowserRouter>
   </StrictMode>,
