@@ -79,7 +79,7 @@ export function useTransferForm(locationState, navigate) {
       gasMeters: (prefill.gasMeters || prefill.customer?.gasMeters)
         ? (prefill.gasMeters || prefill.customer.gasMeters).map((m, i) => ({
             meterNumber: m.meterNumber || i + 1,
-            currentSupplier: m.currentSupplier || '', unitRate: m.unitRate?.toString() || '',
+            currentSupplier: m.currentSupplier || '', mprn: m.mprn || '', unitRate: m.unitRate?.toString() || '',
             standingRate: m.standingRate?.toString() || '', monthlyBill: m.monthlyBill?.toString() || '',
             contractEndDate: normDate(m.contractEndDate) || '',
           }))
@@ -161,7 +161,7 @@ export function useTransferForm(locationState, navigate) {
       if (data.gasMeters?.length) {
         next.gasMeters = data.gasMeters.map((m, i) => ({
           meterNumber: m.meterNumber || i + 1,
-          currentSupplier: m.currentSupplier || '',
+          currentSupplier: m.currentSupplier || '', mprn: m.mprn || '',
           unitRate: (m.unitRate || m.dayUnitRate)?.toString() || '',
           standingRate: m.standingRate?.toString() || '',
           monthlyBill: m.monthlyBill?.toString() || '',
@@ -282,11 +282,12 @@ export function useTransferForm(locationState, navigate) {
       }
 
       const firstElectricitySupply = form.utilityType !== 'gas' ? form.elecMeters?.[0]?.supplyNumber || form.mpan : form.mpan
+      const firstGasMprn = form.gasMeters?.[0]?.mprn || form.mprn || null
       const transfer = await createTransfer({
         customerId,
         accountNumber: form.accountNumber || null,
         mpan: firstElectricitySupply || null,
-        mprn: form.mprn || null,
+        mprn: firstGasMprn,
         msn: form.msn || null,
         notes: form.notes || null,
         employeeId: uid,
@@ -320,7 +321,7 @@ export function useTransferForm(locationState, navigate) {
           notes: form.notes || null,
           accountNumber: form.accountNumber || null,
           mpan: callbackMpan || null,
-          mprn: form.mprn || null,
+          mprn: firstGasMprn,
           msn: form.msn || null,
           offeredElectricityRates: form.showOfferRates && form.utilityType !== 'gas' ? [{
             contractLength: form.elecContractLength, supplier: form.elecSupplier || null,

@@ -76,7 +76,7 @@ export const DEFAULT_ELEC_METER = {
 };
 
 export const DEFAULT_GAS_METER = {
-  currentSupplier: '', unitRate: '', standingRate: '',
+  currentSupplier: '', mprn: '', unitRate: '', standingRate: '',
   monthlyBill: '', contractEndDate: '',
 };
 

@@ -234,7 +234,7 @@ export default function SaleApplication() {
       gasMeters: (prefill.gasMeters || customer.gasMeters)
         ? (prefill.gasMeters || customer.gasMeters).map((m, i) => ({
             meterNumber: m.meterNumber || i + 1,
-            currentSupplier: m.currentSupplier || '', unitRate: m.unitRate?.toString() || '',
+            currentSupplier: m.currentSupplier || '', mprn: m.mprn || '', unitRate: m.unitRate?.toString() || '',
             standingRate: m.standingRate?.toString() || '', monthlyBill: m.monthlyBill?.toString() || '',
             contractEndDate: normDate(m.contractEndDate) || '',
           }))
@@ -338,7 +338,7 @@ export default function SaleApplication() {
       if (data.gasMeters?.length) {
         next.gasMeters = data.gasMeters.map((m, i) => ({
           meterNumber: m.meterNumber || i + 1,
-          currentSupplier: m.currentSupplier || '',
+          currentSupplier: m.currentSupplier || '', mprn: m.mprn || '',
           unitRate: (m.unitRate || m.dayUnitRate)?.toString() || '',
           standingRate: m.standingRate?.toString() || '',
           monthlyBill: m.monthlyBill?.toString() || '',
@@ -484,7 +484,7 @@ export default function SaleApplication() {
         accountNumber: form.accountNumber || null,
         notes: form.transferNotes || null,
         mpan: form.utilityType !== 'gas' ? firstElectricitySupply : null,
-        mprn: form.utilityType !== 'electricity' ? form.mprn || null : null,
+        mprn: form.utilityType !== 'electricity' ? form.gasMeters?.[0]?.mprn || form.mprn || null : null,
         msn: form.msn || null,
         scheduledDateTime: form.date ? `${form.date}T${form.time || '10:00'}:00` : null,
         offeredElectricityRates: form.showOfferRates && form.utilityType !== 'gas' ? [{
@@ -702,13 +702,6 @@ export default function SaleApplication() {
                       </Field>
                     </div>
                   </>
-                )}
-                {(form.utilityType === 'gas' || form.utilityType === 'both') && (
-                  <div>
-                    <Field label="MPRN">
-                      <input className="rt-input" placeholder="e.g. 1234567890" value={form.mprn} onChange={(e) => setField('mprn', e.target.value)} />
-                    </Field>
-                  </div>
                 )}
                 <div>
                   <Field label="Account Number">

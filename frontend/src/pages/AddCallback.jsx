@@ -24,7 +24,7 @@ import AiFormFiller from '@/components/AiFormFiller'
 
 // ─── Data Initialization Models ─────────────────────────────────────────────
 const DEFAULT_ELEC_METER = { currentSupplier:'',supplyNumber:'',dayUnitRate:'',nightUnitRate:'',eveningUnitRate:'',standingRate:'',monthlyBill:'',contractEndDate:'' }
-const DEFAULT_GAS_METER  = { currentSupplier:'',unitRate:'',standingRate:'',monthlyBill:'',contractEndDate:'' }
+const DEFAULT_GAS_METER  = { currentSupplier:'',mprn:'',unitRate:'',standingRate:'',monthlyBill:'',contractEndDate:'' }
 const DEFAULT_COMMISSION     = { dayUnitRate:'',nightUnitRate:'',eveningUnitRate:'',standingRate:'' }
 const DEFAULT_NON_COMMISSION = { dayUnitRate:'',nightUnitRate:'',eveningUnitRate:'',standingRate:'',brokerServiceCharge:'' }
 const GAS_COMMISSION         = { dayUnitRate:'',standingRate:'' }
@@ -174,6 +174,7 @@ export default function AddCallback() {
           ? prefill.gasMeters.map((m, i) => ({
               meterNumber: m.meterNumber || i + 1,
               currentSupplier: m.currentSupplier || '',
+              mprn: m.mprn || '',
               unitRate: m.unitRate?.toString() || '',
               standingRate: m.standingRate?.toString() || '',
               monthlyBill: m.monthlyBill?.toString() || '',
@@ -327,6 +328,7 @@ export default function AddCallback() {
       if (data.gasMeters?.length) {
         next.gasMeters = data.gasMeters.map((m) => ({
           currentSupplier:   m.currentSupplier   || '',
+          mprn:              m.mprn             || '',
           unitRate:          (m.unitRate || m.dayUnitRate)?.toString() || '',
           standingRate:      m.standingRate?.toString()        || '',
           monthlyBill:       m.monthlyBill?.toString()         || '',
@@ -448,8 +450,8 @@ export default function AddCallback() {
         scheduledDateTime: `${form.scheduledDate}T${form.scheduledTime}:00`,
         notes:             form.notes || null,
         accountNumber:     form.accountNumber || null,
-        mpan:              firstElectricitySupply || undefined,
-        mprn:              form.mprn || null,
+        mpan:              firstElectricitySupply,
+        mprn:              form.gasMeters?.[0]?.mprn || form.mprn || null,
         msn:               form.msn || null,
         offeredElectricityRates: form.showOfferRates && form.utilityType !== 'gas' ? [{
           contractLength:form.elecContractLength, supplier:form.elecSupplier||null,
@@ -477,10 +479,11 @@ export default function AddCallback() {
         }
         // Sync account details to linked transfer
         if (callbackData?.transferId) {
+          const firstGasMprn = form.gasMeters?.[0]?.mprn || form.mprn
           await api.put(`/api/transfers/${callbackData.transferId}`, {
             accountNumber: form.accountNumber || undefined,
             mpan: firstElectricitySupply || undefined,
-            mprn: form.mprn || undefined,
+            mprn: firstGasMprn || undefined,
             msn: form.msn || undefined,
           }).catch(() => {})
         }
@@ -589,10 +592,7 @@ export default function AddCallback() {
                     <div><InputField label="MSN (Meter Serial No)"><input className="rt-input" value={form.msn} onChange={(e)=>upd('msn',e.target.value)} placeholder="e.g. 12A3456789"/></InputField></div>
                   </>
                 )}
-                {(form.utilityType==='gas'||form.utilityType==='both') && (
-                  <div><InputField label="MPRN"><input className="rt-input" value={form.mprn} onChange={(e)=>upd('mprn',e.target.value)} placeholder="e.g. 1234567890"/></InputField></div>
-                )}
-                <div><InputField label="Account Number"><input className="rt-input" value={form.accountNumber} onChange={(e)=>upd('accountNumber',e.target.value)} placeholder="e.g. AC12345678"/></InputField></div>
+                        <div><InputField label="Account Number"><input className="rt-input" value={form.accountNumber} onChange={(e)=>upd('accountNumber',e.target.value)} placeholder="e.g. AC12345678"/></InputField></div>
               </div>
             </DashboardCard>
 

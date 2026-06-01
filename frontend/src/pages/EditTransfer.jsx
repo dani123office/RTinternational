@@ -330,13 +330,14 @@ export default function EditTransfer() {
       ])
 
       const transferMpan = form.utilityType !== 'gas' ? form.elecMeters?.[0]?.supplyNumber || form.mpan : null
+      const transferMprn = form.gasMeters?.[0]?.mprn || form.mprn
       const transferPayload = {
         utilityType: form.utilityType || undefined,
         supplier: form.supplier || undefined,
         status: form.status || undefined,
         accountNumber: form.accountNumber || undefined,
         mpan: transferMpan || undefined,
-        mprn: form.mprn || undefined,
+        mprn: transferMprn || undefined,
         msn: form.msn || undefined,
         notes: form.notes || undefined,
       }
@@ -541,13 +542,6 @@ export default function EditTransfer() {
                       </Field>
                     </div>
                   </>
-                )}
-                {(form.utilityType === 'gas' || form.utilityType === 'both') && (
-                  <div>
-                    <Field label="MPRN">
-                      <input className="rt-input" placeholder="e.g. 1234567890" value={form.mprn} onChange={(e) => setField('mprn', e.target.value)} />
-                    </Field>
-                  </div>
                 )}
                 <div>
                   <Field label="Account Number">
