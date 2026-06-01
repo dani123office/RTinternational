@@ -13,9 +13,9 @@ export function playCallbackSound() {
 }
 
 export function playNotificationSound() {
-  playSound('notification.mp3')
+  playSound('not.mp3')
 }
 
 export function playToastSound() {
-  playSound('notification.mp3')
+  playSound('not.mp3')
 }
