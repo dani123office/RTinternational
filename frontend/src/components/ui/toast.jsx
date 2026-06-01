@@ -12,9 +12,30 @@ const icons = {
 export function Toaster({ children }) {
   const [toasts, setToasts] = useState([])
 
+  function playToastSound() {
+    try {
+      const ctx = new (window.AudioContext || window.webkitAudioContext)()
+      const o = ctx.createOscillator()
+      const g = ctx.createGain()
+      o.type = 'triangle'
+      o.frequency.value = 880
+      g.gain.value = 0.04
+      o.connect(g)
+      g.connect(ctx.destination)
+      o.start()
+      setTimeout(() => {
+        o.stop()
+        ctx.close()
+      }, 350)
+    } catch (e) {
+      // ignore
+    }
+  }
+
   const addToast = useCallback((message, type = 'success', duration = 4000) => {
     const id = Date.now().toString() + Math.random().toString(36).slice(2)
     setToasts((prev) => [...prev, { id, message, type }])
+    playToastSound()
     if (duration > 0) {
       setTimeout(() => {
         setToasts((prev) => prev.filter((t) => t.id !== id))

@@ -4,6 +4,7 @@ import { BrowserRouter } from 'react-router-dom'
 import { Toaster } from '@/components/ui/toast'
 import App from './App.jsx'
 import CallbackNotifier from '@/components/CallbackNotifier'
+import ManagerNotifier from '@/components/ManagerNotifier'
 import './index.css'
 
 createRoot(document.getElementById('root')).render(
@@ -12,6 +13,7 @@ createRoot(document.getElementById('root')).render(
       <Toaster>
         <App />
         <CallbackNotifier />
+        <ManagerNotifier />
       </Toaster>
     </BrowserRouter>
   </StrictMode>,
