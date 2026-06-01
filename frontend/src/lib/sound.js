@@ -1,30 +1,27 @@
 const AudioContextClass = window.AudioContext || window.webkitAudioContext
 let audioContext = null
+let canPlay = false
 
-function attachResumeHandler() {
-  if (!AudioContextClass) return
-  const resume = () => {
-    if (audioContext && audioContext.state === 'suspended') {
-      audioContext.resume().catch(() => {})
-    }
+function onUserInteraction() {
+  if (canPlay) return
+  canPlay = true
+  if (audioContext && audioContext.state === 'suspended') {
+    audioContext.resume().catch(() => {})
   }
-  document.addEventListener('click', resume, { once: true })
-  document.addEventListener('touchstart', resume, { once: true })
-  document.addEventListener('keydown', resume, { once: true })
 }
-attachResumeHandler()
 
-async function playTone({ frequency = 880, type = 'triangle', duration = 350, gainValue = 0.04, attack = 0.02, release = 0.1 }) {
+document.addEventListener('click', onUserInteraction, { once: true })
+document.addEventListener('touchstart', onUserInteraction, { once: true })
+document.addEventListener('keydown', onUserInteraction, { once: true })
+
+function playTone({ frequency = 880, type = 'triangle', duration = 350, gainValue = 0.04, attack = 0.02, release = 0.1 }) {
+  if (!canPlay) return
   if (!AudioContextClass) return
   if (!audioContext || audioContext.state === 'closed') {
     audioContext = new AudioContextClass()
   }
   if (audioContext.state === 'suspended') {
-    try {
-      await audioContext.resume()
-    } catch {
-      return // browser blocks audio — bail silently
-    }
+    audioContext.resume().catch(() => {})
   }
   if (audioContext.state !== 'running') return
 
@@ -47,11 +44,12 @@ async function playTone({ frequency = 880, type = 'triangle', duration = 350, ga
     oscillator.start(now)
     oscillator.stop(now + durSec)
   } catch {
-    // ignore if audio cannot play
+    // ignore
   }
 }
 
 function playMP3(src) {
+  if (!canPlay) return
   try {
     const audio = new Audio(src)
     audio.volume = 0.3
