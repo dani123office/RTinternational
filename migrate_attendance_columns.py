@@ -1,7 +1,7 @@
 """
-One-time migration: rename attendance columns
-  notes  -> checkout_reason
-  reason -> checkin_reason
+Migration: replace old attendance columns with new ones
+  Drops: notes, reason
+  Adds:  checkout_reason, checkin_reason
 
 Run: python migrate_attendance_columns.py
 """
@@ -15,18 +15,28 @@ DATABASE_URL = (
     "postgresql+pg8000://user:pass@localhost:5432/rtinternational"
 )
 
-# pg8000 needs +pg8000 driver
 url = DATABASE_URL
 if url.startswith("postgresql://") and "+pg8000" not in url:
     url = url.replace("postgresql://", "postgresql+pg8000://", 1)
 
 engine = create_engine(url)
 
-RENAME_SQL = """
-ALTER TABLE attendance
-  RENAME COLUMN notes TO checkout_reason;
-ALTER TABLE attendance
-  RENAME COLUMN reason TO checkin_reason;
+MIGRATE_SQL = """
+DO $$
+BEGIN
+  IF EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='attendance' AND column_name='notes') THEN
+    ALTER TABLE attendance DROP COLUMN notes;
+  END IF;
+  IF EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='attendance' AND column_name='reason') THEN
+    ALTER TABLE attendance DROP COLUMN reason;
+  END IF;
+  IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='attendance' AND column_name='checkout_reason') THEN
+    ALTER TABLE attendance ADD COLUMN checkout_reason TEXT;
+  END IF;
+  IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='attendance' AND column_name='checkin_reason') THEN
+    ALTER TABLE attendance ADD COLUMN checkin_reason TEXT;
+  END IF;
+END $$;
 """
 
 CHECK_SQL = """
@@ -39,9 +49,9 @@ ORDER BY ordinal_position;
 
 if __name__ == "__main__":
     with engine.connect() as conn:
-        print("Current columns:", conn.execute(text(CHECK_SQL)).fetchall())
+        print("Before:", conn.execute(text(CHECK_SQL)).fetchall())
         print("Running migration...")
-        conn.execute(text(RENAME_SQL))
+        conn.execute(text(MIGRATE_SQL))
         conn.commit()
-        print("After migration:", conn.execute(text(CHECK_SQL)).fetchall())
+        print("After:", conn.execute(text(CHECK_SQL)).fetchall())
     print("Done.")
