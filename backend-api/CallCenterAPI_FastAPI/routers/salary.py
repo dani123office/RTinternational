@@ -128,10 +128,10 @@ class _SalarySlipPDF:
         res = []
         for ch in s:
             o = ord(ch)
-            if o < 32 or o > 126:
-                res.append(f"\\{o:03o}")
-            elif ch in "()\\":
+            if o == 40 or o == 41 or o == 92:
                 res.append("\\" + ch)
+            elif o < 32 or o > 126:
+                res.append(f"\\{o:03o}")
             else:
                 res.append(ch)
         return "".join(res)
@@ -261,31 +261,65 @@ class _SalarySlipPDF:
         self._build_pdf(content)
 
     def _build_pdf(self, content: str):
-        content_obj = self._o(f"<< /Length {len(content)} >>\nstream\n{content}\nendstream")
+        content_obj = self._o(
+            f"<< /Length {len(content.encode('latin-1'))} >>\nstream\n{content}\nendstream"
+        )
+
         font_f1 = self._o("<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>")
         font_f2 = self._o("<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica-Bold >>")
         font_f3 = self._o("<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica-Oblique >>")
-        resources = self._o(f"<< /Font << /F1 {font_f1} 0 R /F2 {font_f2} 0 R /F3 {font_f3} 0 R >> >>")
-        page = self._o(f"<< /Type /Page /Parent 2 0 R /MediaBox [0 0 {self.PAGE_W} {self.PAGE_H}] /Contents {content_obj} 0 R /Resources {resources} 0 R >>")
-        pages = self._o(f"<< /Type /Pages /Kids [{page} 0 R] /Count 1 >>")
-        catalog = self._o("<< /Type /Catalog /Pages 3 0 R >>")
 
-        offset = len("%PDF-1.4\n")
-        xref_entries = []
-        for i, body in enumerate(self._objects):
-            xref_entries.append(f"{offset:010d} 00000 n")
-            offset += len(f"{i + 1} 0 obj\n{body}\nendobj\n")
+        resources = self._o(
+            f"<< /Font << /F1 {font_f1} 0 R /F2 {font_f2} 0 R /F3 {font_f3} 0 R >> >>"
+        )
 
-        xref_content = f"xref\n0 {len(self._objects) + 1}\n0000000000 65535 f \n" + "\n".join(xref_entries) + "\n"
-        trailer = f"trailer\n<< /Size {len(self._objects) + 1} /Root 1 0 R >>\nstartxref\n{offset}\n%%EOF"
+        pages_obj_num = len(self._objects) + 3
 
-        buf = io.BytesIO()
-        buf.write(b"%PDF-1.4\n")
-        for i, body in enumerate(self._objects):
-            buf.write(f"{i + 1} 0 obj\n{body}\nendobj\n".encode("latin-1"))
-        buf.write(xref_content.encode("latin-1"))
-        buf.write(trailer.encode("latin-1"))
-        self._data = buf.getvalue()
+        page = self._o(
+            f"<< /Type /Page "
+            f"/Parent {pages_obj_num} 0 R "
+            f"/MediaBox [0 0 {self.PAGE_W} {self.PAGE_H}] "
+            f"/Contents {content_obj} 0 R "
+            f"/Resources {resources} 0 R >>"
+        )
+
+        pages = self._o(
+            f"<< /Type /Pages /Kids [{page} 0 R] /Count 1 >>"
+        )
+
+        catalog = self._o(
+            f"<< /Type /Catalog /Pages {pages} 0 R >>"
+        )
+
+        pdf = io.BytesIO()
+        pdf.write(b"%PDF-1.4\n")
+
+        offsets = [0]
+
+        for i, obj in enumerate(self._objects, start=1):
+            offsets.append(pdf.tell())
+            pdf.write(f"{i} 0 obj\n{obj}\nendobj\n".encode("latin-1"))
+
+        xref_pos = pdf.tell()
+
+        pdf.write(f"xref\n0 {len(offsets)}\n".encode())
+        pdf.write(b"0000000000 65535 f \n")
+
+        for off in offsets[1:]:
+            pdf.write(f"{off:010d} 00000 n \n".encode())
+
+        pdf.write(
+            (
+                f"trailer\n"
+                f"<< /Size {len(offsets)} "
+                f"/Root {catalog} 0 R >>\n"
+                f"startxref\n"
+                f"{xref_pos}\n"
+                f"%%EOF"
+            ).encode()
+        )
+
+        self._data = pdf.getvalue()
 
     def bytes(self) -> bytes:
         return self._data
