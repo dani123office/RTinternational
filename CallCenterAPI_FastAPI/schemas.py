@@ -1585,11 +1585,11 @@ class SaleUpdate(BaseModel):
 # ─── Attendance ────────────────────────────────────────────
 
 class AttendanceCheckIn(BaseModel):
-    reason: Optional[str] = Field(None, max_length=500, description="Reason for check-in")
+    checkin_reason: Optional[str] = Field(None, max_length=500, description="Reason for check-in")
 
 
 class AttendanceCheckOut(BaseModel):
-    notes: Optional[str] = Field(None, max_length=500, description="Check-out notes")
+    checkout_reason: Optional[str] = Field(None, max_length=500, description="Reason for check-out")
 
 
 class AttendanceOut(BaseModel):
@@ -1599,8 +1599,8 @@ class AttendanceOut(BaseModel):
     checkIn: Optional[datetime] = None
     checkOut: Optional[datetime] = None
     status: str
-    notes: Optional[str] = None
-    reason: Optional[str] = None
+    checkin_reason: Optional[str] = None
+    checkout_reason: Optional[str] = None
     createdAt: datetime
     updatedAt: datetime
 

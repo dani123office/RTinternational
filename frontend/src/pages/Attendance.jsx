@@ -51,8 +51,8 @@ export default function Attendance() {
   const [todayRecord, setTodayRecord] = useState(null)
   const [history, setHistory] = useState({ items: [], total: 0, page: 1, totalPages: 0 })
   const [stats, setStats] = useState({ presentCount: 0, lateCount: 0, absentCount: 0, totalDays: 0 })
-  const [reason, setReason] = useState('')
-  const [checkoutNotes, setCheckoutNotes] = useState('')
+  const [checkinReason, setCheckinReason] = useState('')
+  const [checkoutReason, setCheckoutReason] = useState('')
   const [loading, setLoading] = useState(true)
   const [actionLoading, setActionLoading] = useState(false)
   const [historyPage, setHistoryPage] = useState(1)
@@ -89,9 +89,9 @@ export default function Attendance() {
   const handleCheckIn = async () => {
     setActionLoading(true)
     try {
-      const res = await api.post(endpoints.attendance.checkIn, { reason: reason || null })
+      const res = await api.post(endpoints.attendance.checkIn, { checkin_reason: checkinReason || null })
       setTodayRecord(res.data)
-      setReason('')
+      setCheckinReason('')
       await loadStats()
     } catch (err) {
       alert(err?.response?.data?.detail || 'Check-in failed')
@@ -101,9 +101,9 @@ export default function Attendance() {
   const handleCheckOut = async () => {
     setActionLoading(true)
     try {
-      const res = await api.post(endpoints.attendance.checkOut, { notes: checkoutNotes || null })
+      const res = await api.post(endpoints.attendance.checkOut, { checkout_reason: checkoutReason || null })
       setTodayRecord(res.data)
-      setCheckoutNotes('')
+      setCheckoutReason('')
     } catch (err) {
       alert(err?.response?.data?.detail || 'Check-out failed')
     } finally { setActionLoading(false) }
@@ -198,25 +198,25 @@ export default function Attendance() {
                 {isCheckedIn ? (
                   <div className="text-white/80 text-sm font-medium">
                     <p>Checked in at {new Date(todayRecord.checkIn).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true })}</p>
-                    {todayRecord.reason && <p className="mt-1 text-white/60 text-xs">Reason: {todayRecord.reason}</p>}
+                    {todayRecord.checkin_reason && <p className="mt-1 text-white/60 text-xs">Checkin Reason: {todayRecord.checkin_reason}</p>}
                   </div>
                 ) : (
                   <>
                     <input
-                      value={reason}
-                      onChange={(e) => setReason(e.target.value)}
-                      placeholder={reasonRequired ? 'Reason for check-in (required)...' : 'Reason for check-in (optional)...'}
+                      value={checkinReason}
+                      onChange={(e) => setCheckinReason(e.target.value)}
+                      placeholder={reasonRequired ? 'Checkin reason (required)...' : 'Checkin reason (optional)...'}
                       className="w-full px-3.5 py-2.5 rounded-xl border-0 text-sm mb-1"
                       style={{ background: 'rgba(255,255,255,0.15)', color: 'white', outline: 'none' }}
                     />
-                    {reasonRequired && !reason.trim() && (
+                    {reasonRequired && !checkinReason.trim() && (
                       <p className="text-[11px] font-medium mb-2" style={{ color: '#fca5a5' }}>
-                        Reason is required (more than 10 min late)
+                        Checkin reason required (more than 10 min late)
                       </p>
                     )}
                     <button
                       onClick={handleCheckIn}
-                      disabled={actionLoading || (reasonRequired && !reason.trim())}
+                      disabled={actionLoading || (reasonRequired && !checkinReason.trim())}
                       className="w-full py-2.5 rounded-xl border-0 font-bold text-sm cursor-pointer transition-all duration-200 disabled:opacity-50"
                       style={{ background: 'white', color: '#4f46e5' }}
                     >
@@ -243,25 +243,25 @@ export default function Attendance() {
                 ) : isCheckedOut ? (
                   <div className="text-white/80 text-sm font-medium">
                     <p>Checked out at {new Date(todayRecord.checkOut).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true })}</p>
-                    {todayRecord.notes && <p className="mt-1 text-white/60 text-xs">Notes: {todayRecord.notes}</p>}
+                    {todayRecord.checkout_reason && <p className="mt-1 text-white/60 text-xs">Checkout Reason: {todayRecord.checkout_reason}</p>}
                   </div>
                 ) : (
                   <>
                     <input
-                      value={checkoutNotes}
-                      onChange={(e) => setCheckoutNotes(e.target.value)}
-                      placeholder={checkoutNotesRequired ? 'Reason for early check-out (required)...' : 'Add check-out note (optional)...'}
+                      value={checkoutReason}
+                      onChange={(e) => setCheckoutReason(e.target.value)}
+                      placeholder={checkoutNotesRequired ? 'Checkout reason (required)...' : 'Checkout reason (optional)...'}
                       className="w-full px-3.5 py-2.5 rounded-xl border-0 text-sm mb-1"
                       style={{ background: 'rgba(255,255,255,0.1)', color: 'white', outline: 'none' }}
                     />
-                    {checkoutNotesRequired && !checkoutNotes.trim() && (
+                    {checkoutNotesRequired && !checkoutReason.trim() && (
                       <p className="text-[11px] font-medium mb-2" style={{ color: '#fca5a5' }}>
-                        Reason required before 10 PM
+                        Checkout reason required before 10 PM
                       </p>
                     )}
                     <button
                       onClick={handleCheckOut}
-                      disabled={actionLoading || (checkoutNotesRequired && !checkoutNotes.trim())}
+                      disabled={actionLoading || (checkoutNotesRequired && !checkoutReason.trim())}
                       className="w-full py-2.5 rounded-xl border-0 font-bold text-sm cursor-pointer transition-all duration-200 disabled:opacity-50"
                       style={{ background: 'rgba(255,255,255,0.15)', color: 'white' }}
                     >
@@ -312,8 +312,8 @@ export default function Attendance() {
                           <th className="text-left py-3 px-2 font-semibold text-slate-500 text-xs uppercase">Check In</th>
                           <th className="text-left py-3 px-2 font-semibold text-slate-500 text-xs uppercase">Check Out</th>
                           <th className="text-left py-3 px-2 font-semibold text-slate-500 text-xs uppercase">Status</th>
-                          <th className="text-left py-3 px-2 font-semibold text-slate-500 text-xs uppercase">Reason</th>
-                          <th className="text-left py-3 px-2 font-semibold text-slate-500 text-xs uppercase">Notes</th>
+                          <th className="text-left py-3 px-2 font-semibold text-slate-500 text-xs uppercase">Checkin Reason</th>
+                          <th className="text-left py-3 px-2 font-semibold text-slate-500 text-xs uppercase">Checkout Reason</th>
                         </tr>
                       </thead>
                       <tbody>
@@ -334,11 +334,11 @@ export default function Attendance() {
                                 {r.status === 'late' ? 'LATE' : r.status === 'present' ? 'ON TIME' : r.status.toUpperCase()}
                               </span>
                             </td>
-                            <td className="py-3 px-2 text-slate-500 text-xs max-w-[140px] truncate" title={r.reason || ''}>
-                              {r.reason || '-'}
+                            <td className="py-3 px-2 text-slate-500 text-xs max-w-[140px] truncate" title={r.checkin_reason || ''}>
+                              {r.checkin_reason || '-'}
                             </td>
-                            <td className="py-3 px-2 text-slate-500 text-xs max-w-[140px] truncate" title={r.notes || ''}>
-                              {r.notes || '-'}
+                            <td className="py-3 px-2 text-slate-500 text-xs max-w-[140px] truncate" title={r.checkout_reason || ''}>
+                              {r.checkout_reason || '-'}
                             </td>
                           </tr>
                         ))}

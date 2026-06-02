@@ -173,8 +173,8 @@ export default function ManagerAttendance() {
                               <th className="text-left py-2.5 px-2 font-semibold text-slate-500 text-xs uppercase">Check In</th>
                               <th className="text-left py-2.5 px-2 font-semibold text-slate-500 text-xs uppercase">Check Out</th>
                               <th className="text-left py-2.5 px-2 font-semibold text-slate-500 text-xs uppercase">Status</th>
-                              <th className="text-left py-2.5 px-2 font-semibold text-slate-500 text-xs uppercase">Reason</th>
-                              <th className="text-left py-2.5 px-2 font-semibold text-slate-500 text-xs uppercase">Notes</th>
+                              <th className="text-left py-2.5 px-2 font-semibold text-slate-500 text-xs uppercase">Checkin Reason</th>
+                              <th className="text-left py-2.5 px-2 font-semibold text-slate-500 text-xs uppercase">Checkout Reason</th>
                             </tr>
                           </thead>
                           <tbody>
@@ -195,11 +195,11 @@ export default function ManagerAttendance() {
                                     {r.status === 'late' ? 'LATE' : 'ON TIME'}
                                   </span>
                                 </td>
-                                <td className="py-2.5 px-2 text-slate-500 text-xs max-w-[120px] truncate" title={r.reason || ''}>
-                                  {r.reason || '-'}
+                                <td className="py-2.5 px-2 text-slate-500 text-xs max-w-[120px] truncate" title={r.checkin_reason || ''}>
+                                  {r.checkin_reason || '-'}
                                 </td>
-                                <td className="py-2.5 px-2 text-slate-500 text-xs max-w-[120px] truncate" title={r.notes || ''}>
-                                  {r.notes || '-'}
+                                <td className="py-2.5 px-2 text-slate-500 text-xs max-w-[120px] truncate" title={r.checkout_reason || ''}>
+                                  {r.checkout_reason || '-'}
                                 </td>
                             </tr>
                           ))}

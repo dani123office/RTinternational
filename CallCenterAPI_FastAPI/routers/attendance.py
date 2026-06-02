@@ -30,8 +30,8 @@ def _attendance_to_out(a: Attendance) -> AttendanceOut:
         checkIn=a.check_in,
         checkOut=a.check_out,
         status=a.status,
-        notes=a.notes,
-        reason=a.reason,
+        checkout_reason=a.checkout_reason,
+        checkin_reason=a.checkin_reason,
         createdAt=a.created_at,
         updatedAt=a.updated_at,
     )
@@ -51,7 +51,7 @@ def get_today_attendance(
 
     if record and record.check_in and not record.check_out and now.hour >= 22:
         record.check_out = now
-        record.notes = (record.notes or "") + (" | " if record.notes else "") + "Auto check-out at 10 PM"
+        record.checkout_reason = (record.checkout_reason or "") + (" | " if record.checkout_reason else "") + "Auto check-out at 10 PM"
         record.updated_at = now
         db.commit()
         db.refresh(record)
@@ -90,8 +90,8 @@ def check_in(
     if existing:
         existing.check_in = now
         existing.status = status
-        if dto.reason is not None:
-            existing.reason = dto.reason
+        if dto.checkin_reason is not None:
+            existing.checkin_reason = dto.checkin_reason
         existing.updated_at = now
         db.commit()
         db.refresh(existing)
@@ -102,7 +102,7 @@ def check_in(
         date=today,
         check_in=now,
         status=status,
-        reason=dto.reason,
+        checkin_reason=dto.checkin_reason,
         created_at=now,
         updated_at=now,
     )
@@ -131,8 +131,8 @@ def check_out(
         raise HTTPException(status_code=400, detail="Already checked out today")
 
     record.check_out = now
-    if dto.notes is not None:
-        record.notes = (record.notes or "") + (" | " if record.notes else "") + dto.notes
+    if dto.checkout_reason is not None:
+        record.checkout_reason = (record.checkout_reason or "") + (" | " if record.checkout_reason else "") + dto.checkout_reason
     record.updated_at = now
     db.commit()
     db.refresh(record)

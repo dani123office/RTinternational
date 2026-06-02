@@ -260,8 +260,8 @@ class Attendance(Base):
     check_in = Column(DateTime, nullable=True)
     check_out = Column(DateTime, nullable=True)
     status = Column(String(20), nullable=False, default="present")
-    notes = Column(Text, nullable=True)
-    reason = Column(Text, nullable=True)
+    checkout_reason = Column(Text, nullable=True)
+    checkin_reason = Column(Text, nullable=True)
     created_at = Column(DateTime, default=datetime.now)
     updated_at = Column(DateTime, default=datetime.now, onupdate=datetime.now)
     __table_args__ = (
