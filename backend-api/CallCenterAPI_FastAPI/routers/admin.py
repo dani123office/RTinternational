@@ -171,7 +171,7 @@ def get_agents(
             callbacks=cb, transfers=tr, sales=sa,
             conversionRate=_safe_div(sa, total_opps),
             isActive=1 if a.is_active else 0,
-            monthlySalary=a.monthly_salary or 0,
+            monthlySalary=a.monthly_salary if a.monthly_salary else 0,
         ))
     return result
 
