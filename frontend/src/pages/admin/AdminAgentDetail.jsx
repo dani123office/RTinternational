@@ -94,7 +94,7 @@ export default function AdminAgentDetail() {
     api.get(endpoints.attendance.agentHistory(Number(id)), { params: { page: 1, perPage: 500 } }).then((res) => {
       const items = res.data.items || []
       setAttendanceStats({
-        present: items.filter((r) => r.status === 'present').length,
+        present: items.filter((r) => r.status === 'present' || r.status === 'late').length,
         late: items.filter((r) => r.status === 'late').length,
       })
     }).catch(() => {})
@@ -215,7 +215,7 @@ export default function AdminAgentDetail() {
       : activeTab === 'Sales'
         ? ['chasing', 'cotInProgress', 'done', 'hold']
         : activeTab === 'Attendance'
-          ? ['present', 'late']
+          ? ['present', 'late', 'absent']
           : ['pending', 'approved', 'rejected']
 
   return (
