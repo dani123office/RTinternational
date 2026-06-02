@@ -7,10 +7,25 @@ import EditStaffModal from '@/components/admin/EditStaffModal'
 import {
   ArrowLeft, User, ArrowLeftRight, PoundSterling,
   TrendingUp, Mail, Calendar, UserSquare2, CreditCard, Briefcase, DollarSign, Heart, BadgePercent, Building2,
+  Clock, CalendarCheck,
 } from 'lucide-react'
 import { APP_STYLES } from '@/lib/styles'
 import DataTable from '@/components/shared/DataTable'
 import LoadingSpinner from '@/components/shared/LoadingSpinner'
+
+function statusBadge(status) {
+  const map = {
+    pending: { bg: '#fef3c7', color: '#d97706', label: 'Pending' },
+    approved: { bg: '#dcfce7', color: '#16a34a', label: 'Approved' },
+    rejected: { bg: '#fee2e2', color: '#dc2626', label: 'Rejected' },
+  }
+  const s = map[status] || map.pending
+  return (
+    <span className="text-xs font-bold px-2 py-0.5 rounded-full" style={{ background: s.bg, color: s.color }}>
+      {s.label}
+    </span>
+  )
+}
 
 function StatusBadge({ status, type }) {
   const colors = {
@@ -46,7 +61,7 @@ function StatusBadge({ status, type }) {
   )
 }
 
-const tabs = ['Callbacks', 'Transfers', 'Sales']
+const tabs = ['Callbacks', 'Transfers', 'Sales', 'Attendance', 'Leaves']
 
 export default function AdminAgentDetail() {
   const { id } = useParams()
@@ -57,6 +72,11 @@ export default function AdminAgentDetail() {
   const [activeTab, setActiveTab] = useState('Transfers')
   const [statusFilter, setStatusFilter] = useState('')
   const [showEditModal, setShowEditModal] = useState(false)
+
+  const [attendanceHistory, setAttendanceHistory] = useState([])
+  const [attendanceLoading, setAttendanceLoading] = useState(false)
+  const [leaveHistory, setLeaveHistory] = useState([])
+  const [leaveLoading, setLeaveLoading] = useState(false)
 
   const handleSaveStaff = useCallback(async (payload) => {
     const res = await api.put(endpoints.admin.updateAgentStaff(Number(id)), payload)
@@ -76,9 +96,31 @@ export default function AdminAgentDetail() {
   const activeItems = activeTab === 'Callbacks' ? callbacks : activeTab === 'Transfers' ? transfers : sales
 
   const filteredData = useMemo(() => {
+    if (activeTab === 'Attendance' || activeTab === 'Leaves') return []
     if (!statusFilter) return activeItems
     return activeItems.filter(item => (item.status || item.cotStatus) === statusFilter)
-  }, [activeItems, statusFilter])
+  }, [activeItems, statusFilter, activeTab])
+
+  const loadAttendance = useCallback(async () => {
+    if (activeTab !== 'Attendance' || !id) return
+    setAttendanceLoading(true)
+    try {
+      const res = await api.get(endpoints.attendance.agentHistory(Number(id)), { params: { page: 1, perPage: 20 } })
+      setAttendanceHistory(res.data.items || [])
+    } catch {} finally { setAttendanceLoading(false) }
+  }, [id, activeTab])
+
+  const loadLeaves = useCallback(async () => {
+    if (activeTab !== 'Leaves' || !id) return
+    setLeaveLoading(true)
+    try {
+      const res = await api.get(endpoints.leaves.agent(Number(id)), { params: { page: 1, perPage: 20 } })
+      setLeaveHistory(res.data.items || [])
+    } catch {} finally { setLeaveLoading(false) }
+  }, [id, activeTab])
+
+  useEffect(() => { loadAttendance() }, [loadAttendance])
+  useEffect(() => { loadLeaves() }, [loadLeaves])
 
   if (isLoading && !selectedAgent) {
     return (
@@ -328,7 +370,78 @@ export default function AdminAgentDetail() {
                 </select>
               </div>
 
-              {activeItems.length === 0 ? (
+              {activeTab === 'Attendance' ? (
+                attendanceLoading ? (
+                  <div className="text-center py-8"><p className="text-sm text-slate-400">Loading attendance...</p></div>
+                ) : attendanceHistory.length === 0 ? (
+                  <div className="text-center py-8"><p className="text-sm text-slate-400">No attendance records found.</p></div>
+                ) : (
+                  <div className="overflow-x-auto">
+                    <table className="w-full text-sm">
+                      <thead>
+                        <tr style={{ borderBottom: '1px solid #f1f5f9' }}>
+                          <th className="text-left py-2.5 px-2 font-semibold text-slate-500 text-xs uppercase">Date</th>
+                          <th className="text-left py-2.5 px-2 font-semibold text-slate-500 text-xs uppercase">Check In</th>
+                          <th className="text-left py-2.5 px-2 font-semibold text-slate-500 text-xs uppercase">Check Out</th>
+                          <th className="text-left py-2.5 px-2 font-semibold text-slate-500 text-xs uppercase">Status</th>
+                          <th className="text-left py-2.5 px-2 font-semibold text-slate-500 text-xs uppercase">Checkin Reason</th>
+                          <th className="text-left py-2.5 px-2 font-semibold text-slate-500 text-xs uppercase">Checkout Reason</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {attendanceHistory.map((r) => (
+                          <tr key={r.id} className="hover:bg-slate-50 transition-colors" style={{ borderBottom: '1px solid #f8fafc' }}>
+                            <td className="py-2.5 px-2 font-semibold text-slate-800">{new Date(r.date).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}</td>
+                            <td className="py-2.5 px-2 text-slate-600">{r.checkIn ? new Date(r.checkIn).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true }) : '-'}</td>
+                            <td className="py-2.5 px-2 text-slate-600">{r.checkOut ? new Date(r.checkOut).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true }) : '-'}</td>
+                            <td className="py-2.5 px-2">
+                              <span className="text-xs font-bold px-2 py-0.5 rounded-full" style={{
+                                background: r.status === 'late' ? '#fee2e2' : '#dcfce7',
+                                color: r.status === 'late' ? '#dc2626' : '#16a34a',
+                              }}>{r.status === 'late' ? 'LATE' : 'ON TIME'}</span>
+                            </td>
+                            <td className="py-2.5 px-2 text-slate-500 text-xs max-w-[140px] truncate">{r.checkin_reason || '-'}</td>
+                            <td className="py-2.5 px-2 text-slate-500 text-xs max-w-[140px] truncate">{r.checkout_reason || '-'}</td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                )
+              ) : activeTab === 'Leaves' ? (
+                leaveLoading ? (
+                  <div className="text-center py-8"><p className="text-sm text-slate-400">Loading leave requests...</p></div>
+                ) : leaveHistory.length === 0 ? (
+                  <div className="text-center py-8"><p className="text-sm text-slate-400">No leave requests found.</p></div>
+                ) : (
+                  <div className="overflow-x-auto">
+                    <table className="w-full text-sm">
+                      <thead>
+                        <tr style={{ borderBottom: '1px solid #f1f5f9' }}>
+                          <th className="text-left py-2.5 px-2 font-semibold text-slate-500 text-xs uppercase">Type</th>
+                          <th className="text-left py-2.5 px-2 font-semibold text-slate-500 text-xs uppercase">From</th>
+                          <th className="text-left py-2.5 px-2 font-semibold text-slate-500 text-xs uppercase">To</th>
+                          <th className="text-left py-2.5 px-2 font-semibold text-slate-500 text-xs uppercase">Reason</th>
+                          <th className="text-left py-2.5 px-2 font-semibold text-slate-500 text-xs uppercase">Status</th>
+                          <th className="text-left py-2.5 px-2 font-semibold text-slate-500 text-xs uppercase">Admin Notes</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {leaveHistory.map((l) => (
+                          <tr key={l.id} className="hover:bg-slate-50 transition-colors" style={{ borderBottom: '1px solid #f8fafc' }}>
+                            <td className="py-2.5 px-2 font-semibold text-slate-800 text-xs">{l.leaveType}</td>
+                            <td className="py-2.5 px-2 text-slate-600 text-xs">{new Date(l.fromDate).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })}</td>
+                            <td className="py-2.5 px-2 text-slate-600 text-xs">{new Date(l.toDate).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })}</td>
+                            <td className="py-2.5 px-2 text-slate-500 text-xs max-w-[140px] truncate">{l.reason || '-'}</td>
+                            <td className="py-2.5 px-2">{statusBadge(l.status)}</td>
+                            <td className="py-2.5 px-2 text-slate-500 text-xs max-w-[120px] truncate">{l.adminNotes || '-'}</td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                )
+              ) : activeItems.length === 0 ? (
                 <div className="text-center py-12">
                   <p className="text-slate-400 text-sm">No {activeTab.toLowerCase()} found for this agent.</p>
                 </div>
