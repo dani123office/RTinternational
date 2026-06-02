@@ -108,6 +108,7 @@ export default function Attendance() {
       const res = await api.post(endpoints.attendance.checkOut, { checkout_reason: checkoutReason || null })
       setTodayRecord(res.data)
       setCheckoutReason('')
+      await loadStats()
     } catch (err) {
       alert(err?.response?.data?.detail || 'Check-out failed')
     } finally { setActionLoading(false) }
