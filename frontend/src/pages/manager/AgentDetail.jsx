@@ -1,9 +1,10 @@
 import { useEffect, useState, useCallback, useMemo } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { useManagerStore } from '@/store/managerStore'
+import api, { endpoints } from '@/lib/api'
 import {
   ArrowLeft, PhoneCall, ArrowLeftRight, PoundSterling, User,
-  TrendingUp, Plus, Edit3, Trash2, Eye, Download,
+  TrendingUp, Plus, Edit3, Trash2, Eye, Download, Clock, ChevronLeft, ChevronRight,
 } from 'lucide-react'
 import { APP_STYLES } from '@/lib/styles'
 import StatCard from '@/components/manager/StatCard'
@@ -13,7 +14,7 @@ import RecordModal from '@/components/manager/RecordModal'
 import DataTable from '@/components/shared/DataTable'
 import { useToast } from '@/components/ui/toastContext'
 
-const tabs = ['Overview', 'Transfers', 'Sales']
+const tabs = ['Overview', 'Transfers', 'Sales', 'Attendance']
 
 const dayOptions = [
   { value: 'Monday', label: 'Monday' },
@@ -70,8 +71,24 @@ export default function AgentDetail() {
   const [saving, setSaving]               = useState(false)
   const [viewItem, setViewItem]           = useState(null)
   const [statusFilter, setStatusFilter]   = useState('')
+  const [attendanceHistory, setAttendanceHistory] = useState({ items: [], total: 0, page: 1, totalPages: 0 })
+  const [attendancePage, setAttendancePage] = useState(1)
+  const [attendanceLoading, setAttendanceLoading] = useState(false)
 
-  useEffect(() => { if (id) loadAgentDetail(Number(id)) }, [id, loadAgentDetail])
+  const loadAttendance = useCallback(async (agentId, page = 1) => {
+    setAttendanceLoading(true)
+    try {
+      const res = await api.get(endpoints.attendance.agentHistory(agentId), { params: { page, perPage: 10 } })
+      setAttendanceHistory(res.data)
+    } catch {} finally { setAttendanceLoading(false) }
+  }, [])
+
+  useEffect(() => {
+    if (id) {
+      loadAgentDetail(Number(id))
+      loadAttendance(Number(id), 1)
+    }
+  }, [id, loadAgentDetail, loadAttendance])
 
   const agent     = selectedAgent?.agent
   const stats     = selectedAgent?.stats
@@ -302,7 +319,7 @@ export default function AgentDetail() {
     )
   }
 
-  const activeItems = activeTab === 'Callbacks' ? callbacks : activeTab === 'Transfers' ? transfers : sales
+  const activeItems = activeTab === 'Callbacks' ? callbacks : activeTab === 'Transfers' ? transfers : activeTab === 'Sales' ? sales : []
   const activeType  = activeTab === 'Callbacks' ? 'callback' : activeTab === 'Transfers' ? 'transfer' : 'sale'
 
   const filteredData = useMemo(() => {
@@ -528,6 +545,86 @@ export default function AgentDetail() {
                   }
                   {callbacks.length === 0 && transfers.length === 0 && sales.length === 0 && (
                     <p className="text-sm text-slate-400 text-center py-8">No activity yet for this agent.</p>
+                  )}
+                </div>
+              )}
+
+              {/* ── ATTENDANCE TAB ── */}
+              {activeTab === 'Attendance' && (
+                <div>
+                  <div className="flex items-center gap-3 mb-4">
+                    <div className="rt-card-icon" style={{ background: '#eef2ff' }}>
+                      <Clock size={16} color="#6366f1" />
+                    </div>
+                    <p className="text-sm font-semibold text-slate-700">Attendance History</p>
+                    <span className="text-xs text-slate-400">{attendanceHistory.total} records</span>
+                  </div>
+                  {attendanceLoading ? (
+                    <p className="text-sm text-slate-400 text-center py-8">Loading...</p>
+                  ) : attendanceHistory.items.length === 0 ? (
+                    <p className="text-sm text-slate-400 text-center py-8">No attendance records found.</p>
+                  ) : (
+                    <>
+                      <div className="overflow-x-auto">
+                        <table className="w-full text-sm">
+                          <thead>
+                            <tr style={{ borderBottom: '1px solid #f1f5f9' }}>
+                              <th className="text-left py-3 px-2 font-semibold text-slate-500 text-xs uppercase">Date</th>
+                              <th className="text-left py-3 px-2 font-semibold text-slate-500 text-xs uppercase">Check In</th>
+                              <th className="text-left py-3 px-2 font-semibold text-slate-500 text-xs uppercase">Check Out</th>
+                              <th className="text-left py-3 px-2 font-semibold text-slate-500 text-xs uppercase">Status</th>
+                              <th className="text-left py-3 px-2 font-semibold text-slate-500 text-xs uppercase">Notes</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {attendanceHistory.items.map((r) => (
+                              <tr key={r.id} className="hover:bg-slate-50 transition-colors" style={{ borderBottom: '1px solid #f8fafc' }}>
+                                <td className="py-3 px-2 font-semibold text-slate-800">{new Date(r.date).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}</td>
+                                <td className="py-3 px-2 text-slate-600">
+                                  {r.checkIn ? new Date(r.checkIn).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' }) : '-'}
+                                </td>
+                                <td className="py-3 px-2 text-slate-600">
+                                  {r.checkOut ? new Date(r.checkOut).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' }) : '-'}
+                                </td>
+                                <td className="py-3 px-2">
+                                  <span className="text-xs font-bold px-2 py-0.5 rounded-full" style={{
+                                    background: r.status === 'late' ? '#fee2e2' : '#dcfce7',
+                                    color: r.status === 'late' ? '#dc2626' : '#16a34a',
+                                  }}>
+                                    {r.status === 'late' ? 'LATE' : r.status === 'present' ? 'ON TIME' : r.status.toUpperCase()}
+                                  </span>
+                                </td>
+                                <td className="py-3 px-2 text-slate-500 text-xs max-w-[160px] truncate" title={r.notes || ''}>
+                                  {r.notes || '-'}
+                                </td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                      </div>
+                      {attendanceHistory.totalPages > 1 && (
+                        <div className="flex items-center justify-between mt-4 pt-4" style={{ borderTop: '1px solid #f1f5f9' }}>
+                          <p className="text-xs text-slate-400">{attendanceHistory.total} total records</p>
+                          <div className="flex items-center gap-2">
+                            <button
+                              disabled={attendanceHistory.page <= 1}
+                              onClick={() => { const p = attendanceHistory.page - 1; setAttendancePage(p); loadAttendance(Number(id), p) }}
+                              className="p-1.5 rounded-lg border border-slate-200 bg-white cursor-pointer disabled:opacity-40"
+                            >
+                              <ChevronLeft size={14} />
+                            </button>
+                            <span className="text-xs font-semibold text-slate-500">{attendanceHistory.page} / {attendanceHistory.totalPages}</span>
+                            <button
+                              disabled={attendanceHistory.page >= attendanceHistory.totalPages}
+                              onClick={() => { const p = attendanceHistory.page + 1; setAttendancePage(p); loadAttendance(Number(id), p) }}
+                              className="p-1.5 rounded-lg border border-slate-200 bg-white cursor-pointer disabled:opacity-40"
+                            >
+                              <ChevronRight size={14} />
+                            </button>
+                          </div>
+                        </div>
+                      )}
+                    </>
                   )}
                 </div>
               )}

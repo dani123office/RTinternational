@@ -1,0 +1,363 @@
+import { useEffect, useState, useCallback } from 'react'
+import api, { endpoints } from '@/lib/api'
+import { useAuthStore } from '@/store/authStore'
+import { Clock, LogIn, LogOut, History, MapPin, ChevronLeft, ChevronRight } from 'lucide-react'
+import { APP_STYLES } from '@/lib/styles'
+
+function useClock() {
+  const [time, setTime] = useState(new Date())
+  useEffect(() => {
+    const id = setInterval(() => setTime(new Date()), 1000)
+    return () => clearInterval(id)
+  }, [])
+  return time
+}
+
+function formatTime(d) {
+  return d.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit', second: '2-digit' })
+}
+
+function formatDate(d) {
+  return d.toLocaleDateString('en-GB', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })
+}
+
+function pktTime(utc) {
+  return new Date(utc.getTime() + 5 * 60 * 60 * 1000)
+}
+
+function ukTime(utc) {
+  const isBST = (d) => {
+    const m = d.getMonth()
+    const dw = d.getDay()
+    if (m < 2 || m > 9) return false
+    if (m > 2 && m < 9) return true
+    const lastSun = new Date(d.getFullYear(), m === 2 ? 2 : 9, 0)
+    lastSun.setDate(lastSun.getDate() - ((lastSun.getDay() + 1) % 7))
+    return m === 2 ? d >= lastSun : d < lastSun
+  }
+  const offset = isBST(utc) ? 1 : 0
+  return new Date(utc.getTime() + offset * 60 * 60 * 1000)
+}
+
+function ClockCard({ label, time, sub, accent, flag }) {
+  return (
+    <div className="rounded-2xl p-5 relative overflow-hidden" style={{
+      background: 'rgba(255,255,255,0.85)',
+      backdropFilter: 'blur(16px)',
+      WebkitBackdropFilter: 'blur(16px)',
+      border: '1px solid rgba(255,255,255,0.5)',
+      boxShadow: '0 8px 32px rgba(0,0,0,0.06)',
+    }}>
+      <div className="flex items-center gap-3 mb-3">
+        <div className="w-9 h-9 rounded-xl flex items-center justify-center" style={{ background: accent + '20' }}>
+          <MapPin size={16} style={{ color: accent }} />
+        </div>
+        <div>
+          <p className="text-xs font-semibold uppercase tracking-wider" style={{ color: '#94a3b8' }}>{label}</p>
+          {flag && <span className="text-[10px] font-medium" style={{ color: '#94a3b8' }}>{flag}</span>}
+        </div>
+      </div>
+      <p className="text-3xl font-extrabold tracking-tight" style={{ color: '#0f172a', fontFamily: "'DM Sans', monospace", letterSpacing: '-0.03em' }}>
+        {formatTime(time)}
+      </p>
+      {sub && <p className="text-xs font-medium mt-1.5" style={{ color: '#64748b' }}>{sub}</p>}
+    </div>
+  )
+}
+
+export default function Attendance() {
+  const now = useClock()
+  const { user } = useAuthStore()
+  const [todayRecord, setTodayRecord] = useState(null)
+  const [history, setHistory] = useState({ items: [], total: 0, page: 1, totalPages: 0 })
+  const [stats, setStats] = useState({ presentCount: 0, lateCount: 0, absentCount: 0, totalDays: 0 })
+  const [notes, setNotes] = useState('')
+  const [loading, setLoading] = useState(true)
+  const [actionLoading, setActionLoading] = useState(false)
+  const [historyPage, setHistoryPage] = useState(1)
+
+  const loadToday = useCallback(async () => {
+    try {
+      const res = await api.get(endpoints.attendance.today)
+      setTodayRecord(res.data)
+    } catch { setTodayRecord(null) }
+  }, [])
+
+  const loadHistory = useCallback(async (page = 1) => {
+    try {
+      const res = await api.get(endpoints.attendance.myHistory, { params: { page, perPage: 15 } })
+      setHistory(res.data)
+    } catch {}
+  }, [])
+
+  const loadStats = useCallback(async () => {
+    try {
+      const res = await api.get(endpoints.attendance.stats)
+      setStats(res.data)
+    } catch {}
+  }, [])
+
+  const loadAll = useCallback(async () => {
+    setLoading(true)
+    await Promise.all([loadToday(), loadHistory(historyPage), loadStats()])
+    setLoading(false)
+  }, [loadToday, loadHistory, historyPage, loadStats])
+
+  useEffect(() => { loadAll() }, [loadAll])
+
+  const handleCheckIn = async () => {
+    setActionLoading(true)
+    try {
+      const res = await api.post(endpoints.attendance.checkIn, { notes: notes || null })
+      setTodayRecord(res.data)
+      setNotes('')
+      await loadStats()
+    } catch (err) {
+      alert(err?.response?.data?.detail || 'Check-in failed')
+    } finally { setActionLoading(false) }
+  }
+
+  const handleCheckOut = async () => {
+    setActionLoading(true)
+    try {
+      const res = await api.post(endpoints.attendance.checkOut, { notes: notes || null })
+      setTodayRecord(res.data)
+      setNotes('')
+    } catch (err) {
+      alert(err?.response?.data?.detail || 'Check-out failed')
+    } finally { setActionLoading(false) }
+  }
+
+  const pkt = pktTime(now)
+  const uk = ukTime(now)
+  const isCheckedIn = !!todayRecord?.checkIn
+  const isCheckedOut = !!todayRecord?.checkOut
+  const todayStatus = todayRecord?.status
+
+  return (
+    <>
+      <style>{APP_STYLES}</style>
+      <div className="rt-page">
+        <div style={{ maxWidth: '960px', margin: '0 auto' }}>
+          <div className="rt-fade" style={{ marginBottom: '28px' }}>
+            <h1 className="rt-page-title">Attendance</h1>
+            <p className="rt-page-subtitle">{formatDate(pkt)}</p>
+          </div>
+
+          {/* Clocks */}
+          <div className="rt-fade grid grid-cols-1 sm:grid-cols-2 gap-4 mb-6">
+            <ClockCard label="Pakistan Time (PKT)" time={pkt} sub="Office Hours: 2:00 PM — 10:00 PM" accent="#6366f1" flag="UTC +5" />
+            <ClockCard label="UK Time" time={uk} sub="Office Hours: 10:00 AM — 6:00 PM" accent="#3b82f6" flag={uk.getTimezoneOffset() === -60 ? 'BST (UTC+1)' : 'GMT (UTC+0)'} />
+          </div>
+
+          {/* Status Banner */}
+          {todayRecord && (
+            <div className="rt-fade rt-d1 mb-6 rounded-2xl p-4 flex items-center gap-3" style={{
+              background: todayStatus === 'late' ? 'linear-gradient(135deg, #fef2f2, #fff5f5)' : 'linear-gradient(135deg, #ecfdf5, #f0fdf4)',
+              border: todayStatus === 'late' ? '1px solid #fecaca' : '1px solid #bbf7d0',
+            }}>
+              <div className="w-10 h-10 rounded-xl flex items-center justify-center" style={{
+                background: todayStatus === 'late' ? '#fee2e2' : '#dcfce7',
+              }}>
+                <Clock size={18} color={todayStatus === 'late' ? '#ef4444' : '#16a34a'} />
+              </div>
+              <div className="flex-1">
+                <p className="font-bold text-sm" style={{ color: todayStatus === 'late' ? '#7f1d1d' : '#166534' }}>
+                  {todayStatus === 'late' ? 'Checked in Late' : todayStatus === 'present' ? 'Checked in — On Time' : 'Present'}
+                </p>
+                <p className="text-xs font-medium mt-0.5" style={{ color: todayStatus === 'late' ? '#b91c1c' : '#15803d' }}>
+                  {todayRecord.checkIn ? `Check-in: ${new Date(todayRecord.checkIn).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' })}` : ''}
+                  {todayRecord.checkOut ? ` · Check-out: ${new Date(todayRecord.checkOut).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' })}` : ''}
+                </p>
+              </div>
+              <span className="text-xs font-bold px-2.5 py-1 rounded-full" style={{
+                background: todayStatus === 'late' ? '#fee2e2' : '#dcfce7',
+                color: todayStatus === 'late' ? '#dc2626' : '#16a34a',
+              }}>
+                {todayStatus === 'late' ? 'LATE' : 'ON TIME'}
+              </span>
+            </div>
+          )}
+
+          {/* Check In/Out Cards */}
+          <div className="rt-fade rt-d1 grid grid-cols-1 sm:grid-cols-2 gap-4 mb-6">
+            <div className="rounded-2xl p-6 relative overflow-hidden" style={{
+              background: 'linear-gradient(135deg, #6366f1, #4f46e5)',
+              boxShadow: '0 8px 32px rgba(99,102,241,0.25)',
+            }}>
+              <div className="relative z-10">
+                <div className="flex items-center gap-2.5 mb-4">
+                  <div className="w-10 h-10 rounded-xl flex items-center justify-center" style={{ background: 'rgba(255,255,255,0.15)' }}>
+                    <LogIn size={18} color="white" />
+                  </div>
+                  <p className="text-white font-bold text-lg">Check In</p>
+                </div>
+                {isCheckedIn ? (
+                  <div className="text-white/80 text-sm font-medium">
+                    <p>Checked in at {new Date(todayRecord.checkIn).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' })}</p>
+                    {todayRecord.notes && <p className="mt-1 text-white/60 text-xs">Notes: {todayRecord.notes}</p>}
+                  </div>
+                ) : (
+                  <>
+                    <input
+                      value={notes}
+                      onChange={(e) => setNotes(e.target.value)}
+                      placeholder="Add check-in note (optional)..."
+                      className="w-full px-3.5 py-2.5 rounded-xl border-0 text-sm mb-3"
+                      style={{ background: 'rgba(255,255,255,0.15)', color: 'white', outline: 'none' }}
+                    />
+                    <button
+                      onClick={handleCheckIn}
+                      disabled={actionLoading}
+                      className="w-full py-2.5 rounded-xl border-0 font-bold text-sm cursor-pointer transition-all duration-200 disabled:opacity-50"
+                      style={{ background: 'white', color: '#4f46e5' }}
+                    >
+                      {actionLoading ? 'Checking in...' : 'Check In Now'}
+                    </button>
+                  </>
+                )}
+              </div>
+            </div>
+
+            <div className="rounded-2xl p-6 relative overflow-hidden" style={{
+              background: 'linear-gradient(135deg, #0f172a, #1e293b)',
+              boxShadow: '0 8px 32px rgba(0,0,0,0.2)',
+            }}>
+              <div className="relative z-10">
+                <div className="flex items-center gap-2.5 mb-4">
+                  <div className="w-10 h-10 rounded-xl flex items-center justify-center" style={{ background: 'rgba(255,255,255,0.1)' }}>
+                    <LogOut size={18} color="white" />
+                  </div>
+                  <p className="text-white font-bold text-lg">Check Out</p>
+                </div>
+                {!isCheckedIn ? (
+                  <p className="text-white/50 text-sm font-medium">Check in first to enable check-out</p>
+                ) : isCheckedOut ? (
+                  <div className="text-white/80 text-sm font-medium">
+                    <p>Checked out at {new Date(todayRecord.checkOut).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' })}</p>
+                    {todayRecord.notes && <p className="mt-1 text-white/60 text-xs">Notes: {todayRecord.notes}</p>}
+                  </div>
+                ) : (
+                  <>
+                    <input
+                      value={notes}
+                      onChange={(e) => setNotes(e.target.value)}
+                      placeholder="Add check-out note (optional)..."
+                      className="w-full px-3.5 py-2.5 rounded-xl border-0 text-sm mb-3"
+                      style={{ background: 'rgba(255,255,255,0.1)', color: 'white', outline: 'none' }}
+                    />
+                    <button
+                      onClick={handleCheckOut}
+                      disabled={actionLoading}
+                      className="w-full py-2.5 rounded-xl border-0 font-bold text-sm cursor-pointer transition-all duration-200 disabled:opacity-50"
+                      style={{ background: 'rgba(255,255,255,0.15)', color: 'white' }}
+                    >
+                      {actionLoading ? 'Checking out...' : 'Check Out Now'}
+                    </button>
+                  </>
+                )}
+              </div>
+            </div>
+          </div>
+
+          {/* Stats */}
+          <div className="rt-fade rt-d2 grid grid-cols-3 gap-3 mb-6">
+            {[
+              { label: 'Present', value: stats.presentCount, color: '#16a34a', bg: '#dcfce7' },
+              { label: 'Late', value: stats.lateCount, color: '#dc2626', bg: '#fee2e2' },
+              { label: 'Total Days', value: stats.totalDays, color: '#6366f1', bg: '#eef2ff' },
+            ].map((s) => (
+              <div key={s.label} className="rounded-xl p-4 text-center" style={{ background: s.bg, border: `1px solid ${s.color}20` }}>
+                <p className="text-2xl font-extrabold" style={{ color: s.color }}>{s.value}</p>
+                <p className="text-xs font-semibold mt-1" style={{ color: s.color }}>{s.label}</p>
+              </div>
+            ))}
+          </div>
+
+          {/* History */}
+          <div className="rt-card rt-fade rt-d3">
+            <div className="rt-card-header">
+              <div className="flex items-center gap-2.5">
+                <div className="rt-card-icon" style={{ background: '#eef2ff' }}>
+                  <History size={16} color="#6366f1" />
+                </div>
+                <h2 className="rt-card-title">Attendance History</h2>
+              </div>
+            </div>
+            <div className="rt-card-body">
+              {loading ? (
+                <p className="text-sm text-slate-400 text-center py-8">Loading...</p>
+              ) : history.items.length === 0 ? (
+                <p className="text-sm text-slate-400 text-center py-8">No attendance records yet.</p>
+              ) : (
+                <>
+                  <div className="overflow-x-auto">
+                    <table className="w-full text-sm">
+                      <thead>
+                        <tr style={{ borderBottom: '1px solid #f1f5f9' }}>
+                          <th className="text-left py-3 px-2 font-semibold text-slate-500 text-xs uppercase">Date</th>
+                          <th className="text-left py-3 px-2 font-semibold text-slate-500 text-xs uppercase">Check In</th>
+                          <th className="text-left py-3 px-2 font-semibold text-slate-500 text-xs uppercase">Check Out</th>
+                          <th className="text-left py-3 px-2 font-semibold text-slate-500 text-xs uppercase">Status</th>
+                          <th className="text-left py-3 px-2 font-semibold text-slate-500 text-xs uppercase">Notes</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {history.items.map((r) => (
+                          <tr key={r.id} className="hover:bg-slate-50 transition-colors" style={{ borderBottom: '1px solid #f8fafc' }}>
+                            <td className="py-3 px-2 font-semibold text-slate-800">{new Date(r.date).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}</td>
+                            <td className="py-3 px-2 text-slate-600">
+                              {r.checkIn ? new Date(r.checkIn).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' }) : '-'}
+                            </td>
+                            <td className="py-3 px-2 text-slate-600">
+                              {r.checkOut ? new Date(r.checkOut).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' }) : '-'}
+                            </td>
+                            <td className="py-3 px-2">
+                              <span className="text-xs font-bold px-2 py-0.5 rounded-full" style={{
+                                background: r.status === 'late' ? '#fee2e2' : '#dcfce7',
+                                color: r.status === 'late' ? '#dc2626' : '#16a34a',
+                              }}>
+                                {r.status === 'late' ? 'LATE' : r.status === 'present' ? 'ON TIME' : r.status.toUpperCase()}
+                              </span>
+                            </td>
+                            <td className="py-3 px-2 text-slate-500 text-xs max-w-[160px] truncate" title={r.notes || ''}>
+                              {r.notes || '-'}
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+
+                  {/* Pagination */}
+                  {history.totalPages > 1 && (
+                    <div className="flex items-center justify-between mt-4 pt-4" style={{ borderTop: '1px solid #f1f5f9' }}>
+                      <p className="text-xs text-slate-400">{history.total} total records</p>
+                      <div className="flex items-center gap-2">
+                        <button
+                          disabled={history.page <= 1}
+                          onClick={() => { setHistoryPage(p => p - 1); loadHistory(history.page - 1) }}
+                          className="p-1.5 rounded-lg border border-slate-200 bg-white cursor-pointer disabled:opacity-40"
+                        >
+                          <ChevronLeft size={14} />
+                        </button>
+                        <span className="text-xs font-semibold text-slate-500">{history.page} / {history.totalPages}</span>
+                        <button
+                          disabled={history.page >= history.totalPages}
+                          onClick={() => { setHistoryPage(p => p + 1); loadHistory(history.page + 1) }}
+                          className="p-1.5 rounded-lg border border-slate-200 bg-white cursor-pointer disabled:opacity-40"
+                        >
+                          <ChevronRight size={14} />
+                        </button>
+                      </div>
+                    </div>
+                  )}
+                </>
+              )}
+            </div>
+          </div>
+        </div>
+      </div>
+    </>
+  )
+}

@@ -1,11 +1,12 @@
-import { useMemo } from 'react'
+import { useMemo, useState, useEffect, useCallback } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useDataStore } from '@/store/dataStore'
 import { useAuthStore } from '@/store/authStore'
+import api, { endpoints } from '@/lib/api'
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts'
 import StatusBadge from '@/components/shared/StatusBadge'
 import { extractName, formatDateFull, getGreeting } from '@/lib/format'
-import { ArrowRight, RefreshCw, PhoneCall, ArrowLeftRight, PoundSterling } from 'lucide-react'
+import { ArrowRight, RefreshCw, PhoneCall, ArrowLeftRight, PoundSterling, Clock, LogIn, LogOut } from 'lucide-react'
 import { APP_STYLES } from '@/lib/styles'
 
 function CustomTooltip({ active, payload, label }) {
@@ -87,6 +88,38 @@ export default function Dashboard() {
     [sales]
   )
 
+  const [attendanceRecord, setAttendanceRecord] = useState(null)
+  const [attendanceLoading, setAttendanceLoading] = useState(false)
+
+  const loadAttendance = useCallback(async () => {
+    try {
+      const res = await api.get(endpoints.attendance.today)
+      setAttendanceRecord(res.data)
+    } catch { setAttendanceRecord(null) }
+  }, [])
+
+  useEffect(() => { loadAttendance() }, [loadAttendance])
+
+  const handleQuickCheckIn = async () => {
+    setAttendanceLoading(true)
+    try {
+      const res = await api.post(endpoints.attendance.checkIn, { notes: null })
+      setAttendanceRecord(res.data)
+    } catch (err) {
+      alert(err?.response?.data?.detail || 'Check-in failed')
+    } finally { setAttendanceLoading(false) }
+  }
+
+  const handleQuickCheckOut = async () => {
+    setAttendanceLoading(true)
+    try {
+      const res = await api.post(endpoints.attendance.checkOut, { notes: null })
+      setAttendanceRecord(res.data)
+    } catch (err) {
+      alert(err?.response?.data?.detail || 'Check-out failed')
+    } finally { setAttendanceLoading(false) }
+  }
+
   const conversionRate = useMemo(() => {
     if (transfers.length === 0) return 0
     return Math.round((sales.length / transfers.length) * 100)
@@ -144,6 +177,38 @@ export default function Dashboard() {
               </p>
             </div>
             <div className="flex items-center gap-2 shrink-0 self-start flex-wrap">
+              {/* Attendance Quick-Action Widget */}
+              <div className="rounded-xl px-3.5 py-2 flex items-center gap-2.5" style={{
+                background: attendanceRecord?.checkIn
+                  ? (attendanceRecord?.status === 'late' ? '#fef2f2' : '#ecfdf5')
+                  : '#f8fafc',
+                border: `1px solid ${
+                  attendanceRecord?.checkIn
+                    ? (attendanceRecord?.status === 'late' ? '#fecaca' : '#bbf7d0')
+                    : '#e2e6ec'
+                }`,
+              }}>
+                <Clock size={14} style={{
+                  color: attendanceRecord?.checkIn
+                    ? (attendanceRecord?.status === 'late' ? '#ef4444' : '#16a34a')
+                    : '#94a3b8'
+                }} />
+                {!attendanceRecord?.checkIn ? (
+                  <button onClick={handleQuickCheckIn} disabled={attendanceLoading}
+                    className="text-xs font-semibold border-0 bg-transparent cursor-pointer whitespace-nowrap"
+                    style={{ color: '#6366f1' }}>
+                    {attendanceLoading ? '...' : 'Check In'}
+                  </button>
+                ) : !attendanceRecord?.checkOut ? (
+                  <button onClick={handleQuickCheckOut} disabled={attendanceLoading}
+                    className="text-xs font-semibold border-0 bg-transparent cursor-pointer whitespace-nowrap"
+                    style={{ color: '#ef4444' }}>
+                    {attendanceLoading ? '...' : 'Check Out'}
+                  </button>
+                ) : (
+                  <span className="text-xs font-semibold whitespace-nowrap" style={{ color: '#16a34a' }}>Done</span>
+                )}
+              </div>
               <button onClick={() => navigate('/callbacks/add')}
                 className="flex items-center gap-1.5 px-4 py-2.5 rounded-xl text-sm font-semibold cursor-pointer transition-all duration-200"
                 style={{

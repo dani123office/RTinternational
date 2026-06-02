@@ -5,12 +5,13 @@ import {
   LayoutDashboard, PhoneCall, ArrowLeftRight,
   PoundSterling, Users, ChevronLeft, ChevronRight,
   UsersRound, BarChart3, Bell, Shield,
-  UserCog, Activity, Settings, UserPlus,
+  UserCog, Activity, Settings, UserPlus, Clock,
 } from 'lucide-react'
 
 const NAV_ITEMS = {
   admin: [
     { to: '/admin', icon: Shield, label: 'Dashboard' },
+    { to: '/admin/attendance', icon: Clock, label: 'Attendance' },
     { to: '/admin/managers', icon: UserCog, label: 'Managers' },
     { to: '/admin/pending', icon: UserPlus, label: 'Pending Approvals' },
     { to: '/admin/agents', icon: Users, label: 'Agents' },
@@ -20,6 +21,7 @@ const NAV_ITEMS = {
   ],
   manager: [
     { to: '/manager', icon: LayoutDashboard, label: 'Team Dashboard' },
+    { to: '/manager/attendance', icon: Clock, label: 'Attendance' },
     { to: '/manager/agents', icon: UsersRound, label: 'Agents' },
     { to: '/manager/callbacks', icon: PhoneCall, label: 'Callbacks' },
     { to: '/manager/transfers', icon: ArrowLeftRight, label: 'Transfers' },
@@ -29,6 +31,7 @@ const NAV_ITEMS = {
   ],
   agent: [
     { to: '/', icon: LayoutDashboard, label: 'Dashboard' },
+    { to: '/attendance', icon: Clock, label: 'Attendance' },
     { to: '/callbacks', icon: PhoneCall, label: 'Callbacks' },
     { to: '/transfers', icon: ArrowLeftRight, label: 'Transfers' },
     { to: '/sales', icon: PoundSterling, label: 'Sales' },

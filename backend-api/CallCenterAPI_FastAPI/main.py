@@ -11,8 +11,8 @@ from collections import defaultdict
 import time
 from starlette.middleware.base import BaseHTTPMiddleware
 from database import engine, SessionLocal, Base
-from models import User, Customer, CallBack, Transfer, Sale, ElectricityMeter, GasMeter
-from routers import auth, customers, callbacks, transfers, sales, manager, admin, ai_router, profile
+from models import User, Customer, CallBack, Transfer, Sale, ElectricityMeter, GasMeter, Attendance
+from routers import auth, customers, callbacks, transfers, sales, manager, admin, ai_router, profile, attendance
 from middleware.security import SQLInjectionMiddleware
 
 app = FastAPI(title="RT International API")
@@ -210,6 +210,7 @@ app.include_router(manager.router)
 app.include_router(admin.router)
 app.include_router(ai_router.router)
 app.include_router(profile.router)
+app.include_router(attendance.router)
 
 
 @app.on_event("startup")

@@ -77,6 +77,15 @@ export const endpoints = {
     deleteSale: (id) => `/api/manager/sales/${id}`,
     notifications: '/api/manager/notifications',
   },
+  attendance: {
+    today: '/api/attendance/today',
+    checkIn: '/api/attendance/check-in',
+    checkOut: '/api/attendance/check-out',
+    myHistory: '/api/attendance/my-history',
+    stats: '/api/attendance/stats',
+    teamToday: '/api/attendance/team-today',
+    agentHistory: (id) => `/api/attendance/agent-history/${id}`,
+  },
   admin: {
     users: '/api/admin/users',
     managers: '/api/admin/managers',

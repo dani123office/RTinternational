@@ -6,6 +6,7 @@ import Register from '@/pages/Register'
 import ForgotPassword from '@/pages/ForgotPassword'
 import ResetPassword from '@/pages/ResetPassword'
 import Dashboard from '@/pages/Dashboard'
+import Attendance from '@/pages/Attendance'
 import Callbacks from '@/pages/Callbacks'
 import AddCallback from '@/pages/AddCallback'
 import CallbackDetail from '@/pages/CallbackDetail'
@@ -20,6 +21,7 @@ import Customers from '@/pages/Customers'
 import CustomerDetail from '@/pages/CustomerDetail'
 import ProfileSettings from '@/pages/ProfileSettings'
 import TeamDashboard from '@/pages/manager/TeamDashboard'
+import ManagerAttendance from '@/pages/manager/ManagerAttendance'
 import AgentDetail from '@/pages/manager/AgentDetail'
 import ManagerCallbacks from '@/pages/manager/ManagerCallbacks'
 import ManagerCallbackDetail from '@/pages/manager/ManagerCallbackDetail'
@@ -74,6 +76,7 @@ export default function App() {
 
       <Route path="/" element={<ProtectedRoute><AppLayout /></ProtectedRoute>}>
         <Route index element={<RoleRoute allowedRoles={['agent']}><Dashboard /></RoleRoute>} />
+        <Route path="attendance" element={<RoleRoute allowedRoles={['agent']}><Attendance /></RoleRoute>} />
         <Route path="profile" element={<ProfileSettings />} />
         <Route path="callbacks" element={<RoleRoute allowedRoles={['agent', 'admin']}><Callbacks /></RoleRoute>} />
         <Route path="callbacks/add" element={<RoleRoute allowedRoles={['agent']}><AddCallback /></RoleRoute>} />
@@ -93,6 +96,7 @@ export default function App() {
 
       <Route path="/manager" element={<RoleRoute allowedRoles={['manager']}><AppLayout /></RoleRoute>}>
         <Route index element={<TeamDashboard />} />
+        <Route path="attendance" element={<ManagerAttendance />} />
         <Route path="agents" element={<ManagerAgentsList />} />
         <Route path="agents/:id" element={<AgentDetail />} />
         <Route path="callbacks" element={<ManagerCallbacks />} />
@@ -105,6 +109,7 @@ export default function App() {
 
       <Route path="/admin" element={<RoleRoute allowedRoles={['admin']}><AppLayout /></RoleRoute>}>
         <Route index element={<AdminDashboard />} />
+        <Route path="attendance" element={<ManagerAttendance />} />
         <Route path="managers" element={<ManagersPage />} />
         <Route path="managers/:id" element={<AdminManagerDetail />} />
         <Route path="pending" element={<PendingUsers />} />

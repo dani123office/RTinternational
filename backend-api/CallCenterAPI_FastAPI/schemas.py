@@ -1574,3 +1574,39 @@ class SaleUpdate(BaseModel):
     @classmethod
     def validate_notes(cls, v):
         return check_optional_str(v, 'notes', max_len=2000)
+
+
+# ─── Attendance ────────────────────────────────────────────
+
+class AttendanceCheckIn(BaseModel):
+    notes: Optional[str] = Field(None, max_length=500, description="Check-in notes")
+
+
+class AttendanceCheckOut(BaseModel):
+    notes: Optional[str] = Field(None, max_length=500, description="Check-out notes")
+
+
+class AttendanceOut(BaseModel):
+    id: int
+    userId: int
+    date: date
+    checkIn: Optional[datetime] = None
+    checkOut: Optional[datetime] = None
+    status: str
+    notes: Optional[str] = None
+    createdAt: datetime
+    updatedAt: datetime
+
+
+class AttendanceSummary(BaseModel):
+    presentCount: int
+    lateCount: int
+    absentCount: int
+    totalDays: int
+
+
+class UserAttendanceToday(BaseModel):
+    userId: int
+    userName: str
+    userEmail: str
+    attendance: Optional[AttendanceOut] = None
