@@ -10,6 +10,7 @@ from fpdf import FPDF
 from fastapi.responses import Response
 import io
 import math
+from calendar import monthrange
 
 router = APIRouter(prefix="/api/salary", tags=["salary"])
 
@@ -53,9 +54,9 @@ def download_salary_slip(
     pdf.generate(
         employee_name=current_user.name,
         employee_id=_employee_id(current_user),
-        designation=current_user.designation or "—",
-        department=current_user.department or "—",
-        cnic=current_user.cnic or "—",
+        designation=current_user.designation or "-",
+        department=current_user.department or "-",
+        cnic=current_user.cnic or "-",
         doj=current_user.date_of_joining,
         month_name=_month_name(m),
         year=str(y),
@@ -116,23 +117,26 @@ class SalaryPDF(FPDF):
         absent_deduction, total_deductions, net_salary,
     ):
         self.set_auto_page_break(auto=False)
+        margin = 10
+        page_w = 210
+        col_w = 90
 
         # ── Title ──
         self.set_font("Helvetica", "B", 18)
-        self.cell(0, 10, "RT International", new_x="LMARGIN", new_y="NEXT", align="C")
+        self.cell(0, 10, "RT International", align="C", new_x="LMARGIN", new_y="NEXT")
         self.set_font("Helvetica", "", 10)
-        self.cell(0, 6, "Salary Slip", new_x="LMARGIN", new_y="NEXT", align="C")
-        self.cell(0, 6, f"for the month of {month_name} {year}", new_x="LMARGIN", new_y="NEXT", align="C")
-        self.line(10, self.get_y() + 2, 200, self.get_y() + 2)
+        self.cell(0, 6, "Salary Slip", align="C", new_x="LMARGIN", new_y="NEXT")
+        self.cell(0, 6, f"for the month of {month_name} {year}", align="C", new_x="LMARGIN", new_y="NEXT")
+        self.line(margin, self.get_y() + 2, page_w - margin, self.get_y() + 2)
         self.ln(6)
 
-        # ── Employee Info (left) + Attendance Summary (right) ──
-        col_w = 90
+        # ── Employee Info + Attendance Summary headers ──
         self.set_font("Helvetica", "B", 10)
-        self.cell(col_w, 7, "Employee Information", new_x="RIGHT", new_y="TOP")
+        self.set_xy(margin, self.get_y())
+        self.cell(col_w, 7, "Employee Information")
+        self.set_xy(margin + col_w, self.get_y())
         self.cell(col_w, 7, "Attendance Summary", new_x="LMARGIN", new_y="NEXT")
-        self.line(10, self.get_y(), 200, self.get_y())
-        self.ln(2)
+        y_after_headers = self.get_y()
 
         left_lines = [
             ("Name", employee_name),
@@ -151,36 +155,38 @@ class SalaryPDF(FPDF):
         ]
 
         max_rows = max(len(left_lines), len(right_lines))
-        self.set_font("Helvetica", "", 9)
-        x_start = self.get_x()
-        y_start = self.get_y()
+
         for i in range(max_rows):
-            y = y_start + i * 6
-            self.set_xy(x_start, y)
+            y = y_after_headers + 2 + i * 6
             if i < len(left_lines):
                 label, val = left_lines[i]
+                self.set_xy(margin, y)
                 self.set_font("Helvetica", "B", 9)
-                self.cell(35, 6, label + ":", new_x="RIGHT", new_y="Y")
+                self.cell(35, 6, label + ":")
                 self.set_font("Helvetica", "", 9)
-                self.cell(55, 6, val, new_x="RIGHT", new_y="Y")
-            else:
-                self.set_xy(x_start + col_w, y)
+                self.cell(55, 6, val)
             if i < len(right_lines):
                 label, val = right_lines[i]
+                self.set_xy(margin + col_w, y)
                 self.set_font("Helvetica", "B", 9)
-                self.cell(35, 6, label + ":", new_x="RIGHT", new_y="Y")
+                self.cell(35, 6, label + ":")
                 self.set_font("Helvetica", "", 9)
-                self.cell(55, 6, val, new_x="LMARGIN", new_y="NEXT")
+                self.cell(55, 6, val)
 
-        self.set_y(y_start + max_rows * 6 + 4)
-        self.line(10, self.get_y(), 200, self.get_y())
+        sep_y = y_after_headers + max_rows * 6 + 4
+        self.set_y(sep_y)
+        self.line(margin, self.get_y(), page_w - margin, self.get_y())
         self.ln(4)
 
-        # ── Financial Breakdown ──
+        # ── Earnings + Deductions headers ──
+        y_top = self.get_y()
         self.set_font("Helvetica", "B", 10)
-        self.cell(90, 7, "Earnings", new_x="RIGHT", new_y="TOP")
-        self.cell(90, 7, "Deductions", new_x="LMARGIN", new_y="NEXT")
-        self.line(10, self.get_y(), 200, self.get_y())
+        self.set_xy(margin, y_top)
+        self.cell(col_w, 7, "Earnings")
+        self.set_xy(margin + col_w, y_top)
+        self.cell(col_w, 7, "Deductions", new_x="LMARGIN", new_y="NEXT")
+        self.line(margin, self.get_y(), page_w - margin, self.get_y())
+        y_after_fin_headers = self.get_y()
         self.ln(2)
 
         earnings = [
@@ -194,34 +200,32 @@ class SalaryPDF(FPDF):
         ]
 
         max_rows = max(len(earnings), len(deductions))
-        self.set_font("Helvetica", "", 9)
-        y_start = self.get_y()
         for i in range(max_rows):
-            y = y_start + i * 6
-            self.set_xy(x_start, y)
+            y = y_after_fin_headers + 2 + i * 6
             if i < len(earnings):
                 label, val = earnings[i]
-                self.cell(55, 6, label, new_x="RIGHT", new_y="Y")
-                self.cell(25, 6, "Rs. " + str(int(val)), new_x="RIGHT", new_y="ALIGN")
-                self.set_xy(x_start + col_w, y)
-            else:
-                self.set_xy(x_start + col_w, y)
+                self.set_xy(margin, y)
+                self.set_font("Helvetica", "", 9)
+                self.cell(55, 6, label)
+                self.cell(25, 6, "Rs. " + str(int(val)))
             if i < len(deductions):
                 label, val = deductions[i]
-                self.cell(55, 6, label, new_x="RIGHT", new_y="Y")
-                self.cell(25, 6, "Rs. " + str(int(val)), new_x="LMARGIN", new_y="NEXT")
+                self.set_xy(margin + col_w, y)
+                self.set_font("Helvetica", "", 9)
+                self.cell(55, 6, label)
+                self.cell(25, 6, "Rs. " + str(int(val)))
 
-        self.set_y(y_start + max_rows * 6 + 2)
-
-        # Gross Salary & Total Deductions row
+        gross_y = y_after_fin_headers + max_rows * 6 + 2
+        self.set_y(gross_y)
         self.set_font("Helvetica", "B", 10)
-        self.cell(55, 7, "Gross Salary", new_x="RIGHT", new_y="Y")
-        self.cell(25, 7, "Rs. " + str(int(gross)), new_x="RIGHT", new_y="ALIGN")
-        self.set_xy(x_start + col_w, self.get_y())
-        self.cell(55, 7, "Total Deductions", new_x="RIGHT", new_y="Y")
+        self.set_xy(margin, gross_y)
+        self.cell(55, 7, "Gross Salary")
+        self.cell(25, 7, "Rs. " + str(int(gross)))
+        self.set_xy(margin + col_w, gross_y)
+        self.cell(55, 7, "Total Deductions")
         self.cell(25, 7, "Rs. " + str(int(total_deductions)), new_x="LMARGIN", new_y="NEXT")
 
-        self.line(10, self.get_y() + 1, 200, self.get_y() + 1)
+        self.line(margin, self.get_y() + 1, page_w - margin, self.get_y() + 1)
         self.ln(6)
 
         # ── Net Salary Box ──
@@ -244,7 +248,7 @@ class SalaryPDF(FPDF):
         self.ln(box_h + 6)
 
         # ── Footer ──
-        self.line(10, self.get_y(), 200, self.get_y())
+        self.line(margin, self.get_y(), page_w - margin, self.get_y())
         self.ln(3)
         self.set_font("Helvetica", "I", 8)
         self.cell(0, 5, "This is a computer-generated document and does not require a physical signature.", new_x="LMARGIN", new_y="NEXT", align="C")
