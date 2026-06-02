@@ -573,7 +573,7 @@ export default function AgentDetail() {
                               <th className="text-left py-3 px-2 font-semibold text-slate-500 text-xs uppercase">Check In</th>
                               <th className="text-left py-3 px-2 font-semibold text-slate-500 text-xs uppercase">Check Out</th>
                               <th className="text-left py-3 px-2 font-semibold text-slate-500 text-xs uppercase">Status</th>
-                              <th className="text-left py-3 px-2 font-semibold text-slate-500 text-xs uppercase">Notes</th>
+                              <th className="text-left py-3 px-2 font-semibold text-slate-500 text-xs uppercase">Reason</th>
                             </tr>
                           </thead>
                           <tbody>
@@ -594,8 +594,8 @@ export default function AgentDetail() {
                                     {r.status === 'late' ? 'LATE' : r.status === 'present' ? 'ON TIME' : r.status.toUpperCase()}
                                   </span>
                                 </td>
-                                <td className="py-3 px-2 text-slate-500 text-xs max-w-[160px] truncate" title={r.notes || ''}>
-                                  {r.notes || '-'}
+                                <td className="py-3 px-2 text-slate-500 text-xs max-w-[160px] truncate" title={r.reason || ''}>
+                                  {r.reason || '-'}
                                 </td>
                               </tr>
                             ))}

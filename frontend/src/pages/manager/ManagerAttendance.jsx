@@ -169,11 +169,12 @@ export default function ManagerAttendance() {
                       <table className="w-full text-sm">
                         <thead>
                           <tr style={{ borderBottom: '1px solid #f1f5f9' }}>
-                            <th className="text-left py-2.5 px-2 font-semibold text-slate-500 text-xs uppercase">Date</th>
-                            <th className="text-left py-2.5 px-2 font-semibold text-slate-500 text-xs uppercase">Check In</th>
-                            <th className="text-left py-2.5 px-2 font-semibold text-slate-500 text-xs uppercase">Check Out</th>
-                            <th className="text-left py-2.5 px-2 font-semibold text-slate-500 text-xs uppercase">Status</th>
-                          </tr>
+                              <th className="text-left py-2.5 px-2 font-semibold text-slate-500 text-xs uppercase">Date</th>
+                              <th className="text-left py-2.5 px-2 font-semibold text-slate-500 text-xs uppercase">Check In</th>
+                              <th className="text-left py-2.5 px-2 font-semibold text-slate-500 text-xs uppercase">Check Out</th>
+                              <th className="text-left py-2.5 px-2 font-semibold text-slate-500 text-xs uppercase">Status</th>
+                              <th className="text-left py-2.5 px-2 font-semibold text-slate-500 text-xs uppercase">Reason</th>
+                            </tr>
                         </thead>
                         <tbody>
                           {agentHistory.items.map((r) => (
@@ -192,6 +193,9 @@ export default function ManagerAttendance() {
                                 }}>
                                   {r.status === 'late' ? 'LATE' : 'ON TIME'}
                                 </span>
+                              </td>
+                              <td className="py-2.5 px-2 text-slate-500 text-xs max-w-[140px] truncate" title={r.reason || ''}>
+                                {r.reason || '-'}
                               </td>
                             </tr>
                           ))}
