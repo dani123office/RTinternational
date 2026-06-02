@@ -108,6 +108,16 @@ export default function AdminAgentDetail() {
 
   const activeItems = activeTab === 'Callbacks' ? callbacks : activeTab === 'Transfers' ? transfers : sales
 
+  const filteredAttendance = useMemo(() => {
+    if (!statusFilter) return attendanceHistory
+    return attendanceHistory.filter((r) => r.status === statusFilter)
+  }, [attendanceHistory, statusFilter])
+
+  const filteredLeaves = useMemo(() => {
+    if (!statusFilter) return leaveHistory
+    return leaveHistory.filter((l) => l.status === statusFilter)
+  }, [leaveHistory, statusFilter])
+
   const filteredData = useMemo(() => {
     if (activeTab === 'Attendance' || activeTab === 'Leaves') return []
     if (!statusFilter) return activeItems
@@ -194,11 +204,15 @@ export default function AdminAgentDetail() {
     { header: 'Status', cell: (row) => <StatusBadge status={row.status || row.cotStatus} type={isCallbacks ? 'callback' : isTransfers ? 'transfer' : 'sale'} /> },
   ]
 
-  const statusOptions = isCallbacks
+  const statusOptions = activeTab === 'Callbacks'
     ? ['pending', 'done', 'not_interested']
-    : isTransfers
+    : activeTab === 'Transfers'
       ? ['pending', 'completed', 'failed', 'chasing', 'cotInProgress', 'hold']
-      : ['chasing', 'cotInProgress', 'done', 'hold']
+      : activeTab === 'Sales'
+        ? ['chasing', 'cotInProgress', 'done', 'hold']
+        : activeTab === 'Attendance'
+          ? ['present', 'late']
+          : ['pending', 'approved', 'rejected']
 
   return (
     <>
@@ -376,7 +390,7 @@ export default function AdminAgentDetail() {
                   {tab}
                   <span className="ml-2 text-xs px-1.5 py-0.5 rounded-full"
                     style={{ background: activeTab === tab ? '#eef2ff' : '#f8fafc', color: activeTab === tab ? '#6366f1' : '#94a3b8' }}>
-                    {tab === 'Callbacks' ? callbacks.length : tab === 'Transfers' ? transfers.length : sales.length}
+                    {tab === 'Callbacks' ? callbacks.length : tab === 'Transfers' ? transfers.length : tab === 'Sales' ? sales.length : tab === 'Attendance' ? attendanceHistory.length : leaveHistory.length}
                   </span>
                 </button>
               ))}
@@ -385,7 +399,11 @@ export default function AdminAgentDetail() {
             <div className="p-5">
               <div className="flex items-center justify-between gap-3 mb-4">
                 <p className="text-sm text-slate-500">
-                  {activeItems.length} {activeTab.toLowerCase()}{activeItems.length !== 1 ? 's' : ''} total
+                  {activeTab === 'Attendance'
+                    ? `${filteredAttendance.length} attendance records`
+                    : activeTab === 'Leaves'
+                      ? `${filteredLeaves.length} leave requests`
+                      : `${filteredData.length} ${activeTab.toLowerCase()}${filteredData.length !== 1 ? 's' : ''}`}
                 </p>
                 <select
                   value={statusFilter}
@@ -404,7 +422,7 @@ export default function AdminAgentDetail() {
               {activeTab === 'Attendance' ? (
                 attendanceLoading ? (
                   <div className="text-center py-8"><p className="text-sm text-slate-400">Loading attendance...</p></div>
-                ) : attendanceHistory.length === 0 ? (
+                ) : filteredAttendance.length === 0 ? (
                   <div className="text-center py-8"><p className="text-sm text-slate-400">No attendance records found.</p></div>
                 ) : (
                   <div className="overflow-x-auto">
@@ -420,7 +438,7 @@ export default function AdminAgentDetail() {
                         </tr>
                       </thead>
                       <tbody>
-                        {attendanceHistory.map((r) => (
+                        {filteredAttendance.map((r) => (
                           <tr key={r.id} className="hover:bg-slate-50 transition-colors" style={{ borderBottom: '1px solid #f8fafc' }}>
                             <td className="py-2.5 px-2 font-semibold text-slate-800">{new Date(r.date).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}</td>
                             <td className="py-2.5 px-2 text-slate-600">{r.checkIn ? new Date(r.checkIn).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true }) : '-'}</td>
@@ -442,7 +460,7 @@ export default function AdminAgentDetail() {
               ) : activeTab === 'Leaves' ? (
                 leaveLoading ? (
                   <div className="text-center py-8"><p className="text-sm text-slate-400">Loading leave requests...</p></div>
-                ) : leaveHistory.length === 0 ? (
+                ) : filteredLeaves.length === 0 ? (
                   <div className="text-center py-8"><p className="text-sm text-slate-400">No leave requests found.</p></div>
                 ) : (
                   <div className="overflow-x-auto">
@@ -458,7 +476,7 @@ export default function AdminAgentDetail() {
                         </tr>
                       </thead>
                       <tbody>
-                        {leaveHistory.map((l) => (
+                        {filteredLeaves.map((l) => (
                           <tr key={l.id} className="hover:bg-slate-50 transition-colors" style={{ borderBottom: '1px solid #f8fafc' }}>
                             <td className="py-2.5 px-2 font-semibold text-slate-800 text-xs">{l.leaveType}</td>
                             <td className="py-2.5 px-2 text-slate-600 text-xs">{new Date(l.fromDate).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })}</td>
