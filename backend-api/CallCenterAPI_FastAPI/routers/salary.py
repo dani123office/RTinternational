@@ -6,7 +6,6 @@ from models import User, Attendance
 from routers.auth import get_current_user
 from datetime import datetime, date
 from calendar import monthrange
-from fpdf import FPDF
 from fastapi.responses import Response
 import io
 
@@ -47,40 +46,39 @@ def download_salary_slip(
     total_deductions = absent_deduction
     net_salary = gross - total_deductions
 
-    pdf = SalaryPDF()
-    pdf.add_page()
-    pdf.generate(
+    pdf = _SalarySlipPDF()
+    pdf.build(
+        title="RT International",
+        subtitle="Salary Slip",
+        period=f"for the month of {_month_name(m)} {y}",
         employee_name=current_user.name,
         employee_id=_employee_id(current_user),
         designation=current_user.designation or "-",
         department=current_user.department or "-",
         cnic=current_user.cnic or "-",
-        doj=current_user.date_of_joining,
-        month_name=_month_name(m),
-        year=str(y),
-        working_days=working_days,
-        present_days=present_days,
-        absent_days=absent_days,
-        basic=basic,
-        hra=hra,
-        utility=utility,
-        conveyance=conveyance,
-        gross=gross,
-        absent_deduction=absent_deduction,
-        total_deductions=total_deductions,
-        net_salary=net_salary,
+        doj=current_user.date_of_joining.strftime("%d/%m/%Y") if current_user.date_of_joining else "-",
+        working_days=str(working_days),
+        present_days=str(present_days),
+        absent_days=str(absent_days),
+        earnings=[
+            ("Basic Salary", int(basic)),
+            ("House Rent Allowance", int(hra)),
+            ("Utility Allowance", int(utility)),
+            ("Conveyance Allowance", int(conveyance)),
+        ],
+        deductions=[
+            ("Absent Days Deduction", int(absent_deduction)),
+        ],
+        gross=int(gross),
+        total_deductions=int(total_deductions),
+        net_salary=int(net_salary),
+        generated_at=datetime.now().strftime("%B %d, %Y at %I:%M %p"),
     )
 
-    buf = io.BytesIO()
-    pdf.output(buf)
-    buf.seek(0)
-
-    filename = f"Salary_Slip_{_month_name(m)}_{y}_{current_user.name}.pdf"
-
     return Response(
-        content=buf.getvalue(),
+        content=pdf.bytes(),
         media_type="application/pdf",
-        headers={"Content-Disposition": f'attachment; filename="{filename}"'},
+        headers={"Content-Disposition": f'attachment; filename="Salary_Slip_{_month_name(m)}_{y}_{current_user.name}.pdf"'},
     )
 
 
@@ -105,144 +103,189 @@ def _attendance_summary(db: Session, user_id: int, month: int, year: int):
     return total_working, present, absent
 
 
-class SalaryPDF(FPDF):
-    def generate(
-        self,
-        employee_name, employee_id, designation, department, cnic, doj,
-        month_name, year,
-        working_days, present_days, absent_days,
-        basic, hra, utility, conveyance, gross,
-        absent_deduction, total_deductions, net_salary,
-    ):
-        self.set_auto_page_break(auto=False)
-        margin = 10
-        page_w = 210
-        col_w = 90
+class _SalarySlipPDF:
+    """Minimal PDF generator — zero external dependencies."""
 
-        self.set_font("Helvetica", "B", 18)
-        self.cell(0, 10, "RT International", align="C", new_x="LMARGIN", new_y="NEXT")
-        self.set_font("Helvetica", "", 10)
-        self.cell(0, 6, "Salary Slip", align="C", new_x="LMARGIN", new_y="NEXT")
-        self.cell(0, 6, f"for the month of {month_name} {year}", align="C", new_x="LMARGIN", new_y="NEXT")
-        self.line(margin, self.get_y() + 2, page_w - margin, self.get_y() + 2)
-        self.ln(6)
+    LM = 28
+    COL_W = 255
+    PAGE_W = 595
+    PAGE_H = 842
 
-        self.set_font("Helvetica", "B", 10)
-        self.set_xy(margin, self.get_y())
-        self.cell(col_w, 7, "Employee Information")
-        self.set_xy(margin + col_w, self.get_y())
-        self.cell(col_w, 7, "Attendance Summary", new_x="LMARGIN", new_y="NEXT")
-        y_after_headers = self.get_y()
+    def __init__(self):
+        self._objects = []
+        self._font_map = {
+            "Helvetica": "F1",
+            "Helvetica-Bold": "F2",
+            "Helvetica-Oblique": "F3",
+        }
 
-        left_lines = [
-            ("Name", employee_name),
-            ("Employee ID", employee_id),
-            ("Designation", designation),
-            ("Department", department),
-            ("CNIC", cnic),
+    def _o(self, body: str) -> int:
+        n = len(self._objects) + 1
+        self._objects.append(body)
+        return n
+
+    def _escape(self, s: str) -> str:
+        res = []
+        for ch in s:
+            o = ord(ch)
+            if o < 32 or o > 126:
+                res.append(f"\\{o:03o}")
+            elif ch in "()\\":
+                res.append("\\" + ch)
+            else:
+                res.append(ch)
+        return "".join(res)
+
+    def _text(self, x: float, y: float, text: str, font: str = "Helvetica", size: int = 10) -> str:
+        f = self._font_map.get(font, "F1")
+        return f"BT /{f} {size} Tf {x:.0f} {y:.0f} Td ({self._escape(text)}) Tj ET\n"
+
+    def _line(self, x1: float, y1: float, x2: float, y2: float) -> str:
+        return f"{x1:.0f} {y1:.0f} m {x2:.0f} {y2:.0f} l S\n"
+
+    def _rect(self, x: float, y: float, w: float, h: float, fill: bool = True, stroke: bool = True) -> str:
+        op = "B" if fill and stroke else ("f" if fill else "S")
+        return f"{x:.0f} {y:.0f} {w:.0f} {h:.0f} re {op}\n"
+
+    def _set_stroke(self, r: int, g: int, b: int) -> str:
+        return f"{r/255:.3f} {g/255:.3f} {b/255:.3f} RG\n"
+
+    def _set_fill(self, r: int, g: int, b: int) -> str:
+        return f"{r/255:.3f} {g/255:.3f} {b/255:.3f} rg\n"
+
+    def _set_line_width(self, w: float) -> str:
+        return f"{w:.1f} w\n"
+
+    def build(self, **kw):
+        Y = lambda pt: self.PAGE_H - pt
+        content_parts = []
+
+        y = Y(50)
+        content_parts.append(self._text(self.LM, y, kw["title"], "Helvetica-Bold", 24))
+        y -= 14
+        content_parts.append(self._text(self.LM, y, kw["subtitle"], "Helvetica", 14))
+        y -= 12
+        content_parts.append(self._text(self.LM, y, kw["period"], "Helvetica", 12))
+        y -= 8
+        content_parts.append(self._line(self.LM, y, self.PAGE_W - self.LM, y))
+
+        y -= 18
+        content_parts.append(self._text(self.LM, y, "Employee Information", "Helvetica-Bold", 12))
+        content_parts.append(self._text(self.LM + self.COL_W, y, "Attendance Summary", "Helvetica-Bold", 12))
+        y -= 4
+        content_parts.append(self._line(self.LM, y, self.PAGE_W - self.LM, y))
+
+        y -= 8
+        left_items = [
+            ("Name", kw["employee_name"]),
+            ("Employee ID", kw["employee_id"]),
+            ("Designation", kw["designation"]),
+            ("Department", kw["department"]),
+            ("CNIC", kw["cnic"]),
+            ("Date of Joining", kw["doj"]),
         ]
-        if doj:
-            left_lines.append(("Date of Joining", doj.strftime("%d/%m/%Y") if hasattr(doj, "strftime") else str(doj)))
-
-        right_lines = [
-            ("Working Days", str(working_days)),
-            ("Present Days", str(present_days)),
-            ("Absent Days", str(absent_days)),
-        ]
-
-        max_rows = max(len(left_lines), len(right_lines))
-
-        for i in range(max_rows):
-            y = y_after_headers + 2 + i * 6
-            if i < len(left_lines):
-                label, val = left_lines[i]
-                self.set_xy(margin, y)
-                self.set_font("Helvetica", "B", 9)
-                self.cell(35, 6, label + ":")
-                self.set_font("Helvetica", "", 9)
-                self.cell(55, 6, val)
-            if i < len(right_lines):
-                label, val = right_lines[i]
-                self.set_xy(margin + col_w, y)
-                self.set_font("Helvetica", "B", 9)
-                self.cell(35, 6, label + ":")
-                self.set_font("Helvetica", "", 9)
-                self.cell(55, 6, val)
-
-        sep_y = y_after_headers + max_rows * 6 + 4
-        self.set_y(sep_y)
-        self.line(margin, self.get_y(), page_w - margin, self.get_y())
-        self.ln(4)
-
-        y_top = self.get_y()
-        self.set_font("Helvetica", "B", 10)
-        self.set_xy(margin, y_top)
-        self.cell(col_w, 7, "Earnings")
-        self.set_xy(margin + col_w, y_top)
-        self.cell(col_w, 7, "Deductions", new_x="LMARGIN", new_y="NEXT")
-        self.line(margin, self.get_y(), page_w - margin, self.get_y())
-        y_after_fin_headers = self.get_y()
-        self.ln(2)
-
-        earnings = [
-            ("Basic Salary", basic),
-            ("House Rent Allowance", hra),
-            ("Utility Allowance", utility),
-            ("Conveyance Allowance", conveyance),
-        ]
-        deductions = [
-            ("Absent Days Deduction", absent_deduction),
+        right_items = [
+            ("Working Days", kw["working_days"]),
+            ("Present Days", kw["present_days"]),
+            ("Absent Days", kw["absent_days"]),
         ]
 
-        max_rows = max(len(earnings), len(deductions))
-        for i in range(max_rows):
-            y = y_after_fin_headers + 2 + i * 6
+        row_h = 7
+        max_r = max(len(left_items), len(right_items))
+        for i in range(max_r):
+            if i < len(left_items):
+                lbl, val = left_items[i]
+                content_parts.append(self._text(self.LM, y, lbl + ":", "Helvetica-Bold", 9))
+                content_parts.append(self._text(self.LM + 70, y, val, "Helvetica", 9))
+            if i < len(right_items):
+                lbl, val = right_items[i]
+                content_parts.append(self._text(self.LM + self.COL_W, y, lbl + ":", "Helvetica-Bold", 9))
+                content_parts.append(self._text(self.LM + self.COL_W + 70, y, val, "Helvetica", 9))
+            y -= row_h
+
+        y -= 6
+        content_parts.append(self._line(self.LM, y, self.PAGE_W - self.LM, y))
+
+        y -= 14
+        content_parts.append(self._text(self.LM, y, "Earnings", "Helvetica-Bold", 12))
+        content_parts.append(self._text(self.LM + self.COL_W, y, "Deductions", "Helvetica-Bold", 12))
+        y -= 4
+        content_parts.append(self._line(self.LM, y, self.PAGE_W - self.LM, y))
+
+        y -= 8
+        earnings = kw["earnings"]
+        deductions = kw["deductions"]
+        max_r = max(len(earnings), len(deductions))
+        for i in range(max_r):
             if i < len(earnings):
-                label, val = earnings[i]
-                self.set_xy(margin, y)
-                self.set_font("Helvetica", "", 9)
-                self.cell(55, 6, label)
-                self.cell(25, 6, "Rs. " + str(int(val)))
+                lbl, val = earnings[i]
+                content_parts.append(self._text(self.LM, y, lbl, "Helvetica", 9))
+                content_parts.append(self._text(self.LM + 140, y, "Rs. " + str(val), "Helvetica", 9))
             if i < len(deductions):
-                label, val = deductions[i]
-                self.set_xy(margin + col_w, y)
-                self.set_font("Helvetica", "", 9)
-                self.cell(55, 6, label)
-                self.cell(25, 6, "Rs. " + str(int(val)))
+                lbl, val = deductions[i]
+                content_parts.append(self._text(self.LM + self.COL_W, y, lbl, "Helvetica", 9))
+                content_parts.append(self._text(self.LM + self.COL_W + 140, y, "Rs. " + str(val), "Helvetica", 9))
+            y -= row_h
 
-        gross_y = y_after_fin_headers + max_rows * 6 + 2
-        self.set_y(gross_y)
-        self.set_font("Helvetica", "B", 10)
-        self.set_xy(margin, gross_y)
-        self.cell(55, 7, "Gross Salary")
-        self.cell(25, 7, "Rs. " + str(int(gross)))
-        self.set_xy(margin + col_w, gross_y)
-        self.cell(55, 7, "Total Deductions")
-        self.cell(25, 7, "Rs. " + str(int(total_deductions)), new_x="LMARGIN", new_y="NEXT")
+        y -= 4
+        content_parts.append(self._text(self.LM, y, "Gross Salary", "Helvetica-Bold", 10))
+        content_parts.append(self._text(self.LM + 140, y, "Rs. " + str(kw["gross"]), "Helvetica-Bold", 10))
+        content_parts.append(self._text(self.LM + self.COL_W, y, "Total Deductions", "Helvetica-Bold", 10))
+        content_parts.append(self._text(self.LM + self.COL_W + 140, y, "Rs. " + str(kw["total_deductions"]), "Helvetica-Bold", 10))
 
-        self.line(margin, self.get_y() + 1, page_w - margin, self.get_y() + 1)
-        self.ln(6)
+        y -= 8
+        content_parts.append(self._line(self.LM, y, self.PAGE_W - self.LM, y))
 
-        self.set_draw_color(100, 149, 237)
-        self.set_fill_color(230, 240, 255)
-        self.set_line_width(0.8)
-        box_x = 50
-        box_w = 110
-        box_h = 14
-        self.rect(box_x, self.get_y(), box_w, box_h, style="DF")
-        self.set_xy(box_x, self.get_y() + 1)
-        self.set_font("Helvetica", "B", 9)
-        self.cell(box_w, 6, "Net Salary", new_x="LMARGIN", new_y="NEXT", align="C")
-        self.set_xy(box_x, self.get_y() + 1)
-        self.set_font("Helvetica", "B", 14)
-        self.set_text_color(0, 0, 0)
-        self.cell(box_w, 6, "Rs. " + str(int(net_salary)), new_x="LMARGIN", new_y="NEXT", align="C")
+        y -= 20
+        box_x = int((self.PAGE_W - 160) / 2)
+        box_w = 160
+        box_h = 24
+        content_parts.append(self._set_stroke(100, 149, 237))
+        content_parts.append(self._set_fill(230, 240, 255))
+        content_parts.append(self._set_line_width(0.8))
+        content_parts.append(self._rect(box_x, y - box_h, box_w, box_h))
+        content_parts.append(self._text(box_x + 55, y - 5, "Net Salary", "Helvetica-Bold", 10))
+        content_parts.append(self._text(box_x + 40, y - 16, "Rs. " + str(kw["net_salary"]), "Helvetica-Bold", 16))
 
-        self.set_text_color(0, 0, 0)
-        self.ln(box_h + 6)
+        content_parts.append(self._set_stroke(0, 0, 0))
+        content_parts.append(self._set_fill(0, 0, 0))
 
-        self.line(margin, self.get_y(), page_w - margin, self.get_y())
-        self.ln(3)
-        self.set_font("Helvetica", "I", 8)
-        self.cell(0, 5, "This is a computer-generated document and does not require a physical signature.", new_x="LMARGIN", new_y="NEXT", align="C")
-        self.cell(0, 5, f"Generated on {datetime.now().strftime('%B %d, %Y at %I:%M %p')}", new_x="LMARGIN", new_y="NEXT", align="C")
+        y -= 24
+        content_parts.append(self._line(self.LM, y, self.PAGE_W - self.LM, y))
+        y -= 8
+        content_parts.append(self._text(self.LM, y, "This is a computer-generated document and does not require a physical signature.", "Helvetica-Oblique", 8))
+        y -= 6
+        content_parts.append(self._text(self.LM, y, "Generated on " + kw["generated_at"], "Helvetica-Oblique", 8))
+
+        content = "".join(content_parts)
+        self._build_pdf(content)
+
+    def _build_pdf(self, content: str):
+        content_obj = self._o(f"<< /Length {len(content)} >>\nstream\n{content}\nendstream")
+        font_f1 = self._o("<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>")
+        font_f2 = self._o("<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica-Bold >>")
+        font_f3 = self._o("<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica-Oblique >>")
+        resources = self._o(f"<< /Font << /F1 {font_f1} 0 R /F2 {font_f2} 0 R /F3 {font_f3} 0 R >> >>")
+        page = self._o(f"<< /Type /Page /Parent 2 0 R /MediaBox [0 0 {self.PAGE_W} {self.PAGE_H}] /Contents {content_obj} 0 R /Resources {resources} 0 R >>")
+        pages = self._o(f"<< /Type /Pages /Kids [{page} 0 R] /Count 1 >>")
+        catalog = self._o("<< /Type /Catalog /Pages 3 0 R >>")
+
+        offset = 0
+        xref_entries = []
+        for i, body in enumerate(self._objects):
+            xref_entries.append(f"{offset:010d} 00000 n")
+            offset += len(f"{i + 1} 0 obj\n{body}\nendobj\n")
+
+        xref_content = f"xref\n0 {len(self._objects) + 1}\n0000000000 65535 f \n" + "\n".join(xref_entries) + "\n"
+        trailer = f"trailer\n<< /Size {len(self._objects) + 1} /Root 1 0 R >>\nstartxref\n{offset}\n%%EOF"
+
+        buf = io.BytesIO()
+        buf.write(b"%PDF-1.4\n")
+        for i, body in enumerate(self._objects):
+            buf.write(f"{i + 1} 0 obj\n{body}\nendobj\n".encode("latin-1"))
+        buf.write(xref_content.encode("latin-1"))
+        buf.write(trailer.encode("latin-1"))
+        self._data = buf.getvalue()
+
+    def bytes(self) -> bytes:
+        return self._data
