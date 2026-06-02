@@ -1,8 +1,8 @@
 from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.orm import Session
 from ..database import get_db
-from ..models import Transfer, Customer, CallBack, User
-from ..schemas import TransferOut, CustomerOut, ElectricityMeterOut, GasMeterOut, TransferCreate, TransferUpdate
+from ..models import Transfer, Customer, CallBack, User, Sale
+from ..schemas import TransferOut, CustomerOut, ElectricityMeterOut, GasMeterOut, TransferCreate, TransferUpdate, SaleOut
 from datetime import datetime
 from .auth import get_current_user
 
@@ -299,6 +299,21 @@ def update_transfer(id: int, dto: TransferUpdate, current_user: User = Depends(g
 
         db.commit()
         db.refresh(transfer)
+
+        # Auto-create sale when transfer is completed
+        if dto.status == "completed":
+            existing_sale = db.query(Sale).filter(Sale.transfer_id == transfer.id).first()
+            if not existing_sale:
+                sale = Sale(
+                    employee_id=transfer.employee_id,
+                    customer_id=transfer.customer_id,
+                    transfer_id=transfer.id,
+                    created_at=datetime.now(),
+                    updated_at=datetime.now(),
+                )
+                db.add(sale)
+                db.commit()
+
         customer = db.query(Customer).filter(Customer.id == transfer.customer_id).first()
         return _transfer_out(transfer, customer)
     except HTTPException:

@@ -658,6 +658,21 @@ def update_transfer(
                 setattr(t, attr, val)
         db.commit()
         db.refresh(t)
+
+        # Auto-create sale when transfer status becomes completed
+        if 'status' in data and data['status'] == 'completed':
+            existing_sale = db.query(Sale).filter(Sale.transfer_id == t.id).first()
+            if not existing_sale:
+                sale = Sale(
+                    employee_id=t.employee_id,
+                    customer_id=t.customer_id,
+                    transfer_id=t.id,
+                    created_at=datetime.now(),
+                    updated_at=datetime.now(),
+                )
+                db.add(sale)
+                db.commit()
+
         return _transfer_out(t, t.customer)
     except HTTPException:
         db.rollback()
