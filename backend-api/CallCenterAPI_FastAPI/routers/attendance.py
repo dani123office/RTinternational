@@ -1,3 +1,4 @@
+from calendar import monthrange
 from datetime import datetime, date, timedelta
 from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.orm import Session
@@ -167,25 +168,42 @@ def my_history(
 def my_stats(
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
+    month: int = Query(None),
+    year: int = Query(None),
 ):
-    total = db.query(func.count(Attendance.id)).filter(
-        Attendance.user_id == current_user.id,
-    ).scalar() or 0
+    today = _today_pkt()
+    m = month or today.month
+    y = year or today.year
+    _, last_day = monthrange(y, m)
+    start = date(y, m, 1)
+    end = date(y, m, last_day)
+
+    total_working = sum(
+        1 for d in range((end - start).days + 1)
+        if (start + timedelta(days=d)).weekday() < 5
+    )
+
     present = db.query(func.count(Attendance.id)).filter(
         Attendance.user_id == current_user.id,
+        Attendance.date >= start,
+        Attendance.date <= end,
         Attendance.status == "present",
     ).scalar() or 0
+
     late = db.query(func.count(Attendance.id)).filter(
         Attendance.user_id == current_user.id,
+        Attendance.date >= start,
+        Attendance.date <= end,
         Attendance.status == "late",
     ).scalar() or 0
-    absent = total - present - late
+
+    absent = max(0, total_working - present - late)
 
     return AttendanceSummary(
         presentCount=present,
         lateCount=late,
         absentCount=absent,
-        totalDays=total,
+        totalDays=total_working,
     )
 
 
