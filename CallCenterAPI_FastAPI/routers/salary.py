@@ -288,7 +288,7 @@ def _attendance_summary(db: Session, user_id: int, month: int, year: int):
         Attendance.user_id == user_id,
         Attendance.date >= start,
         Attendance.date <= end,
-        Attendance.status == "present",
+        Attendance.status.in_(["present", "late"]),
     ).scalar() or 0
 
     absent = total_working - present
