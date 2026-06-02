@@ -1611,3 +1611,32 @@ class UserAttendanceToday(BaseModel):
     userName: str
     userEmail: str
     attendance: Optional[AttendanceOut] = None
+
+
+class LeaveRequestCreate(BaseModel):
+    leave_type: str = Field(..., max_length=50, description="Leave type")
+    from_date: date
+    to_date: date
+    reason: Optional[str] = Field(None, max_length=1000)
+
+
+class LeaveRequestReview(BaseModel):
+    status: str = Field(..., pattern="^(approved|rejected)$")
+    admin_notes: Optional[str] = Field(None, max_length=500)
+
+
+class LeaveRequestOut(BaseModel):
+    id: int
+    userId: int
+    userName: Optional[str] = None
+    leaveType: str
+    fromDate: date
+    toDate: date
+    reason: Optional[str] = None
+    status: str
+    adminId: Optional[int] = None
+    adminNotes: Optional[str] = None
+    createdAt: datetime
+    updatedAt: datetime
+
+    model_config = {"from_attributes": True}

@@ -86,6 +86,13 @@ export const endpoints = {
     teamToday: '/api/attendance/team-today',
     agentHistory: (id) => `/api/attendance/agent-history/${id}`,
   },
+  leaves: {
+    create: '/api/leaves',
+    my: '/api/leaves/my',
+    pending: '/api/leaves/pending',
+    review: (id) => `/api/leaves/${id}/review`,
+    agent: (id) => `/api/leaves/agent/${id}`,
+  },
   admin: {
     users: '/api/admin/users',
     managers: '/api/admin/managers',

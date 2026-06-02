@@ -268,3 +268,22 @@ class Attendance(Base):
         UniqueConstraint("user_id", "date", name="uq_user_attendance_per_date"),
     )
     user = relationship("User", backref="attendances")
+
+
+class LeaveRequest(Base):
+    __tablename__ = "leave_requests"
+
+    id = Column(Integer, primary_key=True, index=True)
+    user_id = Column(Integer, ForeignKey("users.id", ondelete="CASCADE"), nullable=False, index=True)
+    leave_type = Column(String(50), nullable=False)
+    from_date = Column(Date, nullable=False)
+    to_date = Column(Date, nullable=False)
+    reason = Column(Text, nullable=True)
+    status = Column(String(20), nullable=False, default="pending")  # pending, approved, rejected
+    admin_id = Column(Integer, ForeignKey("users.id", ondelete="SET NULL"), nullable=True)
+    admin_notes = Column(Text, nullable=True)
+    created_at = Column(DateTime, default=datetime.now)
+    updated_at = Column(DateTime, default=datetime.now, onupdate=datetime.now)
+
+    user = relationship("User", foreign_keys=[user_id], backref="leave_requests")
+    admin = relationship("User", foreign_keys=[admin_id])

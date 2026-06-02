@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { useAdminStore } from '@/store/adminStore'
-import { UserPlus, CheckCircle, XCircle, Loader2, UserRoundCog } from 'lucide-react'
+import api, { endpoints } from '@/lib/api'
+import { UserPlus, CheckCircle, XCircle, Loader2, UserRoundCog, CalendarCheck, Check, X } from 'lucide-react'
 import { APP_STYLES } from '@/lib/styles'
 import DataTable from '@/components/shared/DataTable'
 import LoadingSpinner from '@/components/shared/LoadingSpinner'
@@ -12,9 +13,32 @@ export default function PendingUsers() {
   const [processing, setProcessing] = useState(null)
   const [error, setError] = useState('')
 
+  const [pendingLeaves, setPendingLeaves] = useState([])
+  const [leavesLoading, setLeavesLoading] = useState(false)
+  const [reviewProcessing, setReviewProcessing] = useState(null)
+
+  const loadPendingLeaves = async () => {
+    setLeavesLoading(true)
+    try {
+      const res = await api.get(endpoints.leaves.pending)
+      setPendingLeaves(res.data || [])
+    } catch {} finally { setLeavesLoading(false) }
+  }
+
   useEffect(() => {
     Promise.all([loadPendingUsers(), loadManagers()]).then(() => setLoading(false))
+    loadPendingLeaves()
   }, [loadPendingUsers, loadManagers])
+
+  const handleReview = async (leaveId, status) => {
+    setReviewProcessing(leaveId)
+    try {
+      await api.put(endpoints.leaves.review(leaveId), { status })
+      setPendingLeaves((prev) => prev.filter((l) => l.id !== leaveId))
+    } catch (err) {
+      alert(err?.response?.data?.detail || 'Failed to review leave')
+    } finally { setReviewProcessing(null) }
+  }
 
   const handleApprove = async (user) => {
     if (!user._selectedManagerId) {
@@ -132,6 +156,72 @@ export default function PendingUsers() {
                 <EmptyState icon={UserPlus} title="No pending approvals" description="All users have been approved" />
               ) : (
                 <DataTable columns={columns} data={pendingUsers} pageSize={10} />
+              )}
+            </div>
+          </div>
+
+          {/* Pending Leave Requests */}
+          <div className="rt-fade rt-card" style={{ marginTop: '28px' }}>
+            <div className="rt-card-header">
+              <div className="flex items-center gap-2.5">
+                <div className="rt-card-icon" style={{ background: '#fffbeb' }}>
+                  <CalendarCheck size={16} color="#d97706" />
+                </div>
+                <h2 className="rt-card-title">Leave Requests ({pendingLeaves.length})</h2>
+              </div>
+            </div>
+            <div className="rt-card-body">
+              {leavesLoading ? (
+                <p className="text-sm text-slate-400 text-center py-6">Loading...</p>
+              ) : pendingLeaves.length === 0 ? (
+                <p className="text-sm text-slate-400 text-center py-6">No pending leave requests.</p>
+              ) : (
+                <div className="overflow-x-auto">
+                  <table className="w-full text-sm">
+                    <thead>
+                      <tr style={{ borderBottom: '1px solid #f1f5f9' }}>
+                        <th className="text-left py-2.5 px-2 font-semibold text-slate-500 text-xs uppercase">Agent</th>
+                        <th className="text-left py-2.5 px-2 font-semibold text-slate-500 text-xs uppercase">Type</th>
+                        <th className="text-left py-2.5 px-2 font-semibold text-slate-500 text-xs uppercase">From</th>
+                        <th className="text-left py-2.5 px-2 font-semibold text-slate-500 text-xs uppercase">To</th>
+                        <th className="text-left py-2.5 px-2 font-semibold text-slate-500 text-xs uppercase">Reason</th>
+                        <th className="text-left py-2.5 px-2 font-semibold text-slate-500 text-xs uppercase">Action</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {pendingLeaves.map((l) => (
+                        <tr key={l.id} className="hover:bg-slate-50 transition-colors" style={{ borderBottom: '1px solid #f8fafc' }}>
+                          <td className="py-2.5 px-2 font-semibold text-slate-800 text-xs">{l.userName || `User #${l.userId}`}</td>
+                          <td className="py-2.5 px-2 text-slate-600 text-xs">{l.leaveType}</td>
+                          <td className="py-2.5 px-2 text-slate-600 text-xs">{new Date(l.fromDate).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })}</td>
+                          <td className="py-2.5 px-2 text-slate-600 text-xs">{new Date(l.toDate).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })}</td>
+                          <td className="py-2.5 px-2 text-slate-500 text-xs max-w-[160px] truncate">{l.reason || '-'}</td>
+                          <td className="py-2.5 px-2">
+                            <div className="flex items-center gap-2">
+                              <button
+                                onClick={() => handleReview(l.id, 'approved')}
+                                disabled={reviewProcessing === l.id}
+                                className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-semibold cursor-pointer border-0 text-white disabled:opacity-50 transition-all"
+                                style={{ background: 'linear-gradient(135deg, #22c55e, #16a34a)' }}
+                              >
+                                {reviewProcessing === l.id ? <Loader2 size={12} className="animate-spin" /> : <Check size={12} />}
+                                Approve
+                              </button>
+                              <button
+                                onClick={() => handleReview(l.id, 'rejected')}
+                                disabled={reviewProcessing === l.id}
+                                className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-semibold cursor-pointer border-0 text-white disabled:opacity-50 transition-all"
+                                style={{ background: 'linear-gradient(135deg, #ef4444, #dc2626)' }}
+                              >
+                                <X size={12} /> Reject
+                              </button>
+                            </div>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
               )}
             </div>
           </div>
