@@ -154,11 +154,11 @@ export default function ProfileSettings() {
                     <span style={{ color: '#0f172a', fontWeight: 500 }}>Managed account</span>
                   </div>
                 )}
-                {profile.createdAt && (
+                {(profile.dateOfJoining || profile.createdAt) && (
                   <div style={{ display: 'flex', alignItems: 'center', gap: '12px', color: '#64748b', fontSize: '13px' }}>
                     <Calendar size={15} />
                     <span style={{ color: '#0f172a', fontWeight: 500 }}>
-                      Member since {new Date(profile.createdAt).toLocaleDateString('en-GB', { year: 'numeric', month: 'long', day: 'numeric' })}
+                      Member since {new Date(profile.dateOfJoining || profile.createdAt).toLocaleDateString('en-GB', { year: 'numeric', month: 'long', day: 'numeric' })}
                     </span>
                   </div>
                 )}
