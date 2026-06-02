@@ -1,6 +1,22 @@
 import axios from 'axios'
 
 let redirecting = false
+let isRefreshing = false
+let failedQueue = []
+
+const processQueue = (error, token = null) => {
+  failedQueue.forEach(({ resolve, reject }) => {
+    if (error) {
+      reject(error)
+    } else {
+      resolve(token)
+    }
+  })
+  failedQueue = []
+}
+
+const getToken = () => localStorage.getItem('token') || sessionStorage.getItem('token')
+const getRefreshToken = () => localStorage.getItem('refreshToken') || sessionStorage.getItem('refreshToken')
 
 const api = axios.create({
   baseURL: '',
@@ -9,7 +25,7 @@ const api = axios.create({
 })
 
 api.interceptors.request.use((config) => {
-  const token = localStorage.getItem('token') || sessionStorage.getItem('token')
+  const token = getToken()
   if (token) {
     config.headers.Authorization = `Bearer ${token}`
   }
@@ -18,14 +34,52 @@ api.interceptors.request.use((config) => {
 
 api.interceptors.response.use(
   (response) => response,
-  (error) => {
-    if (error.response?.status === 401 && !redirecting) {
-      redirecting = true
-      localStorage.removeItem('token')
-      localStorage.removeItem('user')
-      sessionStorage.removeItem('token')
-      sessionStorage.removeItem('user')
-      window.location.href = '/login'
+  async (error) => {
+    const originalRequest = error.config
+
+    if (error.response?.status === 401 && !originalRequest._retry && !isRefreshing) {
+      const refreshToken = getRefreshToken()
+      if (!refreshToken) {
+        if (!redirecting) {
+          redirecting = true
+          localStorage.clear()
+          sessionStorage.clear()
+          window.location.href = '/login'
+        }
+        return Promise.reject(error)
+      }
+
+      originalRequest._retry = true
+      isRefreshing = true
+
+      try {
+        const res = await axios.post('/api/auth/refresh', {}, {
+          headers: { Authorization: `Bearer ${refreshToken}` },
+        })
+        const { token: newToken, refreshToken: newRefreshToken } = res.data
+        const rememberMe = localStorage.getItem('rememberMe') === 'true'
+        if (rememberMe) {
+          localStorage.setItem('token', newToken)
+          localStorage.setItem('refreshToken', newRefreshToken)
+        } else {
+          sessionStorage.setItem('token', newToken)
+          sessionStorage.setItem('refreshToken', newRefreshToken)
+        }
+        originalRequest.headers.Authorization = `Bearer ${newToken}`
+        processQueue(null, newToken)
+        isRefreshing = false
+        return api(originalRequest)
+      } catch {
+        processQueue(error, null)
+        isRefreshing = false
+        if (!redirecting) {
+          redirecting = true
+          localStorage.clear()
+          sessionStorage.clear()
+          window.location.href = '/login'
+        }
+        return Promise.reject(error)
+      }
     }
     
     if (error.response?.data?.detail && typeof error.response.data.detail === 'object') {
@@ -49,6 +103,7 @@ api.interceptors.response.use(
 export const endpoints = {
   auth: {
     login: '/api/auth/login',
+    refresh: '/api/auth/refresh',
     register: '/api/auth/register',
     me: '/api/auth/me',
     forgotPassword: '/api/auth/forgot-password',

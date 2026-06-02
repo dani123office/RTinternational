@@ -13,7 +13,7 @@ router = APIRouter(prefix="/api/auth", tags=["auth"])
 
 SECRET_KEY = os.environ.get("RT_JWT_SECRET", "rt-international-secret-key-2026")
 ALGORITHM = "HS256"
-TOKEN_EXPIRE_HOURS = 2
+TOKEN_EXPIRE_HOURS = 24
 REFRESH_EXPIRE_DAYS = 7
 
 

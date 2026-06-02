@@ -35,9 +35,10 @@ export const useAuthStore = create((set, get) => ({
     set({ isLoading: true, error: null })
     try {
       const res = await api.post(endpoints.auth.login, { email, password })
-      const { token, userId, name, role, managerId } = res.data
+      const { token, refreshToken, userId, name, role, managerId } = res.data
       const user = { id: userId, name, email, role, managerId }
       storage.set('token', token, rememberMe)
+      storage.set('refreshToken', refreshToken, rememberMe)
       storage.set('user', JSON.stringify(user), rememberMe)
       localStorage.setItem('rememberMe', rememberMe ? 'true' : 'false')
       set({ token, user, rememberMe, isLoading: false })
@@ -70,6 +71,7 @@ export const useAuthStore = create((set, get) => ({
 
   logout: () => {
     storage.remove('token')
+    storage.remove('refreshToken')
     storage.remove('user')
     localStorage.removeItem('rememberMe')
     set({ token: null, user: null, rememberMe: false })
