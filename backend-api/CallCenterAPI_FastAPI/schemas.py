@@ -414,6 +414,7 @@ class AgentKpi(BaseModel):
     sales: int
     conversionRate: float
     isActive: int
+    monthlySalary: Optional[float] = None
 
 
 class BusinessFeedItem(BaseModel):
