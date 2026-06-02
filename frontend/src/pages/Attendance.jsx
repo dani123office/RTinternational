@@ -113,6 +113,23 @@ export default function Attendance() {
   const isCheckedOut = !!todayRecord?.checkOut
   const todayStatus = todayRecord?.status
 
+  function getPKTNow() {
+    const pktString = new Date().toLocaleString('en-US', { timeZone: 'Asia/Karachi' })
+    return new Date(pktString)
+  }
+
+  function isLateByMoreThan(minutes) {
+    const d = getPKTNow()
+    const weekday = d.toLocaleDateString('en-GB', { weekday: 'long', timeZone: 'Asia/Karachi' })
+    const h = d.getHours()
+    const m = d.getMinutes()
+    const threshold = (weekday === 'Friday') ? { h: 15, m: 10 } : { h: 14, m: 10 }
+    const totalLateMinutes = (h - threshold.h) * 60 + (m - threshold.m)
+    return totalLateMinutes > minutes
+  }
+
+  const reasonRequired = !isCheckedIn && isLateByMoreThan(10)
+
   return (
     <>
       <style>{APP_STYLES}</style>
@@ -181,13 +198,18 @@ export default function Attendance() {
                     <input
                       value={reason}
                       onChange={(e) => setReason(e.target.value)}
-                      placeholder="Reason for check-in (optional)..."
-                      className="w-full px-3.5 py-2.5 rounded-xl border-0 text-sm mb-3"
+                      placeholder={reasonRequired ? 'Reason for check-in (required)...' : 'Reason for check-in (optional)...'}
+                      className="w-full px-3.5 py-2.5 rounded-xl border-0 text-sm mb-1"
                       style={{ background: 'rgba(255,255,255,0.15)', color: 'white', outline: 'none' }}
                     />
+                    {reasonRequired && !reason.trim() && (
+                      <p className="text-[11px] font-medium mb-2" style={{ color: '#fca5a5' }}>
+                        Reason is required (more than 10 min late)
+                      </p>
+                    )}
                     <button
                       onClick={handleCheckIn}
-                      disabled={actionLoading}
+                      disabled={actionLoading || (reasonRequired && !reason.trim())}
                       className="w-full py-2.5 rounded-xl border-0 font-bold text-sm cursor-pointer transition-all duration-200 disabled:opacity-50"
                       style={{ background: 'white', color: '#4f46e5' }}
                     >
