@@ -16,7 +16,7 @@ from schemas import (
 from routers.callbacks import _build_callback_out
 from routers.transfers import _transfer_out
 from routers.sales import _sale_out
-from routers.salary import _salary_slip_html, _html_to_pdf, _employee_id, _month_name, _attendance_summary
+from routers.salary import _SalaryPDF, _employee_id, _month_name, _attendance_summary
 
 router = APIRouter(prefix="/api/admin", tags=["admin"])
 
@@ -699,14 +699,15 @@ def admin_salary_slip(
     total_deductions = absent_deduction
     net_salary = int(gross - total_deductions)
 
-    html = _salary_slip_html(
+    pdf = _SalaryPDF()
+    pdf.build_slip(
+        period_label=f"for the month of {_month_name(m)} {y}",
         employee_name=agent.name,
         employee_id=_employee_id(agent),
         designation=agent.designation or "-",
         department=agent.department or "-",
         cnic=agent.cnic or "-",
         doj=agent.date_of_joining.strftime("%d/%m/%Y") if agent.date_of_joining else "-",
-        period_label=f"for the month of {_month_name(m)} {y}",
         working_days=str(working_days),
         present_days=str(present_days),
         absent_days=str(absent_days),
@@ -725,10 +726,8 @@ def admin_salary_slip(
         generated_at=datetime.now().strftime("%B %d, %Y at %I:%M %p"),
     )
 
-    pdf_bytes = _html_to_pdf(html)
-
     return Response(
-        content=pdf_bytes,
+        content=pdf.output(),
         media_type="application/pdf",
         headers={"Content-Disposition": f'attachment; filename="Salary_Slip_{_month_name(m)}_{y}_{agent.name}.pdf"'},
     )

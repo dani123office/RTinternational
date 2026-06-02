@@ -7,7 +7,7 @@ from .auth import get_current_user
 from datetime import datetime, date
 from calendar import monthrange
 from fastapi.responses import Response
-from xhtml2pdf import pisa
+from fpdf import FPDF
 import io
 
 router = APIRouter(prefix="/api/salary", tags=["salary"])
@@ -27,107 +27,139 @@ def _fmt(n: int) -> str:
     return f"Rs. {n:,}"
 
 
-def _salary_slip_html(
-    employee_name: str,
-    employee_id: str,
-    designation: str,
-    department: str,
-    cnic: str,
-    doj: str,
-    period_label: str,
-    working_days: str,
-    present_days: str,
-    absent_days: str,
-    earnings: list,
-    deductions: list,
-    gross: int,
-    total_deductions: int,
-    net_salary: int,
-    generated_at: str,
-) -> str:
-    earn_rows = "".join(
-        f'<div class="item"><span>{lbl}</span><span>{_fmt(val)}</span></div>'
-        for lbl, val in earnings
-    )
-    deduct_rows = "".join(
-        f'<div class="item"><span>{lbl}</span><span>{_fmt(val)}</span></div>'
-        for lbl, val in deductions
-    )
-    return f"""<!DOCTYPE html>
-<html>
-<head>
-<meta charset="utf-8">
-<style>
-body{{font-family:Arial,sans-serif;padding:30px 40px;color:#333;}}
-.header{{text-align:center;}}
-.company{{font-size:34px;font-weight:bold;color:#1a1a2e;}}
-.title{{font-size:22px;font-weight:700;letter-spacing:2px;color:#2144b3;}}
-.period{{color:#777;margin-top:4px;font-size:14px;}}
-hr{{border:none;border-top:1.5px solid #dcdcdc;margin:22px 0;}}
-.row{{display:flex;gap:50px;}}
-.col{{flex:1;}}
-.section-title{{font-size:11px;color:#8a8a8a;font-weight:bold;letter-spacing:1.5px;margin-bottom:14px;text-transform:uppercase;}}
-.item{{display:flex;justify-content:space-between;margin-bottom:10px;font-size:13px;}}
-.bold{{font-weight:bold;border-top:1px solid #e0e0e0;padding-top:8px;margin-top:8px;}}
-.net-salary{{margin-top:28px;border:1.5px solid #bcd0ff;background:#eef4ff;padding:18px 25px;border-radius:8px;display:flex;justify-content:space-between;align-items:center;}}
-.net-label{{color:#2144b3;font-weight:700;letter-spacing:2px;font-size:14px;}}
-.net-amount{{color:#2144b3;font-size:36px;font-weight:bold;}}
-.footer{{text-align:center;color:#999;margin-top:36px;font-size:11px;line-height:1.6;}}
-</style>
-</head>
-<body>
-<div class="header">
-    <div class="company">RT International</div>
-    <div class="title">SALARY SLIP</div>
-    <div class="period">{period_label}</div>
-</div>
-<hr>
-<div class="row">
-<div class="col">
-    <div class="section-title">Employee Information</div>
-    <div class="item"><span>Name</span><span>{employee_name}</span></div>
-    <div class="item"><span>Employee ID</span><span>{employee_id}</span></div>
-    <div class="item"><span>Designation</span><span>{designation}</span></div>
-    <div class="item"><span>Department</span><span>{department}</span></div>
-    <div class="item"><span>CNIC</span><span>{cnic}</span></div>
-    <div class="item"><span>Date of Joining</span><span>{doj}</span></div>
-</div>
-<div class="col">
-    <div class="section-title">Attendance Summary</div>
-    <div class="item"><span>Working Days</span><span>{working_days}</span></div>
-    <div class="item"><span>Present Days</span><span>{present_days}</span></div>
-    <div class="item"><span>Absent Days</span><span>{absent_days}</span></div>
-</div>
-</div>
-<hr>
-<div class="row">
-<div class="col">
-    <div class="section-title">Earnings</div>
-    {earn_rows}
-    <div class="item bold"><span>Gross Salary</span><span>{_fmt(gross)}</span></div>
-</div>
-<div class="col">
-    <div class="section-title">Deductions</div>
-    {deduct_rows}
-    <div class="item bold"><span>Total Deductions</span><span>{_fmt(total_deductions)}</span></div>
-</div>
-</div>
-<div class="net-salary">
-    <div class="net-label">Net Salary</div>
-    <div class="net-amount">{_fmt(net_salary)}</div>
-</div>
-<div class="footer">
-    This is a computer-generated document and does not require a physical signature.<br>
-    Generated on {generated_at}
-</div>
-</body>
-</html>"""
+class _SalaryPDF(FPDF):
+    def _section_title(self, title: str):
+        self.set_text_color(138, 138, 138)
+        self.set_font("Helvetica", "B", 11)
+        self.cell(0, 6, title.upper(), new_x="LMARGIN", new_y="NEXT")
+        self.set_draw_color(220, 220, 220)
+        self.line(self.l_margin, self.get_y(), self.w - self.r_margin, self.get_y())
+        self.ln(2)
 
+    def _info_row(self, label: str, value: str):
+        self.set_font("Helvetica", "B", 9)
+        self.set_text_color(51, 51, 51)
+        self.cell(50, 5, label + ":", new_x="END", new_y="LAST")
+        self.set_font("Helvetica", "", 9)
+        self.cell(0, 5, value, new_x="LMARGIN", new_y="NEXT")
 
-def _html_to_pdf(html: str) -> bytes:
-    result = io.BytesIO()
-    pisa.CreatePDF(html, dest=result)
-    return result.getvalue()
+    def _finance_row(self, label: str, value: str, bold: bool = False):
+        style = "B" if bold else ""
+        self.set_font("Helvetica", style, 9)
+        self.set_text_color(51, 51, 51)
+        self.cell(90, 5, label, new_x="END", new_y="LAST")
+        self.cell(0, 5, value, new_x="LMARGIN", new_y="NEXT", align="R")
+
+    def _separator(self):
+        self.set_draw_color(220, 220, 220)
+        self.line(self.l_margin, self.get_y() + 1, self.w - self.r_margin, self.get_y() + 1)
+        self.ln(4)
+
+    def build_slip(self, **kw):
+        self.add_page()
+
+        # Header
+        self.set_font("Helvetica", "B", 24)
+        self.set_text_color(26, 26, 46)
+        self.cell(0, 10, "RT International", new_x="LMARGIN", new_y="NEXT", align="C")
+        self.set_font("Helvetica", "B", 14)
+        self.set_text_color(33, 68, 179)
+        self.cell(0, 7, "SALARY SLIP", new_x="LMARGIN", new_y="NEXT", align="C")
+        self.set_font("Helvetica", "", 10)
+        self.set_text_color(119, 119, 119)
+        self.cell(0, 6, kw["period_label"], new_x="LMARGIN", new_y="NEXT", align="C")
+        self._separator()
+
+        # Employee Info & Attendance Summary
+        left_x = self.l_margin
+        right_x = self.w / 2
+        col_w = self.w / 2 - self.l_margin - 5
+
+        # Save position
+        start_y = self.get_y()
+
+        # Left column: Employee Information
+        self._section_title("Employee Information")
+        left_items = [
+            ("Name", kw["employee_name"]),
+            ("Employee ID", kw["employee_id"]),
+            ("Designation", kw["designation"]),
+            ("Department", kw["department"]),
+            ("CNIC", kw["cnic"]),
+            ("Date of Joining", kw["doj"]),
+        ]
+        for lbl, val in left_items:
+            self._info_row(lbl, val)
+
+        # Right column: Attendance Summary
+        right_start_y = start_y
+        self.y = right_start_y
+        self.x = right_x
+        self._section_title("Attendance Summary")
+        right_items = [
+            ("Working Days", kw["working_days"]),
+            ("Present Days", kw["present_days"]),
+            ("Absent Days", kw["absent_days"]),
+        ]
+        for lbl, val in right_items:
+            self.set_font("Helvetica", "B", 9)
+            self.set_text_color(51, 51, 51)
+            self.cell(50, 5, lbl + ":", new_x="END", new_y="LAST")
+            self.set_font("Helvetica", "", 9)
+            self.cell(0, 5, val, new_x="END", new_y="LAST")
+
+        # Move past both columns
+        self.y = max(self.y, self.get_y())
+        self.x = left_x
+        self.ln(2)
+        self._separator()
+
+        # Earnings & Deductions
+        start_y = self.get_y()
+
+        # Left: Earnings
+        self._section_title("Earnings")
+        for lbl, val in kw["earnings"]:
+            self._finance_row(lbl, _fmt(val))
+        self._finance_row("Gross Salary", _fmt(kw["gross"]), bold=True)
+
+        # Right: Deductions
+        right_start_y = start_y
+        self.y = right_start_y
+        self.x = right_x
+        self._section_title("Deductions")
+        for lbl, val in kw["deductions"]:
+            self._finance_row(lbl, _fmt(val))
+        self._finance_row("Total Deductions", _fmt(kw["total_deductions"]), bold=True)
+
+        self.y = max(self.y, self.get_y())
+        self.x = left_x
+        self.ln(2)
+        self._separator()
+
+        # Net Salary box
+        self.ln(3)
+        box_w = 160
+        box_x = (self.w - box_w) / 2
+        self.set_fill_color(238, 244, 255)
+        self.set_draw_color(188, 208, 255)
+        self.set_line_width(0.5)
+        self.rect(box_x, self.get_y(), box_w, 18, style="DF")
+        self.set_y(self.get_y() + 2)
+        self.set_font("Helvetica", "B", 11)
+        self.set_text_color(33, 68, 179)
+        self.cell(40, 7, "Net Salary", new_x="END", new_y="LAST")
+        self.set_font("Helvetica", "B", 18)
+        self.cell(0, 7, _fmt(kw["net_salary"]), new_x="LMARGIN", new_y="NEXT", align="R")
+        self.set_text_color(51, 51, 51)
+
+        # Footer
+        self.ln(8)
+        self._separator()
+        self.set_font("Helvetica", "", 8)
+        self.set_text_color(136, 136, 136)
+        self.cell(0, 4, "This is a computer-generated document and does not require a physical signature.", new_x="LMARGIN", new_y="NEXT", align="C")
+        self.cell(0, 4, "Generated on " + kw["generated_at"], new_x="LMARGIN", new_y="NEXT", align="C")
 
 
 @router.get("/slip")
@@ -154,14 +186,15 @@ def download_salary_slip(
     total_deductions = absent_deduction
     net_salary = int(gross - total_deductions)
 
-    html = _salary_slip_html(
+    pdf = _SalaryPDF()
+    pdf.build_slip(
+        period_label=f"for the month of {_month_name(m)} {y}",
         employee_name=current_user.name,
         employee_id=_employee_id(current_user),
         designation=current_user.designation or "-",
         department=current_user.department or "-",
         cnic=current_user.cnic or "-",
         doj=current_user.date_of_joining.strftime("%d/%m/%Y") if current_user.date_of_joining else "-",
-        period_label=f"for the month of {_month_name(m)} {y}",
         working_days=str(working_days),
         present_days=str(present_days),
         absent_days=str(absent_days),
@@ -180,10 +213,8 @@ def download_salary_slip(
         generated_at=datetime.now().strftime("%B %d, %Y at %I:%M %p"),
     )
 
-    pdf_bytes = _html_to_pdf(html)
-
     return Response(
-        content=pdf_bytes,
+        content=pdf.output(),
         media_type="application/pdf",
         headers={"Content-Disposition": f'attachment; filename="Salary_Slip_{_month_name(m)}_{y}_{current_user.name}.pdf"'},
     )
