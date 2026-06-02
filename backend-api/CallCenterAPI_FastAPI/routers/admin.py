@@ -16,8 +16,7 @@ from schemas import (
 from routers.callbacks import _build_callback_out
 from routers.transfers import _transfer_out
 from routers.sales import _sale_out
-from routers.salary import _SalarySlipPDF, _employee_id, _month_name, _attendance_summary
-import io
+from routers.salary import _salary_slip_html, _html_to_pdf, _employee_id, _month_name, _attendance_summary
 
 router = APIRouter(prefix="/api/admin", tags=["admin"])
 
@@ -698,19 +697,16 @@ def admin_salary_slip(
     daily_rate = gross / working_days if working_days > 0 else 0
     absent_deduction = round(daily_rate * absent_days, 0)
     total_deductions = absent_deduction
-    net_salary = gross - total_deductions
+    net_salary = int(gross - total_deductions)
 
-    pdf = _SalarySlipPDF()
-    pdf.build(
-        title="RT International",
-        subtitle="Salary Slip",
-        period=f"for the month of {_month_name(m)} {y}",
+    html = _salary_slip_html(
         employee_name=agent.name,
         employee_id=_employee_id(agent),
         designation=agent.designation or "-",
         department=agent.department or "-",
         cnic=agent.cnic or "-",
         doj=agent.date_of_joining.strftime("%d/%m/%Y") if agent.date_of_joining else "-",
+        period_label=f"for the month of {_month_name(m)} {y}",
         working_days=str(working_days),
         present_days=str(present_days),
         absent_days=str(absent_days),
@@ -725,8 +721,16 @@ def admin_salary_slip(
         ],
         gross=int(gross),
         total_deductions=int(total_deductions),
-        net_salary=int(net_salary),
+        net_salary=net_salary,
         generated_at=datetime.now().strftime("%B %d, %Y at %I:%M %p"),
+    )
+
+    pdf_bytes = _html_to_pdf(html)
+
+    return Response(
+        content=pdf_bytes,
+        media_type="application/pdf",
+        headers={"Content-Disposition": f'attachment; filename="Salary_Slip_{_month_name(m)}_{y}_{agent.name}.pdf"'},
     )
 
     return Response(
