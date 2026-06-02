@@ -31,6 +31,7 @@ def _attendance_to_out(a: Attendance) -> AttendanceOut:
         checkOut=a.check_out,
         status=a.status,
         notes=a.notes,
+        reason=a.reason,
         createdAt=a.created_at,
         updatedAt=a.updated_at,
     )
@@ -80,8 +81,8 @@ def check_in(
     if existing:
         existing.check_in = now
         existing.status = status
-        if dto.notes is not None:
-            existing.notes = dto.notes
+        if dto.reason is not None:
+            existing.reason = dto.reason
         existing.updated_at = now
         db.commit()
         db.refresh(existing)
@@ -92,7 +93,7 @@ def check_in(
         date=today,
         check_in=now,
         status=status,
-        notes=dto.notes,
+        reason=dto.reason,
         created_at=now,
         updated_at=now,
     )

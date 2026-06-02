@@ -1585,7 +1585,7 @@ class SaleUpdate(BaseModel):
 # ─── Attendance ────────────────────────────────────────────
 
 class AttendanceCheckIn(BaseModel):
-    notes: Optional[str] = Field(None, max_length=500, description="Check-in notes")
+    reason: Optional[str] = Field(None, max_length=500, description="Reason for check-in")
 
 
 class AttendanceCheckOut(BaseModel):
@@ -1600,6 +1600,7 @@ class AttendanceOut(BaseModel):
     checkOut: Optional[datetime] = None
     status: str
     notes: Optional[str] = None
+    reason: Optional[str] = None
     createdAt: datetime
     updatedAt: datetime
 
