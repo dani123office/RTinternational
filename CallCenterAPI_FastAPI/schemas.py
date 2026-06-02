@@ -202,6 +202,16 @@ def check_yes_no(v, field: str):
     return v
 
 
+def check_cnic(v):
+    if not v:
+        return v
+    v = v.strip()
+    digits = re.sub(r'\D', '', v)
+    if len(digits) != 13:
+        raise ValueError('CNIC must contain exactly 13 digits (format: 12345-1234567-1)')
+    return f"{digits[:5]}-{digits[5:12]}-{digits[12]}"
+
+
 # ─── Auth ───────────────────────────────────────────────
 
 class LoginRequest(BaseModel):
@@ -344,6 +354,11 @@ class CreateAgentRequest(BaseModel):
     emergContactName: Optional[str] = None
     emergContactNumber: Optional[str] = None
 
+    @field_validator('cnic')
+    @classmethod
+    def validate_cnic(cls, v):
+        return check_cnic(v)
+
 
 class AssignAgentRequest(BaseModel):
     agentId: int
@@ -370,6 +385,11 @@ class UpdateAgentStaffRequest(BaseModel):
     dateOfJoining: Optional[date] = None
     emergContactName: Optional[str] = None
     emergContactNumber: Optional[str] = None
+
+    @field_validator('cnic')
+    @classmethod
+    def validate_cnic(cls, v):
+        return check_cnic(v)
 
 
 class OverallStats(BaseModel):

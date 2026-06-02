@@ -24,7 +24,7 @@ class ProfileOut(BaseModel):
     createdAt: Optional[str] = None
     updatedAt: Optional[str] = None
     fatherName: Optional[str] = None
-    monthlySalary: Optional[float] = 0.0
+    monthlySalary: Optional[int] = 0
     cnic: Optional[str] = None
     department: Optional[str] = None
     designation: Optional[str] = None

@@ -1,6 +1,18 @@
 import { useState } from 'react'
 import { X, User, Mail, Lock, Briefcase, DollarSign, CreditCard, Phone, Building2, BadgePercent, Calendar, Heart, Users } from 'lucide-react'
 
+const formatCNIC = (value) => {
+  if (!value) return value;
+  const digits = value.replace(/\D/g, '');
+  if (digits.length <= 5) {
+    return digits;
+  } else if (digits.length <= 12) {
+    return `${digits.slice(0, 5)}-${digits.slice(5)}`;
+  } else {
+    return `${digits.slice(0, 5)}-${digits.slice(5, 12)}-${digits.slice(12, 13)}`;
+  }
+};
+
 export default function CreateAgentModal({ isOpen, onClose, onSave, managers }) {
   const [form, setForm] = useState({
     name: '', email: '', password: '', managerId: '',
@@ -35,7 +47,13 @@ export default function CreateAgentModal({ isOpen, onClose, onSave, managers }) 
     } finally { setLoading(false) }
   }
 
-  const set = (key) => (e) => setForm({ ...form, [key]: e.target.value })
+  const set = (key) => (e) => {
+    let val = e.target.value
+    if (key === 'cnic') {
+      val = formatCNIC(val)
+    }
+    setForm({ ...form, [key]: val })
+  }
   const noManagers = !managers || managers.length === 0
 
   return (
@@ -93,7 +111,7 @@ export default function CreateAgentModal({ isOpen, onClose, onSave, managers }) 
           <div className="rt-grid2">
             <div>
               <label className="rt-label flex items-center gap-1.5"><CreditCard size={13} /> CNIC</label>
-              <input value={form.cnic} onChange={set('cnic')} placeholder="Enter CNIC number" className="rt-input" />
+              <input value={form.cnic} onChange={set('cnic')} placeholder="Enter CNIC number" maxLength={15} className="rt-input" />
             </div>
             <div>
               <label className="rt-label flex items-center gap-1.5"><Phone size={13} /> Telephone</label>
