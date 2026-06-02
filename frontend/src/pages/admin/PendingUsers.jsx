@@ -150,18 +150,8 @@ export default function PendingUsers() {
             </div>
           )}
 
-          <div className="rt-fade rt-card">
-            <div className="rt-card-body">
-              {pendingUsers.length === 0 ? (
-                <EmptyState icon={UserPlus} title="No pending approvals" description="All users have been approved" />
-              ) : (
-                <DataTable columns={columns} data={pendingUsers} pageSize={10} />
-              )}
-            </div>
-          </div>
-
           {/* Pending Leave Requests */}
-          <div className="rt-fade rt-card" style={{ marginTop: '28px' }}>
+          <div className="rt-fade rt-card">
             <div className="rt-card-header">
               <div className="flex items-center gap-2.5">
                 <div className="rt-card-icon" style={{ background: '#fffbeb' }}>
@@ -222,6 +212,24 @@ export default function PendingUsers() {
                     </tbody>
                   </table>
                 </div>
+              )}
+            </div>
+          </div>
+
+          <div className="rt-fade rt-card" style={{ marginTop: '28px' }}>
+            <div className="rt-card-header">
+              <div className="flex items-center gap-2.5">
+                <div className="rt-card-icon" style={{ background: '#eef2ff' }}>
+                  <UserPlus size={16} color="#6366f1" />
+                </div>
+                <h2 className="rt-card-title">Pending Approvals ({pendingUsers.length})</h2>
+              </div>
+            </div>
+            <div className="rt-card-body">
+              {pendingUsers.length === 0 ? (
+                <EmptyState icon={UserPlus} title="No pending approvals" description="All users have been approved" />
+              ) : (
+                <DataTable columns={columns} data={pendingUsers} pageSize={10} />
               )}
             </div>
           </div>
