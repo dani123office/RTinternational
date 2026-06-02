@@ -1,7 +1,7 @@
 import { useEffect, useState, useCallback } from 'react'
 import api, { endpoints } from '@/lib/api'
 import { useAuthStore } from '@/store/authStore'
-import { Clock, LogIn, LogOut, History, MapPin, ChevronLeft, ChevronRight, Plus, CalendarCheck, CheckCircle, XCircle } from 'lucide-react'
+import { Clock, LogIn, LogOut, History, MapPin, ChevronLeft, ChevronRight, Plus, CalendarCheck, CheckCircle, XCircle, FileText } from 'lucide-react'
 import { APP_STYLES } from '@/lib/styles'
 import NewLeaveRequestModal from '@/components/leave/NewLeaveRequestModal'
 
@@ -45,6 +45,23 @@ function ClockCard({ label, timezone, sub, accent, flag }) {
 export default function Attendance() {
   const { user } = useAuthStore()
   const [, forceUpdate] = useState(0)
+
+  const downloadSalarySlip = useCallback(async () => {
+    try {
+      const token = localStorage.getItem('token') || sessionStorage.getItem('token')
+      const res = await fetch('/api/salary/slip', {
+        headers: token ? { Authorization: `Bearer ${token}` } : {},
+      })
+      if (!res.ok) return
+      const blob = await res.blob()
+      const url = URL.createObjectURL(blob)
+      const a = document.createElement('a')
+      a.href = url
+      a.download = 'Salary_Slip.pdf'
+      a.click()
+      URL.revokeObjectURL(url)
+    } catch {}
+  }, [])
   useEffect(() => {
     const id = setInterval(() => forceUpdate(n => n + 1), 1000)
     return () => clearInterval(id)
@@ -182,8 +199,21 @@ export default function Attendance() {
       <div className="rt-page">
         <div style={{ maxWidth: '960px', margin: '0 auto' }}>
           <div className="rt-fade" style={{ marginBottom: '28px' }}>
-            <h1 className="rt-page-title">Attendance</h1>
-            <p className="rt-page-subtitle">{formatDate('Asia/Karachi')}</p>
+            <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: '12px' }}>
+              <div>
+                <h1 className="rt-page-title">Attendance</h1>
+                <p className="rt-page-subtitle">{formatDate('Asia/Karachi')}</p>
+              </div>
+              <button onClick={downloadSalarySlip}
+                className="flex items-center gap-1.5 px-4 py-2.5 rounded-xl text-sm font-semibold cursor-pointer transition-all duration-200 shrink-0"
+                style={{
+                  background: '#ffffff',
+                  color: '#334155',
+                  border: '1.5px solid #e2e6ec',
+                }}>
+                <FileText size={14} /> Salary Slip
+              </button>
+            </div>
           </div>
 
           {/* Clocks */}

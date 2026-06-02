@@ -9,3 +9,4 @@ psycopg2-binary>=2.9.9
 pg8000>=1.31.2,<2.0
 openai>=2.0.0
 python-dotenv>=1.1.0
+fpdf2>=2.8.2

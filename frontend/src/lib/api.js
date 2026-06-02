@@ -93,6 +93,9 @@ export const endpoints = {
     review: (id) => `/api/leaves/${id}/review`,
     agent: (id) => `/api/leaves/agent/${id}`,
   },
+  salary: {
+    slip: '/api/salary/slip',
+  },
   admin: {
     users: '/api/admin/users',
     managers: '/api/admin/managers',

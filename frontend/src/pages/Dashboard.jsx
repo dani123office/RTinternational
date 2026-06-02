@@ -6,7 +6,7 @@ import api, { endpoints } from '@/lib/api'
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts'
 import StatusBadge from '@/components/shared/StatusBadge'
 import { extractName, formatDateFull, getGreeting } from '@/lib/format'
-import { ArrowRight, RefreshCw, PhoneCall, ArrowLeftRight, PoundSterling } from 'lucide-react'
+import { ArrowRight, RefreshCw, PhoneCall, ArrowLeftRight, PoundSterling, FileText } from 'lucide-react'
 import { APP_STYLES } from '@/lib/styles'
 
 function CustomTooltip({ active, payload, label }) {
@@ -64,6 +64,23 @@ export default function Dashboard() {
   const todayStr = today.toDateString()
   const rawFirstName = user?.name?.split(' ')[0] || 'Agent'
   const firstName = rawFirstName.charAt(0).toUpperCase() + rawFirstName.slice(1)
+
+  const downloadSalarySlip = useCallback(async () => {
+    try {
+      const token = localStorage.getItem('token') || sessionStorage.getItem('token')
+      const res = await fetch('/api/salary/slip', {
+        headers: token ? { Authorization: `Bearer ${token}` } : {},
+      })
+      if (!res.ok) throw new Error('Failed to download salary slip')
+      const blob = await res.blob()
+      const url = URL.createObjectURL(blob)
+      const a = document.createElement('a')
+      a.href = url
+      a.download = `Salary_Slip.pdf`
+      a.click()
+      URL.revokeObjectURL(url)
+    } catch { }
+  }, [])
 
   const todayCallbacks = useMemo(() =>
     callbacks.filter((c) => {
@@ -173,6 +190,15 @@ export default function Dashboard() {
                   border: '1.5px solid #e2e6ec',
                 }}>
                 <PoundSterling size={14} /> New Sale
+              </button>
+              <button onClick={downloadSalarySlip}
+                className="flex items-center gap-1.5 px-4 py-2.5 rounded-xl text-sm font-semibold cursor-pointer transition-all duration-200"
+                style={{
+                  background: '#ffffff',
+                  color: '#334155',
+                  border: '1.5px solid #e2e6ec',
+                }}>
+                <FileText size={14} /> Salary Slip
               </button>
               <button onClick={() => useDataStore.getState().loadAll()}
                 className="flex items-center gap-1.5 px-4 py-2.5 rounded-xl text-sm font-semibold cursor-pointer transition-all duration-200"
