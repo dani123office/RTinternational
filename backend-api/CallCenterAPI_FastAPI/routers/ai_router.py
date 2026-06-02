@@ -61,6 +61,11 @@ CRITICAL RULES:
 - No explanation
 - No extra text
 - No code blocks
+- Do NOT perform any unit conversions, divisions, or calculations on numeric values.
+- Extract rates (dayUnitRate, nightUnitRate, eveningUnitRate, standingRate, unitRate, brokerServiceCharge) EXACTLY as they appear in the text as raw numbers in pence (or the exact numeric value written).
+- For example: if the notes say "30p" or "SC 30", extract it exactly as "30" or "30.0". Do NOT divide by 100 or convert to pounds (do NOT output 0.3 or 0.30).
+- If the notes say "200p" or "standing charge 200" or "200", extract it exactly as "200" or "200.0". Do NOT convert to pounds (do NOT output 2.0 or 1.99).
+- Never round, divide, scale, or perform floating-point operations. Just extract the exact digits.
 
 FIELD NAME RULES:
 - UR = dayUnitRate
@@ -504,9 +509,9 @@ MAX_RETRIES = 2
 
 
 def generate_extraction(text: str) -> dict:
-    if not GEMINI_AVAILABLE:
-        logger.info("Gemini API key not available; using regex fallback")
-        return regex_fallback_extraction(text, "Gemini API key not configured")
+    if not GROQ_AVAILABLE:
+        logger.info("Groq API key not available; using regex fallback")
+        return regex_fallback_extraction(text, "Groq API key not configured")
 
     last_error_msg = ""
 

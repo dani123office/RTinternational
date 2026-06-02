@@ -440,10 +440,6 @@ export default function AddCallback() {
       const firstElectricitySupply = form.utilityType !== 'gas'
         ? form.elecMeters?.[0]?.supplyNumber?.trim() || form.mpan?.trim() || null
         : null
-      if (form.utilityType !== 'gas' && !firstElectricitySupply) {
-        toast('Please enter the electricity supply number: MPAN or the first electricity meter supply number.', 'error')
-        return
-      }
 
       const callbackPayload = {
         employeeId:        uid,
