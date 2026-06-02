@@ -86,32 +86,32 @@ class _SalaryPDF:
         self._buf.append(self._rect(6, 6, PW - 12, PH - 12, fill=False, stroke=True))
 
         # Title block — centered
-        y = Y(55)
-        self._buf.append(self._text_center(y, "RT International", "Helvetica-Bold", 26))
-        y -= 22
-        self._buf.append(self._text_center(y, "SALARY SLIP", "Helvetica-Bold", 15))
+        y = Y(45)
+        self._buf.append(self._text_center(y, "RT International", "Helvetica-Bold", 24))
         y -= 20
+        self._buf.append(self._text_center(y, "SALARY SLIP", "Helvetica-Bold", 14))
+        y -= 16
         month_text = kw["period"].replace("for the month of ", "")
         self._buf.append(self._text_center(y, month_text, "Helvetica", 10))
-        y -= 16
+        y -= 20
         self._buf.append(self._dcolor(220, 220, 220))
         self._buf.append(self._line(LM, y, PW - LM, y))
-        y -= 14
+        y -= 20
 
         def section_caption(title, _y):
-            self._buf.append(self._color(140, 140, 140))
-            self._buf.append(self._text(LM, _y, title.upper(), "Helvetica-Bold", 8))
-            _y -= 8
-            self._buf.append(self._dcolor(220, 220, 220))
-            self._buf.append(self._line(LM, _y, LM + 240, _y))
-            return _y - 8
+            self._buf.append(self._color(100, 100, 100))
+            self._buf.append(self._text(LM, _y, title.upper(), "Helvetica-Bold", 9))
+            _y -= 6
+            self._buf.append(self._dcolor(200, 200, 200))
+            self._buf.append(self._line(LM, _y, PW - LM, _y))
+            return _y - 14
 
-        def col_items(items, left_x, _y, label_w=55, bold_labels=True):
+        def col_items(items, left_x, _y):
             for lbl, val in items:
-                lf = "Helvetica-Bold" if bold_labels else "Helvetica"
+                lf = "Helvetica-Bold" if lbl in ["Gross Salary", "Total Deductions"] else "Helvetica"
                 self._buf.append(self._text(left_x, _y, lbl + ":", lf, 9))
                 self._buf.append(self._text_right(left_x + 230, _y, val, "Helvetica", 9))
-                _y -= 12
+                _y -= 16
             return _y
 
         # Section 1: Employee Info + Attendance
@@ -129,47 +129,45 @@ class _SalaryPDF:
             ("Present Days", kw["present_days"]),
             ("Absent Days", kw["absent_days"]),
         ]
+
         ly = col_items(left, LM, y)
         ry = col_items(right, CX, y)
-        y = max(ly, ry) - 8
-        self._buf.append(self._dcolor(220, 220, 220))
-        self._buf.append(self._line(LM, y, PW - LM, y))
-        y -= 14
+        y = min(ly, ry) - 25
 
         # Section 2: Earnings + Deductions
-        y = section_caption("Earnings", y)
+        y = section_caption("Earnings & Deductions", y)
         left2 = [(lbl, _fmt(val)) for lbl, val in kw["earnings"]]
         left2.append(("Gross Salary", _fmt(kw["gross"])))
         right2 = [(lbl, _fmt(val)) for lbl, val in kw["deductions"]]
         right2.append(("Total Deductions", _fmt(kw["total_deductions"])))
-        ly = col_items(left2, LM, y, label_w=90)
-        ry = col_items(right2, CX, y, label_w=90)
-        y = max(ly, ry) - 8
-        self._buf.append(self._dcolor(220, 220, 220))
-        self._buf.append(self._line(LM, y, PW - LM, y))
-        y -= 14
 
-        # Net Salary card — full width
+        col_items(left2, LM, y)
+        col_items(right2, CX, y)
+
+        # Net Salary card — fixed position near bottom
         box_x = LM
         box_w = PW - LM * 2
-        box_h = 46
+        box_h = 50
+        box_y = 140
+
         self._buf.append(self._color(243, 247, 255))
         self._buf.append(self._dcolor(190, 210, 255))
-        self._buf.append(self._linew(0.8))
-        self._buf.append(self._rect(box_x, y - box_h, box_w, box_h))
-        y_box = y - 18
-        self._buf.append(self._text(box_x + 15, y_box, "NET SALARY", "Helvetica-Bold", 11))
-        self._buf.append(self._text_right(box_x + box_w - 15, y_box, f"Rs. {kw['net_salary']:,}", "Helvetica-Bold", 20))
+        self._buf.append(self._linew(1.0))
+        self._buf.append(self._rect(box_x, box_y, box_w, box_h, fill=True, stroke=True))
 
-        y -= box_h + 10
+        y_text = box_y + 18
+        self._buf.append(self._color(0, 0, 0))
+        self._buf.append(self._text(box_x + 20, y_text, "NET SALARY", "Helvetica-Bold", 12))
+        self._buf.append(self._text_right(box_x + box_w - 20, y_text, f"Rs. {kw['net_salary']:,}", "Helvetica-Bold", 20))
+
+        # Footer
+        y_footer = box_y - 30
         self._buf.append(self._dcolor(220, 220, 220))
-        self._buf.append(self._line(LM, y, PW - LM, y))
-        y -= 14
-
-        # Footer — centered
-        self._buf.append(self._text_center(y, "This is a computer-generated document and does not require a physical signature.", "Helvetica-Oblique", 7))
-        y -= 10
-        self._buf.append(self._text_center(y, "Generated on " + kw["generated_at"], "Helvetica-Oblique", 7))
+        self._buf.append(self._line(LM, y_footer, PW - LM, y_footer))
+        y_footer -= 15
+        self._buf.append(self._text_center(y_footer, "This is a computer-generated document and does not require a physical signature.", "Helvetica-Oblique", 8))
+        y_footer -= 12
+        self._buf.append(self._text_center(y_footer, "Generated on " + kw["generated_at"], "Helvetica-Oblique", 8))
 
         content = "".join(self._buf)
         self._build_pdf(content, PW, PH, LM)
