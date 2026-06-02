@@ -77,8 +77,8 @@ export default function AdminAgentDetail() {
   const [attendanceLoading, setAttendanceLoading] = useState(false)
   const [leaveHistory, setLeaveHistory] = useState([])
   const [leaveLoading, setLeaveLoading] = useState(false)
-  const [attendanceStats, setAttendanceStats] = useState({ total: 0, late: 0 })
-  const [pendingLeaves, setPendingLeaves] = useState(0)
+  const [attendanceStats, setAttendanceStats] = useState({ present: 0, late: 0 })
+  const [approvedLeaves, setApprovedLeaves] = useState(0)
 
   const handleSaveStaff = useCallback(async (payload) => {
     const res = await api.put(endpoints.admin.updateAgentStaff(Number(id)), payload)
@@ -91,12 +91,16 @@ export default function AdminAgentDetail() {
 
   useEffect(() => {
     if (!id) return
-    api.get(endpoints.attendance.agentHistory(Number(id)), { params: { page: 1, perPage: 1 } }).then((res) => {
-      setAttendanceStats({ total: res.data.total || 0, late: 0 })
+    api.get(endpoints.attendance.agentHistory(Number(id)), { params: { page: 1, perPage: 500 } }).then((res) => {
+      const items = res.data.items || []
+      setAttendanceStats({
+        present: items.filter((r) => r.status === 'present').length,
+        late: items.filter((r) => r.status === 'late').length,
+      })
     }).catch(() => {})
     api.get(endpoints.leaves.agent(Number(id)), { params: { page: 1, perPage: 100 } }).then((res) => {
       const items = res.data.items || []
-      setPendingLeaves(items.filter((l) => l.status === 'pending').length)
+      setApprovedLeaves(items.filter((l) => l.status === 'approved').length)
     }).catch(() => {})
   }, [id])
 
@@ -363,8 +367,8 @@ export default function AdminAgentDetail() {
                   <Clock size={18} color="#ef4444" />
                 </div>
                 <div>
-                  <p className="text-xs font-semibold text-slate-400 uppercase tracking-wide">Attendance</p>
-                  <p className="text-2xl font-extrabold text-slate-900">{attendanceStats.total}</p>
+                  <p className="text-xs font-semibold text-slate-400 uppercase tracking-wide">Present</p>
+                  <p className="text-2xl font-extrabold text-slate-900">{attendanceStats.present}</p>
                 </div>
               </div>
               <div className="rt-card p-5 flex items-center gap-4">
@@ -372,8 +376,8 @@ export default function AdminAgentDetail() {
                   <CalendarCheck size={18} color="#d97706" />
                 </div>
                 <div>
-                  <p className="text-xs font-semibold text-slate-400 uppercase tracking-wide">Pending Leaves</p>
-                  <p className="text-2xl font-extrabold text-slate-900">{pendingLeaves}</p>
+                  <p className="text-xs font-semibold text-slate-400 uppercase tracking-wide">Approved Leaves</p>
+                  <p className="text-2xl font-extrabold text-slate-900">{approvedLeaves}</p>
                 </div>
               </div>
             </div>
