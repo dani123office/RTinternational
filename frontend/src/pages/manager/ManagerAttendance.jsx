@@ -2,7 +2,7 @@ import { useEffect, useState, useCallback } from 'react'
 import api, { endpoints } from '@/lib/api'
 import { useAuthStore } from '@/store/authStore'
 import { APP_STYLES } from '@/lib/styles'
-import { Users, Clock, CheckCircle, AlertTriangle, XCircle, Search, Calendar, ChevronLeft, ChevronRight } from 'lucide-react'
+import { Users, Clock, CheckCircle, AlertTriangle, XCircle, Search, Calendar, CalendarCheck, ChevronLeft, ChevronRight } from 'lucide-react'
 
 export default function ManagerAttendance() {
   const { user } = useAuthStore()
@@ -13,6 +13,8 @@ export default function ManagerAttendance() {
   const [agentHistory, setAgentHistory] = useState({ items: [], total: 0, page: 1, totalPages: 0 })
   const [historyPage, setHistoryPage] = useState(1)
   const [historyLoading, setHistoryLoading] = useState(false)
+  const [agentLeaves, setAgentLeaves] = useState([])
+  const [leavesLoading, setLeavesLoading] = useState(false)
 
   const loadTeam = useCallback(async () => {
     setLoading(true)
@@ -26,11 +28,16 @@ export default function ManagerAttendance() {
 
   const loadAgentHistory = useCallback(async (agentId, page = 1) => {
     setHistoryLoading(true)
+    setLeavesLoading(true)
     try {
       const res = await api.get(endpoints.attendance.agentHistory(agentId), { params: { page, perPage: 10 } })
       setAgentHistory(res.data)
       setSelectedAgentId(agentId)
     } catch {} finally { setHistoryLoading(false) }
+    try {
+      const res = await api.get(endpoints.leaves.agent(agentId), { params: { page: 1, perPage: 20 } })
+      setAgentLeaves(res.data.items || [])
+    } catch {} finally { setLeavesLoading(false) }
   }, [])
 
   const filtered = team.filter((t) =>
@@ -227,6 +234,52 @@ export default function ManagerAttendance() {
                             <ChevronRight size={14} />
                           </button>
                         </div>
+                      </div>
+                    )}
+                  </>
+                )}
+                {/* Leave History */}
+                {selectedAgentId && (
+                  <>
+                    <div className="flex items-center gap-2 mt-6 mb-3">
+                      <CalendarCheck size={14} color="#d97706" />
+                      <p className="text-xs font-bold uppercase tracking-wide text-slate-500">Leave Requests</p>
+                    </div>
+                    {leavesLoading ? (
+                      <p className="text-sm text-slate-400 text-center py-4">Loading...</p>
+                    ) : agentLeaves.length === 0 ? (
+                      <p className="text-sm text-slate-400 text-center py-4">No leave requests.</p>
+                    ) : (
+                      <div className="overflow-x-auto">
+                        <table className="w-full text-sm">
+                          <thead>
+                            <tr style={{ borderBottom: '1px solid #f1f5f9' }}>
+                              <th className="text-left py-2 px-2 font-semibold text-slate-500 text-xs uppercase">Type</th>
+                              <th className="text-left py-2 px-2 font-semibold text-slate-500 text-xs uppercase">From</th>
+                              <th className="text-left py-2 px-2 font-semibold text-slate-500 text-xs uppercase">To</th>
+                              <th className="text-left py-2 px-2 font-semibold text-slate-500 text-xs uppercase">Reason</th>
+                              <th className="text-left py-2 px-2 font-semibold text-slate-500 text-xs uppercase">Status</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {agentLeaves.map((l) => (
+                              <tr key={l.id} className="hover:bg-slate-50 transition-colors" style={{ borderBottom: '1px solid #f8fafc' }}>
+                                <td className="py-2 px-2 font-semibold text-slate-800 text-xs">{l.leaveType}</td>
+                                <td className="py-2 px-2 text-slate-600 text-xs">{new Date(l.fromDate).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })}</td>
+                                <td className="py-2 px-2 text-slate-600 text-xs">{new Date(l.toDate).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })}</td>
+                                <td className="py-2 px-2 text-slate-500 text-xs max-w-[120px] truncate">{l.reason || '-'}</td>
+                                <td className="py-2 px-2">
+                                  <span className="text-xs font-bold px-2 py-0.5 rounded-full" style={{
+                                    background: l.status === 'approved' ? '#dcfce7' : l.status === 'rejected' ? '#fee2e2' : '#fef3c7',
+                                    color: l.status === 'approved' ? '#16a34a' : l.status === 'rejected' ? '#dc2626' : '#d97706',
+                                  }}>
+                                    {l.status.charAt(0).toUpperCase() + l.status.slice(1)}
+                                  </span>
+                                </td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
                       </div>
                     )}
                   </>
