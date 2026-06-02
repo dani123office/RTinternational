@@ -14,7 +14,7 @@ function useClock() {
 }
 
 function formatTime(d) {
-  return d.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit', second: '2-digit' })
+  return d.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', second: '2-digit', hour12: true })
 }
 
 function formatDate(d) {
@@ -166,8 +166,8 @@ export default function Attendance() {
                   {todayStatus === 'late' ? 'Checked in Late' : todayStatus === 'present' ? 'Checked in — On Time' : 'Present'}
                 </p>
                 <p className="text-xs font-medium mt-0.5" style={{ color: todayStatus === 'late' ? '#b91c1c' : '#15803d' }}>
-                  {todayRecord.checkIn ? `Check-in: ${new Date(todayRecord.checkIn).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' })}` : ''}
-                  {todayRecord.checkOut ? ` · Check-out: ${new Date(todayRecord.checkOut).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' })}` : ''}
+                  {todayRecord.checkIn ? `Check-in: ${new Date(todayRecord.checkIn).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true })}` : ''}
+                  {todayRecord.checkOut ? ` · Check-out: ${new Date(todayRecord.checkOut).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true })}` : ''}
                 </p>
               </div>
               <span className="text-xs font-bold px-2.5 py-1 rounded-full" style={{
@@ -194,7 +194,7 @@ export default function Attendance() {
                 </div>
                 {isCheckedIn ? (
                   <div className="text-white/80 text-sm font-medium">
-                    <p>Checked in at {new Date(todayRecord.checkIn).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' })}</p>
+                    <p>Checked in at {new Date(todayRecord.checkIn).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true })}</p>
                     {todayRecord.notes && <p className="mt-1 text-white/60 text-xs">Notes: {todayRecord.notes}</p>}
                   </div>
                 ) : (
@@ -234,7 +234,7 @@ export default function Attendance() {
                   <p className="text-white/50 text-sm font-medium">Check in first to enable check-out</p>
                 ) : isCheckedOut ? (
                   <div className="text-white/80 text-sm font-medium">
-                    <p>Checked out at {new Date(todayRecord.checkOut).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' })}</p>
+                    <p>Checked out at {new Date(todayRecord.checkOut).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true })}</p>
                     {todayRecord.notes && <p className="mt-1 text-white/60 text-xs">Notes: {todayRecord.notes}</p>}
                   </div>
                 ) : (
@@ -307,10 +307,10 @@ export default function Attendance() {
                           <tr key={r.id} className="hover:bg-slate-50 transition-colors" style={{ borderBottom: '1px solid #f8fafc' }}>
                             <td className="py-3 px-2 font-semibold text-slate-800">{new Date(r.date).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}</td>
                             <td className="py-3 px-2 text-slate-600">
-                              {r.checkIn ? new Date(r.checkIn).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' }) : '-'}
+                              {r.checkIn ? new Date(r.checkIn).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true }) : '-'}
                             </td>
                             <td className="py-3 px-2 text-slate-600">
-                              {r.checkOut ? new Date(r.checkOut).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' }) : '-'}
+                              {r.checkOut ? new Date(r.checkOut).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true }) : '-'}
                             </td>
                             <td className="py-3 px-2">
                               <span className="text-xs font-bold px-2 py-0.5 rounded-full" style={{
