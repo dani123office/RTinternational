@@ -97,6 +97,47 @@ export default function Attendance() {
     } finally { setActionLoading(false) }
   }
 
+  const handleCheckInClick = () => {
+    if (isLateNow()) {
+      setShowLateForm(true)
+    } else {
+      handleCheckIn()
+    }
+  }
+
+  // Weekday-aware late detection (PKT)
+  function getPKTNow() {
+    const now = new Date()
+    const pktString = now.toLocaleString('en-US', { timeZone: 'Asia/Karachi' })
+    return new Date(pktString)
+  }
+
+  function isLateNow() {
+    const d = getPKTNow()
+    const weekday = d.toLocaleDateString('en-GB', { weekday: 'long', timeZone: 'Asia/Karachi' })
+    const h = d.getHours()
+    const m = d.getMinutes()
+    const threshold = (weekday === 'Friday') ? { h: 15, m: 10 } : { h: 14, m: 10 }
+    return (h > threshold.h) || (h === threshold.h && m > threshold.m)
+  }
+
+  const [showLateForm, setShowLateForm] = useState(false)
+  const [lateReason, setLateReason] = useState('')
+
+  const submitLateRecord = async () => {
+    setActionLoading(true)
+    try {
+      const res = await api.post(endpoints.attendance.checkIn, { notes: notes || null, lateReason: lateReason || null })
+      setTodayRecord(res.data)
+      setNotes('')
+      setLateReason('')
+      setShowLateForm(false)
+      await loadStats()
+    } catch (err) {
+      alert(err?.response?.data?.detail || 'Check-in failed')
+    } finally { setActionLoading(false) }
+  }
+
   const handleCheckOut = async () => {
     setActionLoading(true)
     try {
@@ -174,6 +215,7 @@ export default function Attendance() {
                   <div className="text-white/80 text-sm font-medium">
                     <p>Checked in at {new Date(todayRecord.checkIn).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true })}</p>
                     {todayRecord.notes && <p className="mt-1 text-white/60 text-xs">Notes: {todayRecord.notes}</p>}
+                    {todayRecord.lateReason && <p className="mt-1 text-white/60 text-xs">Late reason: {todayRecord.lateReason}</p>}
                   </div>
                 ) : (
                   <>
@@ -185,7 +227,7 @@ export default function Attendance() {
                       style={{ background: 'rgba(255,255,255,0.15)', color: 'white', outline: 'none' }}
                     />
                     <button
-                      onClick={handleCheckIn}
+                      onClick={handleCheckInClick}
                       disabled={actionLoading}
                       className="w-full py-2.5 rounded-xl border-0 font-bold text-sm cursor-pointer transition-all duration-200 disabled:opacity-50"
                       style={{ background: 'white', color: '#4f46e5' }}
@@ -214,6 +256,7 @@ export default function Attendance() {
                   <div className="text-white/80 text-sm font-medium">
                     <p>Checked out at {new Date(todayRecord.checkOut).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true })}</p>
                     {todayRecord.notes && <p className="mt-1 text-white/60 text-xs">Notes: {todayRecord.notes}</p>}
+                    {todayRecord.lateReason && <p className="mt-1 text-white/60 text-xs">Late reason: {todayRecord.lateReason}</p>}
                   </div>
                 ) : (
                   <>
@@ -237,6 +280,26 @@ export default function Attendance() {
               </div>
             </div>
           </div>
+
+          {/* Late report modal */}
+          {showLateForm && (
+            <div className="fixed inset-0 z-50 flex items-center justify-center" style={{ background: 'rgba(2,6,23,0.6)' }}>
+              <div className="w-full max-w-md bg-white rounded-2xl p-6">
+                <h3 className="font-bold text-lg mb-3">Reason</h3>
+                <p className="text-sm text-slate-500 mb-3">Explain the reason for late arrival...</p>
+                <textarea
+                  value={lateReason}
+                  onChange={(e) => setLateReason(e.target.value)}
+                  className="w-full h-28 p-3 rounded-md border border-slate-200 mb-4 text-sm"
+                  placeholder="Explain the reason for late arrival..."
+                />
+                <div className="flex items-center justify-end gap-3">
+                  <button onClick={() => setShowLateForm(false)} className="px-3 py-2 rounded-md border border-slate-200">Cancel</button>
+                  <button onClick={submitLateRecord} disabled={actionLoading} className="px-3 py-2 rounded-md bg-blue-600 text-white">{actionLoading ? 'Submitting...' : 'Submit Record'}</button>
+                </div>
+              </div>
+            </div>
+          )}
 
           {/* Stats */}
           <div className="rt-fade rt-d2 grid grid-cols-3 gap-3 mb-6">
@@ -298,8 +361,10 @@ export default function Attendance() {
                                 {r.status === 'late' ? 'LATE' : r.status === 'present' ? 'ON TIME' : r.status.toUpperCase()}
                               </span>
                             </td>
-                            <td className="py-3 px-2 text-slate-500 text-xs max-w-[160px] truncate" title={r.notes || ''}>
-                              {r.notes || '-'}
+                            <td className="py-3 px-2 text-slate-500 text-xs max-w-[160px] truncate" title={(r.notes || '') + (r.lateReason ? '\nLate: ' + r.lateReason : '')}>
+                              {r.notes || ''}
+                              {r.lateReason && <div className="text-xs text-slate-400 mt-1">Late: {r.lateReason}</div>}
+                              {!r.notes && !r.lateReason && '-'}
                             </td>
                           </tr>
                         ))}

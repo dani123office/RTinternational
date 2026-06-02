@@ -113,6 +113,7 @@ class CallBack(Base):
     outcome = Column(String(20), nullable=True)
     not_interested_reason = Column(Text, nullable=True)
     notes = Column(Text, nullable=True)
+    late_reason = Column(Text, nullable=True)
     elec_offer_contract_length = Column(String(20), nullable=True)
     elec_offer_supplier = Column(String(150), nullable=True)
     elec_offer_meter_type = Column(String(15), nullable=True)

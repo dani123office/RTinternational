@@ -11,8 +11,10 @@ from ..schemas import AttendanceCheckIn, AttendanceCheckOut, AttendanceOut, Atte
 router = APIRouter(prefix="/api/attendance", tags=["attendance"])
 
 PKT_OFFSET = timedelta(hours=5)
-LATE_THRESHOLD_HOUR = 14
-LATE_THRESHOLD_MINUTE = 15
+
+# Weekday-aware thresholds: Mon-Thu -> 14:10, Fri -> 15:10 (PKT)
+LATE_THRESHOLD_MON_THU = (14, 10)
+LATE_THRESHOLD_FRIDAY = (15, 10)
 
 def _now_pkt():
     return datetime.utcnow() + PKT_OFFSET
@@ -29,6 +31,7 @@ def _attendance_to_out(a: Attendance) -> AttendanceOut:
         checkOut=a.check_out,
         status=a.status,
         notes=a.notes,
+        lateReason=a.late_reason,
         createdAt=a.created_at,
         updatedAt=a.updated_at,
     )
@@ -65,9 +68,14 @@ def check_in(
     if existing and existing.check_in:
         raise HTTPException(status_code=400, detail="Already checked in today")
 
-    is_late = now.hour > LATE_THRESHOLD_HOUR or (
-        now.hour == LATE_THRESHOLD_HOUR and now.minute > LATE_THRESHOLD_MINUTE
-    )
+    # determine weekday-specific threshold
+    wd = now.weekday()  # 0=Mon ... 4=Fri
+    if wd == 4:
+        th_h, th_m = LATE_THRESHOLD_FRIDAY
+    else:
+        th_h, th_m = LATE_THRESHOLD_MON_THU
+
+    is_late = now.hour > th_h or (now.hour == th_h and now.minute > th_m)
     status = "late" if is_late else "present"
 
     if existing:
@@ -75,6 +83,8 @@ def check_in(
         existing.status = status
         if dto.notes is not None:
             existing.notes = dto.notes
+        if getattr(dto, 'lateReason', None) is not None:
+            existing.late_reason = dto.lateReason
         existing.updated_at = now
         db.commit()
         db.refresh(existing)
@@ -86,6 +96,7 @@ def check_in(
         check_in=now,
         status=status,
         notes=dto.notes,
+        late_reason=getattr(dto, 'lateReason', None),
         created_at=now,
         updated_at=now,
     )

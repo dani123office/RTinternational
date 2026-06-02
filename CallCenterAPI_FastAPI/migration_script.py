@@ -44,6 +44,18 @@ def parse_concatenated_notes(text):
 def run_migration():
     db = SessionLocal()
     try:
+        # ensure late_reason column exists (safe attempt for Postgres/SQLite)
+        try:
+            db.execute("ALTER TABLE attendance ADD COLUMN IF NOT EXISTS late_reason TEXT;")
+            db.commit()
+        except Exception:
+            db.rollback()
+            try:
+                db.execute("ALTER TABLE attendance ADD COLUMN late_reason TEXT;")
+                db.commit()
+            except Exception:
+                db.rollback()
+        
         print("Starting database migration and data cleanup...")
         
         # 1. Clean up User names
