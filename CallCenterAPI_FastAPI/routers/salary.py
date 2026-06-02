@@ -278,7 +278,7 @@ class _SalarySlipPDF:
         pages = self._o(f"<< /Type /Pages /Kids [{page} 0 R] /Count 1 >>")
         catalog = self._o("<< /Type /Catalog /Pages 3 0 R >>")
 
-        offset = 0
+        offset = len("%PDF-1.4\n")
         xref_entries = []
         for i, body in enumerate(self._objects):
             xref_entries.append(f"{offset:010d} 00000 n")
