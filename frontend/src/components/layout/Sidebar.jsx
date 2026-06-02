@@ -6,6 +6,7 @@ import {
   PoundSterling, Users, ChevronLeft, ChevronRight,
   UsersRound, BarChart3, Bell, Shield,
   UserCog, Activity, Settings, UserPlus, Clock,
+  DollarSign,
 } from 'lucide-react'
 
 const NAV_ITEMS = {
@@ -17,6 +18,7 @@ const NAV_ITEMS = {
     { to: '/admin/agents', icon: Users, label: 'Agents' },
     { to: '/admin/analytics', icon: BarChart3, label: 'Analytics' },
     { to: '/admin/activity', icon: Activity, label: 'Activity Feed' },
+    { to: '/admin/payroll', icon: DollarSign, label: 'Payroll' },
     { to: '/profile', icon: Settings, label: 'Profile' },
   ],
   manager: [

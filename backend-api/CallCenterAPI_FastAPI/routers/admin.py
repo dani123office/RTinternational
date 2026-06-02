@@ -1,10 +1,11 @@
 import bcrypt
 from datetime import datetime
 from fastapi import APIRouter, Depends, HTTPException, Query
+from fastapi.responses import Response
 from sqlalchemy.orm import Session
 from sqlalchemy import func
 from database import get_db
-from models import User, Customer, CallBack, Transfer, Sale, ActivityLog
+from models import User, Customer, CallBack, Transfer, Sale, ActivityLog, Attendance
 from routers.auth import require_admin
 from schemas import (
     CreateManagerRequest, CreateAgentRequest, AssignAgentRequest,
@@ -15,6 +16,8 @@ from schemas import (
 from routers.callbacks import _build_callback_out
 from routers.transfers import _transfer_out
 from routers.sales import _sale_out
+from routers.salary import _SalarySlipPDF, _employee_id, _month_name, _attendance_summary
+import io
 
 router = APIRouter(prefix="/api/admin", tags=["admin"])
 
@@ -664,3 +667,69 @@ def get_audit_log(admin: User = Depends(require_admin), db: Session = Depends(ge
         }
         for log in logs
     ]
+
+
+@router.get("/salary/slip/{user_id}")
+def admin_salary_slip(
+    user_id: int,
+    month: int = Query(None, ge=1, le=12),
+    year: int = Query(None, ge=2020, le=2100),
+    commission: float = Query(0.0, ge=0),
+    admin: User = Depends(require_admin),
+    db: Session = Depends(get_db),
+):
+    agent = db.query(User).filter(User.id == user_id).first()
+    if not agent:
+        raise HTTPException(status_code=404, detail="Agent not found")
+
+    now = datetime.now()
+    m = month or now.month
+    y = year or now.year
+
+    working_days, present_days, absent_days = _attendance_summary(db, agent.id, m, y)
+    gross = (agent.monthly_salary or 0) + commission
+
+    basic = round(gross * 0.50, 0)
+    hra = round(gross * 0.15, 0)
+    utility = round(gross * 0.30, 0)
+    conveyance = round(gross * 0.05, 0)
+
+    daily_rate = gross / working_days if working_days > 0 else 0
+    absent_deduction = round(daily_rate * absent_days, 0)
+    total_deductions = absent_deduction
+    net_salary = gross - total_deductions
+
+    pdf = _SalarySlipPDF()
+    pdf.build(
+        title="RT International",
+        subtitle="Salary Slip",
+        period=f"for the month of {_month_name(m)} {y}",
+        employee_name=agent.name,
+        employee_id=_employee_id(agent),
+        designation=agent.designation or "-",
+        department=agent.department or "-",
+        cnic=agent.cnic or "-",
+        doj=agent.date_of_joining.strftime("%d/%m/%Y") if agent.date_of_joining else "-",
+        working_days=str(working_days),
+        present_days=str(present_days),
+        absent_days=str(absent_days),
+        earnings=[
+            ("Basic Salary", int(basic)),
+            ("House Rent Allowance", int(hra)),
+            ("Utility Allowance", int(utility)),
+            ("Conveyance Allowance", int(conveyance)),
+        ],
+        deductions=[
+            ("Absent Days Deduction", int(absent_deduction)),
+        ],
+        gross=int(gross),
+        total_deductions=int(total_deductions),
+        net_salary=int(net_salary),
+        generated_at=datetime.now().strftime("%B %d, %Y at %I:%M %p"),
+    )
+
+    return Response(
+        content=pdf.bytes(),
+        media_type="application/pdf",
+        headers={"Content-Disposition": f'attachment; filename="Salary_Slip_{_month_name(m)}_{y}_{agent.name}.pdf"'},
+    )

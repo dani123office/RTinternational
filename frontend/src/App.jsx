@@ -42,6 +42,7 @@ import AdminTransfers from '@/pages/admin/AdminTransfers'
 import AdminSales from '@/pages/admin/AdminSales'
 import AdminSaleDetail from '@/pages/admin/AdminSaleDetail'
 import AdminCallbacks from '@/pages/admin/AdminCallbacks'
+import PayrollPage from '@/pages/admin/PayrollPage'
 
 function ProtectedRoute({ children }) {
   const { token } = useAuthStore()
@@ -123,6 +124,7 @@ export default function App() {
         <Route path="sales/:id" element={<AdminSaleDetail />} />
         <Route path="analytics" element={<AdminDashboard />} />
         <Route path="activity" element={<AdminDashboard />} />
+        <Route path="payroll" element={<PayrollPage />} />
       </Route>
 
       <Route path="*" element={<Navigate to="/" replace />} />

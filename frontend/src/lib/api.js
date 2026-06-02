@@ -95,6 +95,7 @@ export const endpoints = {
   },
   salary: {
     slip: '/api/salary/slip',
+    adminSlip: (userId) => `/api/admin/salary/slip/${userId}`,
   },
   admin: {
     users: '/api/admin/users',
