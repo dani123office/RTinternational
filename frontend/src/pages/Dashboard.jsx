@@ -175,7 +175,6 @@ export default function Dashboard() {
                 <PoundSterling size={14} /> New Sale
               </button>
               <button onClick={() => useDataStore.getState().loadAll()}
-              <button onClick={() => useDataStore.getState().loadAll()}
                 className="flex items-center gap-1.5 px-4 py-2.5 rounded-xl text-sm font-semibold cursor-pointer transition-all duration-200"
                 style={{
                   background: '#ffffff',
