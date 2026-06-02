@@ -315,8 +315,8 @@ export default function Attendance() {
           {/* Stats */}
           <div className="rt-fade rt-d2 grid grid-cols-3 gap-3 mb-6">
             {[
-              { label: 'Present', value: stats.presentCount, color: '#16a34a', bg: '#dcfce7' },
-              { label: 'Late', value: stats.lateCount, color: '#dc2626', bg: '#fee2e2' },
+              { label: 'Present', value: (stats.presentCount || 0) + (stats.lateCount || 0), color: '#16a34a', bg: '#dcfce7' },
+              { label: 'Absent', value: Math.max(0, (stats.totalDays || 0) - (stats.presentCount || 0) - (stats.lateCount || 0)), color: '#dc2626', bg: '#fee2e2' },
               { label: 'Total Days', value: stats.totalDays, color: '#6366f1', bg: '#eef2ff' },
             ].map((s) => (
               <div key={s.label} className="rounded-xl p-4 text-center" style={{ background: s.bg, border: `1px solid ${s.color}20` }}>
