@@ -708,7 +708,7 @@ def admin_salary_slip(
 
     pdf = _SalaryPDF()
     pdf.build_slip(
-        period_label=f"for the month of {_month_name(m)} {y}",
+        period=f"for the month of {_month_name(m)} {y}",
         employee_name=agent.name,
         employee_id=_employee_id(agent),
         designation=agent.designation or "-",

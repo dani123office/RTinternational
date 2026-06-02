@@ -26,133 +26,196 @@ def _fmt(n: int) -> str:
 
 
 class _SalaryPDF:
-    """PDF generator using fpdf2 — imported lazily to avoid startup crash."""
+    """Zero-dependency manual PDF builder — no external imports needed."""
 
-    def _get_pdf(self):
-        from fpdf import FPDF
-        return FPDF()
+    PAGE_W = 595
+    PAGE_H = 842
+    LM = 28
 
-    def _section_title(self, pdf, title: str):
-        pdf.set_text_color(138, 138, 138)
-        pdf.set_font("Helvetica", "B", 11)
-        pdf.cell(0, 6, title.upper(), new_x="LMARGIN", new_y="NEXT")
-        pdf.set_draw_color(220, 220, 220)
-        pdf.line(pdf.l_margin, pdf.get_y(), pdf.w - pdf.r_margin, pdf.get_y())
-        pdf.ln(2)
+    def _escape(self, s: str) -> str:
+        res = []
+        for ch in s:
+            o = ord(ch)
+            if o == 40 or o == 41 or o == 92:
+                res.append("\\" + ch)
+            elif o < 32 or o > 126:
+                res.append(f"\\{o:03o}")
+            else:
+                res.append(ch)
+        return "".join(res)
 
-    def _info_row(self, pdf, label: str, value: str):
-        pdf.set_font("Helvetica", "B", 9)
-        pdf.set_text_color(51, 51, 51)
-        pdf.cell(50, 5, label + ":", new_x="END", new_y="LAST")
-        pdf.set_font("Helvetica", "", 9)
-        pdf.cell(0, 5, value, new_x="LMARGIN", new_y="NEXT")
+    def _text(self, x: float, y: float, text: str, font: str = "Helvetica", size: int = 10) -> str:
+        fmap = {"Helvetica": "F1", "Helvetica-Bold": "F2", "Helvetica-Oblique": "F3"}
+        f = fmap.get(font, "F1")
+        return f"BT /{f} {size} Tf {x:.0f} {y:.0f} Td ({self._escape(text)}) Tj ET\n"
 
-    def _finance_row(self, pdf, label: str, value: str, bold: bool = False):
-        style = "B" if bold else ""
-        pdf.set_font("Helvetica", style, 9)
-        pdf.set_text_color(51, 51, 51)
-        pdf.cell(90, 5, label, new_x="END", new_y="LAST")
-        pdf.cell(0, 5, value, new_x="LMARGIN", new_y="NEXT", align="R")
+    def _line(self, x1: float, y1: float, x2: float, y2: float) -> str:
+        return f"{x1:.0f} {y1:.0f} m {x2:.0f} {y2:.0f} l S\n"
 
-    def _separator(self, pdf):
-        pdf.set_draw_color(220, 220, 220)
-        pdf.line(pdf.l_margin, pdf.get_y() + 1, pdf.w - pdf.r_margin, pdf.get_y() + 1)
-        pdf.ln(4)
+    def _rect(self, x: float, y: float, w: float, h: float, fill: bool = True, stroke: bool = True) -> str:
+        return f"{x:.0f} {y:.0f} {w:.0f} {h:.0f} re {'B' if fill and stroke else ('f' if fill else 'S')}\n"
+
+    def _color(self, r: int, g: int, b: int) -> str:
+        return f"{r/255:.3f} {g/255:.3f} {b/255:.3f} rg\n"
+
+    def _dcolor(self, r: int, g: int, b: int) -> str:
+        return f"{r/255:.3f} {g/255:.3f} {b/255:.3f} RG\n"
+
+    def _linew(self, w: float) -> str:
+        return f"{w:.2f} w\n"
+
+    def _text_center(self, y: float, text: str, font: str = "Helvetica", size: int = 10) -> str:
+        approx = len(text) * size * 0.5
+        x = (self.PAGE_W - approx) / 2
+        return self._text(x, y, text, font, size)
+
+    def _text_right(self, x_end: float, y: float, text: str, font: str = "Helvetica", size: int = 10) -> str:
+        approx = len(text) * size * 0.5
+        return self._text(x_end - approx, y, text, font, size)
 
     def build_slip(self, **kw):
-        pdf = self._get_pdf()
-        pdf.add_page()
+        self._buf = []
+        PW, PH = self.PAGE_W, self.PAGE_H
+        LM = self.LM
+        CX = PW / 2
+        Y = lambda pt: PH - pt
 
-        pdf.set_font("Helvetica", "B", 24)
-        pdf.set_text_color(26, 26, 46)
-        pdf.cell(0, 10, "RT International", new_x="LMARGIN", new_y="NEXT", align="C")
-        pdf.set_font("Helvetica", "B", 14)
-        pdf.set_text_color(33, 68, 179)
-        pdf.cell(0, 7, "SALARY SLIP", new_x="LMARGIN", new_y="NEXT", align="C")
-        pdf.set_font("Helvetica", "", 10)
-        pdf.set_text_color(119, 119, 119)
-        pdf.cell(0, 6, kw["period_label"], new_x="LMARGIN", new_y="NEXT", align="C")
-        self._separator(pdf)
+        # Page border
+        self._buf.append(self._dcolor(220, 220, 220))
+        self._buf.append(self._linew(0.5))
+        self._buf.append(self._rect(6, 6, PW - 12, PH - 12, fill=False, stroke=True))
 
-        left_x = pdf.l_margin
-        right_x = pdf.w / 2
-        start_y = pdf.get_y()
+        # Title block — centered
+        y = Y(55)
+        self._buf.append(self._text_center(y, "RT International", "Helvetica-Bold", 26))
+        y -= 22
+        self._buf.append(self._text_center(y, "SALARY SLIP", "Helvetica-Bold", 15))
+        y -= 20
+        month_text = kw["period"].replace("for the month of ", "")
+        self._buf.append(self._text_center(y, month_text, "Helvetica", 10))
+        y -= 16
+        self._buf.append(self._dcolor(220, 220, 220))
+        self._buf.append(self._line(LM, y, PW - LM, y))
+        y -= 14
 
-        self._section_title(pdf, "Employee Information")
-        for lbl, val in [
+        def section_caption(title, _y):
+            self._buf.append(self._color(140, 140, 140))
+            self._buf.append(self._text(LM, _y, title.upper(), "Helvetica-Bold", 8))
+            _y -= 8
+            self._buf.append(self._dcolor(220, 220, 220))
+            self._buf.append(self._line(LM, _y, LM + 240, _y))
+            return _y - 8
+
+        def col_items(items, left_x, _y, label_w=55, bold_labels=True):
+            for lbl, val in items:
+                lf = "Helvetica-Bold" if bold_labels else "Helvetica"
+                self._buf.append(self._text(left_x, _y, lbl + ":", lf, 9))
+                self._buf.append(self._text_right(left_x + 230, _y, val, "Helvetica", 9))
+                _y -= 12
+            return _y
+
+        # Section 1: Employee Info + Attendance
+        y = section_caption("Employee Information", y)
+        left = [
             ("Name", kw["employee_name"]),
             ("Employee ID", kw["employee_id"]),
             ("Designation", kw["designation"]),
             ("Department", kw["department"]),
             ("CNIC", kw["cnic"]),
             ("Date of Joining", kw["doj"]),
-        ]:
-            self._info_row(pdf, lbl, val)
-
-        pdf.y = start_y
-        pdf.x = right_x
-        self._section_title(pdf, "Attendance Summary")
-        for lbl, val in [
+        ]
+        right = [
             ("Working Days", kw["working_days"]),
             ("Present Days", kw["present_days"]),
             ("Absent Days", kw["absent_days"]),
-        ]:
-            pdf.set_font("Helvetica", "B", 9)
-            pdf.set_text_color(51, 51, 51)
-            pdf.cell(50, 5, lbl + ":", new_x="END", new_y="LAST")
-            pdf.set_font("Helvetica", "", 9)
-            pdf.cell(0, 5, val, new_x="END", new_y="LAST")
+        ]
+        ly = col_items(left, LM, y)
+        ry = col_items(right, CX, y)
+        y = max(ly, ry) - 8
+        self._buf.append(self._dcolor(220, 220, 220))
+        self._buf.append(self._line(LM, y, PW - LM, y))
+        y -= 14
 
-        pdf.y = max(pdf.y, pdf.get_y())
-        pdf.x = left_x
-        pdf.ln(2)
-        self._separator(pdf)
+        # Section 2: Earnings + Deductions
+        y = section_caption("Earnings", y)
+        left2 = [(lbl, _fmt(val)) for lbl, val in kw["earnings"]]
+        left2.append(("Gross Salary", _fmt(kw["gross"])))
+        right2 = [(lbl, _fmt(val)) for lbl, val in kw["deductions"]]
+        right2.append(("Total Deductions", _fmt(kw["total_deductions"])))
+        ly = col_items(left2, LM, y, label_w=90)
+        ry = col_items(right2, CX, y, label_w=90)
+        y = max(ly, ry) - 8
+        self._buf.append(self._dcolor(220, 220, 220))
+        self._buf.append(self._line(LM, y, PW - LM, y))
+        y -= 14
 
-        start_y = pdf.get_y()
+        # Net Salary card — full width
+        box_x = LM
+        box_w = PW - LM * 2
+        box_h = 46
+        self._buf.append(self._color(243, 247, 255))
+        self._buf.append(self._dcolor(190, 210, 255))
+        self._buf.append(self._linew(0.8))
+        self._buf.append(self._rect(box_x, y - box_h, box_w, box_h))
+        y_box = y - 18
+        self._buf.append(self._text(box_x + 15, y_box, "NET SALARY", "Helvetica-Bold", 11))
+        self._buf.append(self._text_right(box_x + box_w - 15, y_box, f"Rs. {kw['net_salary']:,}", "Helvetica-Bold", 20))
 
-        self._section_title(pdf, "Earnings")
-        for lbl, val in kw["earnings"]:
-            self._finance_row(pdf, lbl, _fmt(val))
-        self._finance_row(pdf, "Gross Salary", _fmt(kw["gross"]), bold=True)
+        y -= box_h + 10
+        self._buf.append(self._dcolor(220, 220, 220))
+        self._buf.append(self._line(LM, y, PW - LM, y))
+        y -= 14
 
-        pdf.y = start_y
-        pdf.x = right_x
-        self._section_title(pdf, "Deductions")
-        for lbl, val in kw["deductions"]:
-            self._finance_row(pdf, lbl, _fmt(val))
-        self._finance_row(pdf, "Total Deductions", _fmt(kw["total_deductions"]), bold=True)
+        # Footer — centered
+        self._buf.append(self._text_center(y, "This is a computer-generated document and does not require a physical signature.", "Helvetica-Oblique", 7))
+        y -= 10
+        self._buf.append(self._text_center(y, "Generated on " + kw["generated_at"], "Helvetica-Oblique", 7))
 
-        pdf.y = max(pdf.y, pdf.get_y())
-        pdf.x = left_x
-        pdf.ln(2)
-        self._separator(pdf)
+        content = "".join(self._buf)
+        self._build_pdf(content, PW, PH, LM)
 
-        pdf.ln(3)
-        box_w = 160
-        box_x = (pdf.w - box_w) / 2
-        pdf.set_fill_color(238, 244, 255)
-        pdf.set_draw_color(188, 208, 255)
-        pdf.set_line_width(0.5)
-        pdf.rect(box_x, pdf.get_y(), box_w, 18, style="DF")
-        pdf.set_y(pdf.get_y() + 2)
-        pdf.set_font("Helvetica", "B", 11)
-        pdf.set_text_color(33, 68, 179)
-        pdf.cell(40, 7, "Net Salary", new_x="END", new_y="LAST")
-        pdf.set_font("Helvetica", "B", 18)
-        pdf.cell(0, 7, _fmt(kw["net_salary"]), new_x="LMARGIN", new_y="NEXT", align="R")
-        pdf.set_text_color(51, 51, 51)
+    def _build_pdf(self, content: str, PW: int, PH: int, LM: int):
+        import io
+        objects = []
 
-        pdf.ln(8)
-        self._separator(pdf)
-        pdf.set_font("Helvetica", "", 8)
-        pdf.set_text_color(136, 136, 136)
-        pdf.cell(0, 4, "This is a computer-generated document and does not require a physical signature.", new_x="LMARGIN", new_y="NEXT", align="C")
-        pdf.cell(0, 4, "Generated on " + kw["generated_at"], new_x="LMARGIN", new_y="NEXT", align="C")
+        def o(body):
+            n = len(objects) + 1
+            objects.append(body)
+            return n
 
-        self._pdf = pdf
+        content_obj = o(
+            f"<< /Length {len(content.encode('latin-1'))} >>\nstream\n{content}\nendstream"
+        )
+        f1 = o("<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>")
+        f2 = o("<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica-Bold >>")
+        f3 = o("<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica-Oblique >>")
+        resources = o(f"<< /Font << /F1 {f1} 0 R /F2 {f2} 0 R /F3 {f3} 0 R >> >>")
+
+        pages_obj = len(objects) + 3
+        page = o(
+            f"<< /Type /Page /Parent {pages_obj} 0 R /MediaBox [0 0 {PW} {PH}]"
+            f" /Contents {content_obj} 0 R /Resources {resources} 0 R >>"
+        )
+        pages = o(f"<< /Type /Pages /Kids [{page} 0 R] /Count 1 >>")
+        catalog = o(f"<< /Type /Catalog /Pages {pages} 0 R >>")
+
+        buf = io.BytesIO()
+        buf.write(b"%PDF-1.4\n")
+        offsets = [0]
+        for i, obj in enumerate(objects, 1):
+            offsets.append(buf.tell())
+            buf.write(f"{i} 0 obj\n{obj}\nendobj\n".encode("latin-1"))
+
+        xref = buf.tell()
+        buf.write(f"xref\n0 {len(offsets)}\n".encode())
+        buf.write(b"0000000000 65535 f \n")
+        for off in offsets[1:]:
+            buf.write(f"{off:010d} 00000 n \n".encode())
+        buf.write(f"trailer\n<< /Size {len(offsets)} /Root {catalog} 0 R >>\nstartxref\n{xref}\n%%EOF".encode())
+        self._data = buf.getvalue()
 
     def output(self) -> bytes:
-        return self._pdf.output()
+        return self._data
 
 
 @router.get("/slip")
@@ -181,7 +244,7 @@ def download_salary_slip(
 
     pdf = _SalaryPDF()
     pdf.build_slip(
-        period_label=f"for the month of {_month_name(m)} {y}",
+        period=f"for the month of {_month_name(m)} {y}",
         employee_name=current_user.name,
         employee_id=_employee_id(current_user),
         designation=current_user.designation or "-",
