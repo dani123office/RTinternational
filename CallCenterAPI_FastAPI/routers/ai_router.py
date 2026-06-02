@@ -7,6 +7,7 @@ import os
 import logging
 import re
 import time
+import base64
 from dotenv import load_dotenv
 
 from .auth import get_current_user
@@ -509,6 +510,41 @@ def regex_fallback_extraction(text: str, error_msg: str) -> dict:
 MAX_RETRIES = 2
 
 
+_IMAGE_EXTS = re.compile(r'\.(png|jpg|jpeg|gif|bmp|webp|svg|tiff?|ico)$', re.IGNORECASE)
+
+def _looks_like_image_content(text: str) -> str | None:
+    if not text or len(text) < 12:
+        return None
+
+    # 1) Data-URI image payload
+    if re.search(r'data:\s*image/', text, re.IGNORECASE):
+        return "Cannot read image data (this model does not support image input)."
+
+    # 2) Filename that looks like an image reference
+    words = text.split()
+    for w in words:
+        stripped = w.strip('\'"(),;')
+        if _IMAGE_EXTS.search(stripped):
+            return f"Cannot read '{stripped}' (this model does not support image input)."
+
+    # 3) Long base64-looking blob (typical for pasted image data)
+    for token in re.findall(r'[A-Za-z0-9+/=]{100,}', text):
+        if len(token) > 200:
+            try:
+                decoded = base64.b64decode(token, validate=True)
+                if decoded[:8] in (b'\x89PNG\r\n\x1a\n', b'\xff\xd8\xff', b'GIF87a', b'GIF89a', b'RIFF'):
+                    return "Cannot read pasted image data (this model does not support image input)."
+            except (base64.binascii.Error, ValueError):
+                continue
+
+    # 4) Common image-related keywords that suggest the user pasted image info
+    lower = text.lower()
+    if re.search(r'\b(?:screenshot|photo|picture|image)\s*(?:of|from|attached|below|above|here)', lower):
+        return "Cannot read image content (this model does not support image input). Please paste text only."
+
+    return None
+
+
 def generate_extraction(text: str) -> dict:
     if not GROQ_AVAILABLE:
         logger.info("Groq API key not available; using regex fallback")
@@ -582,6 +618,10 @@ def extract_data(dto: ExtractRequest, current_user: User = Depends(get_current_u
             status_code=400,
             detail="Text cannot be empty"
         )
+
+    image_err = _looks_like_image_content(dto.text)
+    if image_err:
+        raise HTTPException(status_code=400, detail=image_err)
 
     result = generate_extraction(dto.text)
 
