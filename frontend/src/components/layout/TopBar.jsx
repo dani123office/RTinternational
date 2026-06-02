@@ -2,9 +2,9 @@ import { useState, useRef, useEffect } from 'react'
 import { useNavigate, useLocation } from 'react-router-dom'
 import { useAuthStore } from '@/store/authStore'
 import { useToast } from '@/components/ui/toastContext'
-import { LogOut, User, ChevronDown, Settings, PhoneCall, ArrowLeftRight } from 'lucide-react'
+import { LogOut, User, ChevronDown, Settings, PhoneCall, ArrowLeftRight, Menu } from 'lucide-react'
 
-export default function TopBar() {
+export default function TopBar({ onMenuClick }) {
   const { user, logout } = useAuthStore()
   const navigate = useNavigate()
   const location = useLocation()
@@ -42,6 +42,13 @@ export default function TopBar() {
   return (
     <header className="h-16 bg-white border-b border-slate-200 flex items-center justify-between px-4 sm:px-7 shrink-0">
       <div className="flex items-center gap-3">
+        <button
+          onClick={onMenuClick}
+          className="p-2 rounded-lg border border-slate-200 bg-white text-slate-500 cursor-pointer flex items-center justify-center transition-colors hover:bg-slate-50 md:hidden animate-[fadeIn_0.2s_ease-out]"
+          title="Open menu"
+        >
+          <Menu size={16} />
+        </button>
         {user?.role === 'agent' && !isOnFormPage && !isListPage && location.pathname !== '/' && (
           <div className="flex items-center gap-2">
             <button

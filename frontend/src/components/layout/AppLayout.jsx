@@ -18,6 +18,7 @@ export default function AppLayout() {
   const [sidebarCollapsed, setSidebarCollapsed] = useState(() => {
     return localStorage.getItem('sidebarCollapsed') === 'true'
   })
+  const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false)
 
   const { toast } = useToast()
 
@@ -59,10 +60,15 @@ export default function AppLayout() {
   }
 
   return (
-    <div className="flex h-screen overflow-hidden bg-slate-50">
-      <Sidebar collapsed={sidebarCollapsed} onToggle={() => setSidebarCollapsed(!sidebarCollapsed)} />
+    <div className="flex h-screen overflow-hidden bg-slate-50 relative">
+      <Sidebar 
+        collapsed={sidebarCollapsed} 
+        onToggle={() => setSidebarCollapsed(!sidebarCollapsed)} 
+        mobileOpen={mobileSidebarOpen}
+        onMobileClose={() => setMobileSidebarOpen(false)}
+      />
       <div className="flex flex-col min-w-0 flex-1 transition-all duration-200">
-        <TopBar />
+        <TopBar onMenuClick={() => setMobileSidebarOpen(true)} />
         <main className="flex-1 overflow-auto pb-36">
           {isLoading && (
             <div className="fixed top-0 left-0 right-0 z-50 h-1 bg-slate-100">
