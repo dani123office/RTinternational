@@ -395,7 +395,7 @@ export default function Dashboard() {
                         </div>
                         <div className="text-right shrink-0 ml-3">
                           <p className="text-sm font-bold" style={{ color: isOverdue ? '#ef4444' : '#334155' }}>
-                            {d.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' })}
+                            {d.toLocaleTimeString('en-US', { timeZone: 'Europe/London', hour: 'numeric', minute: '2-digit', hour12: true })}
                           </p>
                           {isOverdue && (
                             <span className="text-xs font-bold px-1.5 py-0.5 rounded mt-0.5 inline-block" style={{ background: '#fee2e2', color: '#dc2626' }}>OVERDUE</span>

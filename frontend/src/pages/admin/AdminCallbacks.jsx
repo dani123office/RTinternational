@@ -112,7 +112,7 @@ export default function AdminCallbacks() {
                             <div className="flex items-center gap-3 shrink-0 ml-2">
                               <div style={{ display: 'flex', alignItems: 'center', gap: '6px', color: '#94a3b8', background: '#f8fafc', padding: '4px 10px', borderRadius: '8px', fontSize: '12px' }}>
                                 <Clock size={12} />
-                                {d.toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })} {d.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' })}
+                                {d.toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })} {d.toLocaleTimeString('en-US', { timeZone: 'Europe/London', hour: 'numeric', minute: '2-digit', hour12: true })}
                               </div>
                               <StatusBadge status={isOverdue ? 'overdue' : cb.status} type="callback" />
                               <ArrowRight size={14} style={{ color: '#d1d5db' }} />

@@ -99,7 +99,7 @@ export default function AdminCallbackDetail() {
                   </span>
                   <span className="flex items-center gap-1.5">
                     <Clock size={14} />
-                    {new Date(cb.scheduledDateTime).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' })}
+                    {new Date(cb.scheduledDateTime).toLocaleTimeString('en-US', { timeZone: 'Europe/London', hour: 'numeric', minute: '2-digit', hour12: true })}
                   </span>
                 </div>
               )}
