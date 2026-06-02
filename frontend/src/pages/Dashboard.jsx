@@ -103,7 +103,7 @@ export default function Dashboard() {
   const handleQuickCheckIn = async () => {
     setAttendanceLoading(true)
     try {
-      const res = await api.post(endpoints.attendance.checkIn, { notes: null })
+      const res = await api.post(endpoints.attendance.checkIn, { reason: null })
       setAttendanceRecord(res.data)
     } catch (err) {
       alert(err?.response?.data?.detail || 'Check-in failed')

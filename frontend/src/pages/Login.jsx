@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { useNavigate, Link } from 'react-router-dom'
 import { useAuthStore } from '@/store/authStore'
+import api, { endpoints } from '@/lib/api'
 import { Loader2 } from 'lucide-react'
 
 export default function Login() {
@@ -19,7 +20,13 @@ export default function Login() {
     if (!email || !password) { setError('Please enter your email and password.'); return }
     setLoading(true)
     const success = await login(email, password, rememberMe)
-    if (success) navigate('/')
+    if (success) {
+      try {
+        const res = await api.get(endpoints.attendance.today)
+        if (!res.data?.checkIn) { navigate('/attendance'); return }
+      } catch {}
+      navigate('/')
+    }
     else {
       const errMsg = useAuthStore.getState().error || 'Invalid email or password. Please try again.'
       if (errMsg.toLowerCase().includes('inactive')) {
