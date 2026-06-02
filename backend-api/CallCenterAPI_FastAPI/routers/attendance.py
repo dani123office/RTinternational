@@ -42,11 +42,20 @@ def get_today_attendance(
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
-    today = _today_pkt()
+    now = _now_pkt()
+    today = now.date()
     record = db.query(Attendance).filter(
         Attendance.user_id == current_user.id,
         Attendance.date == today,
     ).first()
+
+    if record and record.check_in and not record.check_out and now.hour >= 22:
+        record.check_out = now
+        record.notes = (record.notes or "") + (" | " if record.notes else "") + "Auto check-out at 10 PM"
+        record.updated_at = now
+        db.commit()
+        db.refresh(record)
+
     if record:
         return _attendance_to_out(record)
     return None

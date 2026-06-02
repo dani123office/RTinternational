@@ -130,6 +130,13 @@ export default function Attendance() {
 
   const reasonRequired = !isCheckedIn && isLateByMoreThan(10)
 
+  function isBefore10PM_PKT() {
+    const d = getPKTNow()
+    return d.getHours() < 22
+  }
+
+  const checkoutNotesRequired = isCheckedIn && !isCheckedOut && isBefore10PM_PKT()
+
   return (
     <>
       <style>{APP_STYLES}</style>
@@ -243,13 +250,18 @@ export default function Attendance() {
                     <input
                       value={checkoutNotes}
                       onChange={(e) => setCheckoutNotes(e.target.value)}
-                      placeholder="Add check-out note (optional)..."
-                      className="w-full px-3.5 py-2.5 rounded-xl border-0 text-sm mb-3"
+                      placeholder={checkoutNotesRequired ? 'Reason for early check-out (required)...' : 'Add check-out note (optional)...'}
+                      className="w-full px-3.5 py-2.5 rounded-xl border-0 text-sm mb-1"
                       style={{ background: 'rgba(255,255,255,0.1)', color: 'white', outline: 'none' }}
                     />
+                    {checkoutNotesRequired && !checkoutNotes.trim() && (
+                      <p className="text-[11px] font-medium mb-2" style={{ color: '#fca5a5' }}>
+                        Reason required before 10 PM
+                      </p>
+                    )}
                     <button
                       onClick={handleCheckOut}
-                      disabled={actionLoading}
+                      disabled={actionLoading || (checkoutNotesRequired && !checkoutNotes.trim())}
                       className="w-full py-2.5 rounded-xl border-0 font-bold text-sm cursor-pointer transition-all duration-200 disabled:opacity-50"
                       style={{ background: 'rgba(255,255,255,0.15)', color: 'white' }}
                     >
