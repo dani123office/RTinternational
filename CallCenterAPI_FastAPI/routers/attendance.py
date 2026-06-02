@@ -31,7 +31,6 @@ def _attendance_to_out(a: Attendance) -> AttendanceOut:
         checkOut=a.check_out,
         status=a.status,
         notes=a.notes,
-        lateReason=a.late_reason,
         createdAt=a.created_at,
         updatedAt=a.updated_at,
     )
@@ -83,8 +82,6 @@ def check_in(
         existing.status = status
         if dto.notes is not None:
             existing.notes = dto.notes
-        if getattr(dto, 'lateReason', None) is not None:
-            existing.late_reason = dto.lateReason
         existing.updated_at = now
         db.commit()
         db.refresh(existing)
@@ -96,7 +93,6 @@ def check_in(
         check_in=now,
         status=status,
         notes=dto.notes,
-        late_reason=getattr(dto, 'lateReason', None),
         created_at=now,
         updated_at=now,
     )

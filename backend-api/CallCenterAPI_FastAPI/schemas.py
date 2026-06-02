@@ -1580,7 +1580,6 @@ class SaleUpdate(BaseModel):
 
 class AttendanceCheckIn(BaseModel):
     notes: Optional[str] = Field(None, max_length=500, description="Check-in notes")
-    lateReason: Optional[str] = Field(None, max_length=500, description="Reason for late arrival")
 
 
 class AttendanceCheckOut(BaseModel):
@@ -1595,7 +1594,6 @@ class AttendanceOut(BaseModel):
     checkOut: Optional[datetime] = None
     status: str
     notes: Optional[str] = None
-    lateReason: Optional[str] = None
     createdAt: datetime
     updatedAt: datetime
 
