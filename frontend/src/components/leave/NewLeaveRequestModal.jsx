@@ -10,8 +10,6 @@ const LEAVE_TYPES = [
   'Sick Leave',
   'Annual Leave',
   'Personal Leave',
-  'Maternity Leave',
-  'Paternity Leave',
   'Other',
 ]
 
