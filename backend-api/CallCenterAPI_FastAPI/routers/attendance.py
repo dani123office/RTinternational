@@ -178,8 +178,14 @@ def my_stats(
     start = date(y, m, 1)
     end = date(y, m, last_day)
 
+    # Don't count future working days for current month
+    if m == today.month and y == today.year:
+        effective_end = min(end, today)
+    else:
+        effective_end = end
+
     total_working = sum(
-        1 for d in range((end - start).days + 1)
+        1 for d in range((effective_end - start).days + 1)
         if (start + timedelta(days=d)).weekday() < 5
     )
 
