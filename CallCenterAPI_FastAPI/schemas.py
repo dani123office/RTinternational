@@ -259,7 +259,7 @@ class UserOut(BaseModel):
     managerId: Optional[int] = None
     phone: Optional[str] = None
     fatherName: Optional[str] = None
-    monthlySalary: Optional[float] = 0.0
+    monthlySalary: Optional[int] = 0
     cnic: Optional[str] = None
     department: Optional[str] = None
     designation: Optional[str] = None
@@ -278,7 +278,7 @@ class AgentOut(BaseModel):
     managerId: Optional[int] = None
     phone: Optional[str] = None
     fatherName: Optional[str] = None
-    monthlySalary: Optional[float] = 0.0
+    monthlySalary: Optional[int] = 0
     cnic: Optional[str] = None
     department: Optional[str] = None
     designation: Optional[str] = None
@@ -334,7 +334,7 @@ class CreateAgentRequest(BaseModel):
     password: str
     managerId: int
     fatherName: Optional[str] = None
-    monthlySalary: Optional[float] = 0.0
+    monthlySalary: Optional[int] = 0
     cnic: Optional[str] = None
     phone: Optional[str] = None
     department: Optional[str] = None
@@ -362,7 +362,7 @@ class UpdateAgentStaffRequest(BaseModel):
     email: Optional[str] = None
     phone: Optional[str] = None
     fatherName: Optional[str] = None
-    monthlySalary: Optional[float] = 0.0
+    monthlySalary: Optional[int] = 0
     cnic: Optional[str] = None
     department: Optional[str] = None
     designation: Optional[str] = None

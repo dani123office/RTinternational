@@ -16,7 +16,7 @@ class User(Base):
     phone = Column(String(20), nullable=True)
     commission_rate = Column(Float, nullable=False, default=0.00)
     father_name = Column(String(100), nullable=True)
-    monthly_salary = Column(Float, nullable=True, default=0.0)
+    monthly_salary = Column(Integer, nullable=True, default=0)
     cnic = Column(String(25), nullable=True)
     department = Column(String(100), nullable=True)
     designation = Column(String(100), nullable=True)

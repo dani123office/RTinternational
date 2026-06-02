@@ -330,7 +330,7 @@ export default function ProfileSettings() {
                   {profile.monthlySalary !== null && profile.monthlySalary !== undefined && (
                     <div>
                       <p style={{ fontSize: '11px', fontWeight: 700, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.5px', margin: '0 0 4px' }}>Monthly Salary</p>
-                      <p style={{ fontSize: '14px', fontWeight: 600, color: '#0f172a', margin: 0 }}>£{Number(profile.monthlySalary).toLocaleString()}</p>
+                      <p style={{ fontSize: '14px', fontWeight: 600, color: '#0f172a', margin: 0 }}>Rs. {Number(profile.monthlySalary).toLocaleString()}</p>
                     </div>
                   )}
                   {profile.phone && (

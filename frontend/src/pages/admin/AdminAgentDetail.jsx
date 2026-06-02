@@ -225,7 +225,7 @@ export default function AdminAgentDetail() {
                   {agent.monthlySalary !== null && agent.monthlySalary !== undefined && (
                     <div>
                       <p style={{ fontSize: '10px', fontWeight: 700, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.5px', margin: '0 0 3px' }}>Monthly Salary</p>
-                      <p style={{ fontSize: '13px', fontWeight: 600, color: '#0f172a', margin: 0 }}>£{Number(agent.monthlySalary).toLocaleString()}</p>
+                      <p style={{ fontSize: '13px', fontWeight: 600, color: '#0f172a', margin: 0 }}>Rs. {Number(agent.monthlySalary).toLocaleString()}</p>
                     </div>
                   )}
                   {agent.dateOfBirth && (

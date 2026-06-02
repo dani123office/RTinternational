@@ -21,7 +21,7 @@ export default function CreateAgentModal({ isOpen, onClose, onSave, managers }) 
       await onSave({
         ...form,
         managerId: Number(form.managerId),
-        monthlySalary: form.monthlySalary ? Number(form.monthlySalary) : 0,
+        monthlySalary: form.monthlySalary ? Math.round(Number(form.monthlySalary)) : 0,
       })
       setForm({
         name: '', email: '', password: '', managerId: '',
@@ -85,8 +85,8 @@ export default function CreateAgentModal({ isOpen, onClose, onSave, managers }) 
               <input type="password" value={form.password} onChange={set('password')} placeholder="Enter password" className="rt-input" />
             </div>
             <div>
-              <label className="rt-label flex items-center gap-1.5"><DollarSign size={13} /> Monthly Salary</label>
-              <input type="number" value={form.monthlySalary} onChange={set('monthlySalary')} placeholder="0.00" className="rt-input" />
+              <label className="rt-label flex items-center gap-1.5"><span className="text-[11px] font-bold text-slate-500 mr-0.5">Rs</span> Monthly Salary</label>
+              <input type="number" value={form.monthlySalary} onChange={set('monthlySalary')} placeholder="0" className="rt-input" />
             </div>
           </div>
 
