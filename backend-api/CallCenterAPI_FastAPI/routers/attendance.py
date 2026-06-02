@@ -184,9 +184,16 @@ def my_stats(
     else:
         effective_end = end
 
+    # Start counting from first attendance record (or month start, whichever is later)
+    first_record = db.query(func.min(Attendance.date)).filter(
+        Attendance.user_id == current_user.id,
+        Attendance.date >= start,
+    ).scalar()
+    effective_start = max(start, first_record) if first_record else start
+
     total_working = sum(
-        1 for d in range((effective_end - start).days + 1)
-        if (start + timedelta(days=d)).weekday() < 5
+        1 for d in range((effective_end - effective_start).days + 1)
+        if (effective_start + timedelta(days=d)).weekday() < 5
     )
 
     present = db.query(func.count(Attendance.id)).filter(
