@@ -77,6 +77,8 @@ export default function AdminAgentDetail() {
   const [attendanceLoading, setAttendanceLoading] = useState(false)
   const [leaveHistory, setLeaveHistory] = useState([])
   const [leaveLoading, setLeaveLoading] = useState(false)
+  const [attendanceStats, setAttendanceStats] = useState({ total: 0, late: 0 })
+  const [pendingLeaves, setPendingLeaves] = useState(0)
 
   const handleSaveStaff = useCallback(async (payload) => {
     const res = await api.put(endpoints.admin.updateAgentStaff(Number(id)), payload)
@@ -86,6 +88,17 @@ export default function AdminAgentDetail() {
   }, [id, loadAdminAgentDetail, toast])
 
   useEffect(() => { if (id) loadAdminAgentDetail(Number(id)) }, [id, loadAdminAgentDetail])
+
+  useEffect(() => {
+    if (!id) return
+    api.get(endpoints.attendance.agentHistory(Number(id)), { params: { page: 1, perPage: 1 } }).then((res) => {
+      setAttendanceStats({ total: res.data.total || 0, late: 0 })
+    }).catch(() => {})
+    api.get(endpoints.leaves.agent(Number(id)), { params: { page: 1, perPage: 100 } }).then((res) => {
+      const items = res.data.items || []
+      setPendingLeaves(items.filter((l) => l.status === 'pending').length)
+    }).catch(() => {})
+  }, [id])
 
   const agent     = selectedAgent?.agent
   const stats     = selectedAgent?.stats
@@ -294,44 +307,62 @@ export default function AdminAgentDetail() {
               </div>
             </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-4 gap-4 mb-6 rt-fade rt-d1">
-            <div className="rt-card p-5 flex items-center gap-4">
-              <div className="w-10 h-10 rounded-xl flex items-center justify-center" style={{ background: '#eef2ff' }}>
-                <Calendar size={18} color="#6366f1" />
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6 rt-fade rt-d1">
+              <div className="rt-card p-5 flex items-center gap-4">
+                <div className="w-10 h-10 rounded-xl flex items-center justify-center" style={{ background: '#eef2ff' }}>
+                  <Calendar size={18} color="#6366f1" />
+                </div>
+                <div>
+                  <p className="text-xs font-semibold text-slate-400 uppercase tracking-wide">Callbacks</p>
+                  <p className="text-2xl font-extrabold text-slate-900">{stats?.callbacks || 0}</p>
+                </div>
               </div>
-              <div>
-                <p className="text-xs font-semibold text-slate-400 uppercase tracking-wide">Callbacks</p>
-                <p className="text-2xl font-extrabold text-slate-900">{stats?.callbacks || 0}</p>
+              <div className="rt-card p-5 flex items-center gap-4">
+                <div className="w-10 h-10 rounded-xl flex items-center justify-center" style={{ background: '#f0fdf4' }}>
+                  <ArrowLeftRight size={18} color="#16a34a" />
+                </div>
+                <div>
+                  <p className="text-xs font-semibold text-slate-400 uppercase tracking-wide">Transfers</p>
+                  <p className="text-2xl font-extrabold text-slate-900">{stats?.transfers || 0}</p>
+                </div>
+              </div>
+              <div className="rt-card p-5 flex items-center gap-4">
+                <div className="w-10 h-10 rounded-xl flex items-center justify-center" style={{ background: '#fffbeb' }}>
+                  <PoundSterling size={18} color="#d97706" />
+                </div>
+                <div>
+                  <p className="text-xs font-semibold text-slate-400 uppercase tracking-wide">Sales</p>
+                  <p className="text-2xl font-extrabold text-slate-900">{stats?.sales || 0}</p>
+                </div>
+              </div>
+              <div className="rt-card p-5 flex items-center gap-4">
+                <div className="w-10 h-10 rounded-xl flex items-center justify-center" style={{ background: '#f5f3ff' }}>
+                  <TrendingUp size={18} color="#8b5cf6" />
+                </div>
+                <div>
+                  <p className="text-xs font-semibold text-slate-400 uppercase tracking-wide">Conversion</p>
+                  <p className="text-2xl font-extrabold text-slate-900">{stats?.conversionRate || 0}%</p>
+                </div>
+              </div>
+              <div className="rt-card p-5 flex items-center gap-4">
+                <div className="w-10 h-10 rounded-xl flex items-center justify-center" style={{ background: '#fef2f2' }}>
+                  <Clock size={18} color="#ef4444" />
+                </div>
+                <div>
+                  <p className="text-xs font-semibold text-slate-400 uppercase tracking-wide">Attendance</p>
+                  <p className="text-2xl font-extrabold text-slate-900">{attendanceStats.total}</p>
+                </div>
+              </div>
+              <div className="rt-card p-5 flex items-center gap-4">
+                <div className="w-10 h-10 rounded-xl flex items-center justify-center" style={{ background: '#fffbeb' }}>
+                  <CalendarCheck size={18} color="#d97706" />
+                </div>
+                <div>
+                  <p className="text-xs font-semibold text-slate-400 uppercase tracking-wide">Pending Leaves</p>
+                  <p className="text-2xl font-extrabold text-slate-900">{pendingLeaves}</p>
+                </div>
               </div>
             </div>
-            <div className="rt-card p-5 flex items-center gap-4">
-              <div className="w-10 h-10 rounded-xl flex items-center justify-center" style={{ background: '#f0fdf4' }}>
-                <ArrowLeftRight size={18} color="#16a34a" />
-              </div>
-              <div>
-                <p className="text-xs font-semibold text-slate-400 uppercase tracking-wide">Transfers</p>
-                <p className="text-2xl font-extrabold text-slate-900">{stats?.transfers || 0}</p>
-              </div>
-            </div>
-            <div className="rt-card p-5 flex items-center gap-4">
-              <div className="w-10 h-10 rounded-xl flex items-center justify-center" style={{ background: '#fffbeb' }}>
-                <PoundSterling size={18} color="#d97706" />
-              </div>
-              <div>
-                <p className="text-xs font-semibold text-slate-400 uppercase tracking-wide">Sales</p>
-                <p className="text-2xl font-extrabold text-slate-900">{stats?.sales || 0}</p>
-              </div>
-            </div>
-            <div className="rt-card p-5 flex items-center gap-4">
-              <div className="w-10 h-10 rounded-xl flex items-center justify-center" style={{ background: '#f5f3ff' }}>
-                <TrendingUp size={18} color="#8b5cf6" />
-              </div>
-              <div>
-                <p className="text-xs font-semibold text-slate-400 uppercase tracking-wide">Conversion</p>
-                <p className="text-2xl font-extrabold text-slate-900">{stats?.conversionRate || 0}%</p>
-              </div>
-            </div>
-          </div>
 
           <div className="rt-card rt-fade">
             <div className="flex border-b gap-1 px-4" style={{ borderColor: '#f1f5f9' }}>
