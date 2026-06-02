@@ -4,42 +4,18 @@ import { useAuthStore } from '@/store/authStore'
 import { Clock, LogIn, LogOut, History, MapPin, ChevronLeft, ChevronRight } from 'lucide-react'
 import { APP_STYLES } from '@/lib/styles'
 
-function useClock() {
-  const [time, setTime] = useState(new Date())
-  useEffect(() => {
-    const id = setInterval(() => setTime(new Date()), 1000)
-    return () => clearInterval(id)
-  }, [])
-  return time
+const TIME_OPTS = { hour: 'numeric', minute: '2-digit', second: '2-digit', hour12: true }
+const DATE_OPTS = { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' }
+
+function formatTime(tz) {
+  return new Date().toLocaleTimeString('en-US', { ...TIME_OPTS, timeZone: tz })
 }
 
-function formatTime(d) {
-  return d.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', second: '2-digit', hour12: true })
+function formatDate(tz) {
+  return new Date().toLocaleDateString('en-GB', { ...DATE_OPTS, timeZone: tz })
 }
 
-function formatDate(d) {
-  return d.toLocaleDateString('en-GB', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })
-}
-
-function pktTime(utc) {
-  return new Date(utc.getTime() + 5 * 60 * 60 * 1000)
-}
-
-function ukTime(utc) {
-  const isBST = (d) => {
-    const m = d.getMonth()
-    const dw = d.getDay()
-    if (m < 2 || m > 9) return false
-    if (m > 2 && m < 9) return true
-    const lastSun = new Date(d.getFullYear(), m === 2 ? 2 : 9, 0)
-    lastSun.setDate(lastSun.getDate() - ((lastSun.getDay() + 1) % 7))
-    return m === 2 ? d >= lastSun : d < lastSun
-  }
-  const offset = isBST(utc) ? 1 : 0
-  return new Date(utc.getTime() + offset * 60 * 60 * 1000)
-}
-
-function ClockCard({ label, time, sub, accent, flag }) {
+function ClockCard({ label, timezone, sub, accent, flag }) {
   return (
     <div className="rounded-2xl p-5 relative overflow-hidden" style={{
       background: 'rgba(255,255,255,0.85)',
@@ -58,7 +34,7 @@ function ClockCard({ label, time, sub, accent, flag }) {
         </div>
       </div>
       <p className="text-3xl font-extrabold tracking-tight" style={{ color: '#0f172a', fontFamily: "'DM Sans', monospace", letterSpacing: '-0.03em' }}>
-        {formatTime(time)}
+        {formatTime(timezone)}
       </p>
       {sub && <p className="text-xs font-medium mt-1.5" style={{ color: '#64748b' }}>{sub}</p>}
     </div>
@@ -66,8 +42,12 @@ function ClockCard({ label, time, sub, accent, flag }) {
 }
 
 export default function Attendance() {
-  const now = useClock()
   const { user } = useAuthStore()
+  const [, forceUpdate] = useState(0)
+  useEffect(() => {
+    const id = setInterval(() => forceUpdate(n => n + 1), 1000)
+    return () => clearInterval(id)
+  }, [])
   const [todayRecord, setTodayRecord] = useState(null)
   const [history, setHistory] = useState({ items: [], total: 0, page: 1, totalPages: 0 })
   const [stats, setStats] = useState({ presentCount: 0, lateCount: 0, absentCount: 0, totalDays: 0 })
@@ -128,8 +108,6 @@ export default function Attendance() {
     } finally { setActionLoading(false) }
   }
 
-  const pkt = pktTime(now)
-  const uk = ukTime(now)
   const isCheckedIn = !!todayRecord?.checkIn
   const isCheckedOut = !!todayRecord?.checkOut
   const todayStatus = todayRecord?.status
@@ -141,13 +119,13 @@ export default function Attendance() {
         <div style={{ maxWidth: '960px', margin: '0 auto' }}>
           <div className="rt-fade" style={{ marginBottom: '28px' }}>
             <h1 className="rt-page-title">Attendance</h1>
-            <p className="rt-page-subtitle">{formatDate(pkt)}</p>
+            <p className="rt-page-subtitle">{formatDate('Asia/Karachi')}</p>
           </div>
 
           {/* Clocks */}
           <div className="rt-fade grid grid-cols-1 sm:grid-cols-2 gap-4 mb-6">
-            <ClockCard label="Pakistan Time (PKT)" time={pkt} sub="Office Hours: 2:00 PM — 10:00 PM" accent="#6366f1" flag="UTC +5" />
-            <ClockCard label="UK Time" time={uk} sub="Office Hours: 10:00 AM — 6:00 PM" accent="#3b82f6" flag={uk.getTimezoneOffset() === -60 ? 'BST (UTC+1)' : 'GMT (UTC+0)'} />
+            <ClockCard label="Pakistan Time (PKT)" timezone="Asia/Karachi" sub="Office Hours: 2:00 PM — 10:00 PM" accent="#6366f1" flag="UTC +5" />
+            <ClockCard label="UK Time" timezone="Europe/London" sub="Office Hours: 10:00 AM — 6:00 PM" accent="#3b82f6" flag="BST/GMT" />
           </div>
 
           {/* Status Banner */}
