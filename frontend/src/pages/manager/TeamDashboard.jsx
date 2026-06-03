@@ -94,12 +94,12 @@ export default function TeamDashboard() {
   return (
     <>
       <style>{APP_STYLES}</style>
-      <div className="rt-page">
+      <div className="rt-page" style={{ overflowX: 'hidden' }}>
         <div className="rt-fade" style={{ marginBottom: '28px' }}>
           <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: '16px' }}>
             <div>
               <h1 style={{ fontSize: '22px', fontWeight: 800, color: '#0f172a', letterSpacing: '-0.5px', margin: 0 }}>
-                {greeting}, <span className="capitalize">{firstName}</span>
+                {greeting},<span className="capitalize">&nbsp;{firstName}</span>
               </h1>
               <p style={{ fontSize: '13px', color: '#64748b', margin: '3px 0 0' }}>
                 {formatDateFull(today)}
@@ -249,7 +249,7 @@ export default function TeamDashboard() {
                 <span className="text-xs font-medium text-slate-400 bg-slate-50 px-2 py-0.5 rounded">by conversion rate</span>
               </div>
               <div className="rt-card-body">
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 max-h-[480px] overflow-y-auto pr-1">
                   {agents.map((item, index) => (
                     <AgentCard key={item.agent.id} agent={item.agent} stats={item} rank={index} />
                   ))}
