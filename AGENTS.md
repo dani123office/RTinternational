@@ -5,7 +5,6 @@ Fix 500 errors (local and Vercel) in the RT International call center FastAPI ap
 
 ## Constraints & Preferences
 - Fix both local backend errors and Vercel serverless deployment errors.
-- Mirror changes across `CallCenterAPI_FastAPI/` and `backend-api/CallCenterAPI_FastAPI/` when needed.
 
 ## Key Context
 - **GitHub repo**: `github.com/dani123office/RTinternational` (master branch)
@@ -85,6 +84,8 @@ Fix 500 errors (local and Vercel) in the RT International call center FastAPI ap
 27. **Added Docker support** — `Dockerfile` (Python 3.12-slim) and `docker-compose.yml` (api + frontend services).
 
 28. **Added CI/CD pipeline** — `.github/workflows/ci.yml` runs backend lint (Python compile check), backend tests (testsprite), and frontend lint on push/PR to master.
+
+29. **Cleaned up useless files** — removed 23 debug/parse scripts from root, 19 test/utility scripts from `CallCenterAPI_FastAPI/`, abandoned `frontend/my-crm/` directory, `callcenter.db` from git tracking, `__pycache__/` dirs, and the stale `backend-api/` mirror. Project is now lean.
 
 ## Root Causes (continued)
 - **Activity logging never worked**: `log_activity()` function was defined in `utils/logger.py` but never imported or called from any router. Activity logs table was always empty. No audit trail existed despite the schema being fully set up. → Fixed by adding `log_activity()` calls after all create/update/delete endpoints across all 10 routers.
