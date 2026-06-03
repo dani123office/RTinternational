@@ -1,22 +1,23 @@
 import bcrypt
 from datetime import datetime
-from fastapi import APIRouter, Depends, HTTPException, Query
+from fastapi import APIRouter, Depends, HTTPException, Query, Request
 from fastapi.responses import Response
 from sqlalchemy.orm import Session
 from sqlalchemy import func
-from database import get_db
-from models import User, Customer, CallBack, Transfer, Sale, ActivityLog, Attendance
-from routers.auth import require_admin
-from schemas import (
+from ..database import get_db
+from ..models import User, Customer, CallBack, Transfer, Sale, ActivityLog, Attendance
+from .auth import require_admin
+from ..utils.logger import log_activity, get_client_ip
+from ..schemas import (
     CreateManagerRequest, CreateAgentRequest, AssignAgentRequest,
     UpdateUserRequest, UpdateAgentStaffRequest, ApproveUserRequest, ResetUserPasswordRequest,
     OverallStats, ManagerKpi, AgentKpi, AgentDetail, AgentStats, AgentOut,
     AdminPerformanceOverview, BusinessFeedItem,
 )
-from routers.callbacks import _build_callback_out
-from routers.transfers import _transfer_out
-from routers.sales import _sale_out
-from routers.salary import _SalaryPDF, _employee_id, _month_name, _attendance_summary
+from .callbacks import _build_callback_out
+from .transfers import _transfer_out
+from .sales import _sale_out
+from .salary import _SalaryPDF, _employee_id, _month_name, _attendance_summary
 
 router = APIRouter(prefix="/api/admin", tags=["admin"])
 
@@ -31,7 +32,7 @@ def _safe_div(a: int, b: int) -> float:
 
 
 @router.post("/create-manager", status_code=201)
-def create_manager(data: CreateManagerRequest, admin: User = Depends(require_admin), db: Session = Depends(get_db)):
+def create_manager(data: CreateManagerRequest, request: Request, admin: User = Depends(require_admin), db: Session = Depends(get_db)):
     try:
         existing = db.query(User).filter(User.email == data.email).first()
         if existing:
@@ -47,6 +48,9 @@ def create_manager(data: CreateManagerRequest, admin: User = Depends(require_adm
         db.add(user)
         db.commit()
         db.refresh(user)
+        log_activity(db, admin.id, "created", "manager", user.id,
+                     f"Created manager {user.email}",
+                     get_client_ip(request))
         return {"id": user.id, "name": user.name, "email": user.email, "role": user.role}
     except HTTPException:
         db.rollback()
@@ -57,13 +61,13 @@ def create_manager(data: CreateManagerRequest, admin: User = Depends(require_adm
 
 
 @router.post("/create-agent", status_code=201)
-def create_agent(data: CreateAgentRequest, admin: User = Depends(require_admin), db: Session = Depends(get_db)):
+def create_agent(data: CreateAgentRequest, request: Request, admin: User = Depends(require_admin), db: Session = Depends(get_db)):
     try:
         existing = db.query(User).filter(User.email == data.email).first()
         if existing:
             raise HTTPException(status_code=400, detail="Email already exists")
         manager = db.query(User).filter(
-            User.id == data.managerId, User.role == "manager", User.is_active == 1,
+            User.id == data.managerId, User.role == "manager", User.is_active == True,
         ).first()
         if not manager:
             raise HTTPException(status_code=400, detail="Manager not found or inactive")
@@ -89,12 +93,16 @@ def create_agent(data: CreateAgentRequest, admin: User = Depends(require_admin),
         db.add(user)
         db.commit()
         db.refresh(user)
+        log_activity(db, admin.id, "created", "agent", user.id,
+                     f"Created agent {user.email}",
+                     get_client_ip(request))
         return {"id": user.id, "name": user.name, "email": user.email, "role": user.role, "managerId": user.manager_id}
     except HTTPException:
         db.rollback()
         raise
     except Exception as e:
         db.rollback()
+        raise HTTPException(status_code=400, detail=f"Failed to create agent: {str(e)}")
         raise HTTPException(status_code=400, detail=f"Failed to create agent: {str(e)}")
 
 
@@ -127,13 +135,16 @@ def get_managers(
     admin: User = Depends(require_admin),
     db: Session = Depends(get_db),
 ):
-    managers = db.query(User).filter(User.role == "manager", User.is_active == 1).order_by(User.name).all()
+    managers = db.query(User).filter(User.role == "manager", User.is_active == True).order_by(User.name).all()
     result = []
     for m in managers:
         agent_ids = [a.id for a in db.query(User).filter(User.manager_id == m.id).all()]
-        cb = db.query(func.count(CallBack.id)).filter(CallBack.employee_id.in_(agent_ids) if agent_ids else False).scalar() or 0
-        tr = db.query(func.count(Transfer.id)).filter(Transfer.employee_id.in_(agent_ids) if agent_ids else False).scalar() or 0
-        sa = db.query(func.count(Sale.id)).filter(Sale.employee_id.in_(agent_ids) if agent_ids else False).scalar() or 0
+        if agent_ids:
+            cb = db.query(func.count(CallBack.id)).filter(CallBack.employee_id.in_(agent_ids)).scalar() or 0
+            tr = db.query(func.count(Transfer.id)).filter(Transfer.employee_id.in_(agent_ids)).scalar() or 0
+            sa = db.query(func.count(Sale.id)).filter(Sale.employee_id.in_(agent_ids)).scalar() or 0
+        else:
+            cb = tr = sa = 0
         total_opps = tr
         result.append(ManagerKpi(
             id=m.id, name=m.name, teamSize=len(agent_ids),
@@ -151,7 +162,7 @@ def get_agents(
 ):
     query = db.query(User).filter(User.role == "agent")
     if not showAll:
-        query = query.filter(User.is_active == 1)
+        query = query.filter(User.is_active == True)
     agents = query.order_by(User.name).all()
     manager_map = {}
     for a in agents:
@@ -274,6 +285,7 @@ def get_agent_detail(
 def update_agent_staff(
     agent_id: int,
     data: UpdateAgentStaffRequest,
+    request: Request,
     admin: User = Depends(require_admin),
     db: Session = Depends(get_db),
 ):
@@ -311,6 +323,9 @@ def update_agent_staff(
             agent.emerg_contact_number = data.emergContactNumber or None
         db.commit()
         db.refresh(agent)
+        log_activity(db, admin.id, "updated", "agent", agent.id,
+                     f"Updated agent #{agent.id} staff info",
+                     get_client_ip(request))
         return AgentOut(
             id=agent.id, name=agent.name, email=agent.email,
             role=agent.role, isActive=agent.is_active, managerId=agent.manager_id,
@@ -336,6 +351,7 @@ def update_agent_staff(
 @router.put("/user/{user_id}")
 def update_user(
     user_id: int, data: UpdateUserRequest,
+    request: Request,
     admin: User = Depends(require_admin), db: Session = Depends(get_db),
 ):
     try:
@@ -355,13 +371,16 @@ def update_user(
             if user.role != "agent":
                 raise HTTPException(status_code=400, detail="Only agents can be assigned a manager")
             mgr = db.query(User).filter(
-                User.id == data.managerId, User.role == "manager", User.is_active == 1,
+                User.id == data.managerId, User.role == "manager", User.is_active == True,
             ).first()
             if not mgr:
                 raise HTTPException(status_code=400, detail="Manager not found or inactive")
             user.manager_id = data.managerId
         db.commit()
         db.refresh(user)
+        log_activity(db, admin.id, "updated", "user", user.id,
+                     f"Updated user #{user.id}",
+                     get_client_ip(request))
         return {"id": user.id, "name": user.name, "email": user.email, "role": user.role, "isActive": 1 if user.is_active else 0, "managerId": user.manager_id}
     except HTTPException:
         db.rollback()
@@ -372,7 +391,7 @@ def update_user(
 
 
 @router.delete("/user/{user_id}")
-def delete_user(user_id: int, admin: User = Depends(require_admin), db: Session = Depends(get_db)):
+def delete_user(user_id: int, request: Request, admin: User = Depends(require_admin), db: Session = Depends(get_db)):
     try:
         user = db.query(User).filter(User.id == user_id).first()
         if not user:
@@ -388,8 +407,12 @@ def delete_user(user_id: int, admin: User = Depends(require_admin), db: Session 
         db.query(Transfer).filter(Transfer.employee_id == user.id).delete()
         db.query(Sale).filter(Sale.employee_id == user.id).delete()
         db.query(Customer).filter(Customer.created_by == user.id).delete()
+        u_id = user.id
         db.delete(user)
         db.commit()
+        log_activity(db, admin.id, "deleted", "user", u_id,
+                     f"Deleted user {name}",
+                     get_client_ip(request))
         return {"ok": True, "message": f"User {name} and all associated records permanently deleted"}
     except HTTPException:
         db.rollback()
@@ -400,18 +423,21 @@ def delete_user(user_id: int, admin: User = Depends(require_admin), db: Session 
 
 
 @router.patch("/assign-agent")
-def assign_agent(data: AssignAgentRequest, admin: User = Depends(require_admin), db: Session = Depends(get_db)):
+def assign_agent(data: AssignAgentRequest, request: Request, admin: User = Depends(require_admin), db: Session = Depends(get_db)):
     try:
         agent = db.query(User).filter(User.id == data.agentId, User.role == "agent").first()
         if not agent:
             raise HTTPException(status_code=404, detail="Agent not found")
         manager = db.query(User).filter(
-            User.id == data.managerId, User.role == "manager", User.is_active == 1,
+            User.id == data.managerId, User.role == "manager", User.is_active == True,
         ).first()
         if not manager:
             raise HTTPException(status_code=400, detail="Manager not found or inactive")
         agent.manager_id = data.managerId
         db.commit()
+        log_activity(db, admin.id, "updated", "agent_assignment", agent.id,
+                     f"Assigned agent #{agent.id} to manager #{data.managerId}",
+                     get_client_ip(request))
         return {"ok": True, "agentId": agent.id, "managerId": manager.id}
     except HTTPException:
         db.rollback()
@@ -442,6 +468,7 @@ def get_pending_users(admin: User = Depends(require_admin), db: Session = Depend
 @router.post("/approve-user/{user_id}")
 def approve_user(
     user_id: int, data: ApproveUserRequest,
+    request: Request,
     admin: User = Depends(require_admin), db: Session = Depends(get_db),
 ):
     user = db.query(User).filter(User.id == user_id).first()
@@ -460,12 +487,16 @@ def approve_user(
     user.is_active = True
     db.commit()
     db.refresh(user)
+    log_activity(db, admin.id, "approved", "user", user.id,
+                 f"Approved user {user.email}",
+                 get_client_ip(request))
     return {"ok": True, "message": f"User {user.name} approved and assigned to {manager.name}"}
 
 
 @router.post("/reset-user-password/{user_id}")
 def reset_user_password(
     user_id: int, data: ResetUserPasswordRequest,
+    request: Request,
     admin: User = Depends(require_admin), db: Session = Depends(get_db),
 ):
     user = db.query(User).filter(User.id == user_id).first()
@@ -475,6 +506,9 @@ def reset_user_password(
         raise HTTPException(status_code=400, detail="Password must be at least 6 characters")
     user.password_hash = bcrypt.hashpw(data.newPassword.encode("utf-8"), bcrypt.gensalt()).decode("utf-8")
     db.commit()
+    log_activity(db, admin.id, "password_reset", "user", user.id,
+                 f"Password reset for user {user.email}",
+                 get_client_ip(request))
     return {"ok": True, "message": f"Password for {user.name} has been reset"}
 
 
@@ -483,8 +517,8 @@ def reset_user_password(
 
 @router.get("/overall-stats")
 def overall_stats(admin: User = Depends(require_admin), db: Session = Depends(get_db)):
-    total_agents = db.query(func.count(User.id)).filter(User.role == "agent", User.is_active == 1).scalar() or 0
-    total_managers = db.query(func.count(User.id)).filter(User.role == "manager", User.is_active == 1).scalar() or 0
+    total_agents = db.query(func.count(User.id)).filter(User.role == "agent", User.is_active == True).scalar() or 0
+    total_managers = db.query(func.count(User.id)).filter(User.role == "manager", User.is_active == True).scalar() or 0
     total_cb = db.query(func.count(CallBack.id)).scalar() or 0
     total_tr = db.query(func.count(Transfer.id)).scalar() or 0
     total_sa = db.query(func.count(Sale.id)).scalar() or 0
@@ -502,12 +536,15 @@ def overall_stats(admin: User = Depends(require_admin), db: Session = Depends(ge
 @router.get("/performance-overview")
 def performance_overview(admin: User = Depends(require_admin), db: Session = Depends(get_db)):
     managers_data = []
-    managers = db.query(User).filter(User.role == "manager", User.is_active == 1).all()
+    managers = db.query(User).filter(User.role == "manager", User.is_active == True).all()
     for m in managers:
-        a_ids = [a.id for a in db.query(User).filter(User.manager_id == m.id, User.is_active == 1).all()]
-        cb = db.query(func.count(CallBack.id)).filter(CallBack.employee_id.in_(a_ids) if a_ids else False).scalar() or 0
-        tr = db.query(func.count(Transfer.id)).filter(Transfer.employee_id.in_(a_ids) if a_ids else False).scalar() or 0
-        sa = db.query(func.count(Sale.id)).filter(Sale.employee_id.in_(a_ids) if a_ids else False).scalar() or 0
+        a_ids = [a.id for a in db.query(User).filter(User.manager_id == m.id, User.is_active == True).all()]
+        if a_ids:
+            cb = db.query(func.count(CallBack.id)).filter(CallBack.employee_id.in_(a_ids)).scalar() or 0
+            tr = db.query(func.count(Transfer.id)).filter(Transfer.employee_id.in_(a_ids)).scalar() or 0
+            sa = db.query(func.count(Sale.id)).filter(Sale.employee_id.in_(a_ids)).scalar() or 0
+        else:
+            cb = tr = sa = 0
         managers_data.append(ManagerKpi(
             id=m.id, name=m.name, teamSize=len(a_ids),
             callbacks=cb, transfers=tr, sales=sa,
@@ -515,8 +552,8 @@ def performance_overview(admin: User = Depends(require_admin), db: Session = Dep
         ))
 
     agents_data = []
-    agents = db.query(User).filter(User.role == "agent", User.is_active == 1).all()
-    mgr_names = {m.id: m.name for m in db.query(User).filter(User.role == "manager", User.is_active == 1).all()}
+    agents = db.query(User).filter(User.role == "agent", User.is_active == True).all()
+    mgr_names = {m.id: m.name for m in db.query(User).filter(User.role == "manager", User.is_active == True).all()}
     for a in agents:
         cb = db.query(func.count(CallBack.id)).filter(CallBack.employee_id == a.id).scalar() or 0
         tr = db.query(func.count(Transfer.id)).filter(Transfer.employee_id == a.id).scalar() or 0
@@ -728,12 +765,6 @@ def admin_salary_slip(
 
     return Response(
         content=pdf.output(),
-        media_type="application/pdf",
-        headers={"Content-Disposition": f'attachment; filename="Salary_Slip_{_month_name(m)}_{y}_{agent.name}.pdf"'},
-    )
-
-    return Response(
-        content=pdf.bytes(),
         media_type="application/pdf",
         headers={"Content-Disposition": f'attachment; filename="Salary_Slip_{_month_name(m)}_{y}_{agent.name}.pdf"'},
     )

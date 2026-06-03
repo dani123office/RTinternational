@@ -1,10 +1,11 @@
 import bcrypt
 from datetime import datetime
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Request
 from sqlalchemy.orm import Session
 from ..database import get_db
 from ..models import User
 from .auth import get_current_user
+from ..utils.logger import log_activity, get_client_ip
 from pydantic import BaseModel, Field
 from typing import Optional
 from datetime import date
@@ -72,6 +73,7 @@ def get_profile(current_user: User = Depends(get_current_user)):
 @router.put("")
 def update_profile(
     dto: ProfileUpdate,
+    request: Request,
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
@@ -98,6 +100,10 @@ def update_profile(
     current_user.updated_at = datetime.now()
     db.commit()
     db.refresh(current_user)
+
+    log_activity(db, current_user.id, "updated", "profile", current_user.id,
+                 f"Updated profile",
+                 get_client_ip(request))
 
     return ProfileOut(
         id=current_user.id,

@@ -1,10 +1,11 @@
-from fastapi import APIRouter, Depends, HTTPException, Query
+from fastapi import APIRouter, Depends, HTTPException, Query, Request
 from sqlalchemy.orm import Session
 from ..database import get_db
 from ..models import Sale, Customer, User
 from ..schemas import SaleOut, CustomerOut, ElectricityMeterOut, GasMeterOut, SaleCreate, SaleUpdate
 from datetime import datetime
 from .auth import get_current_user
+from ..utils.logger import log_activity, get_client_ip
 
 router = APIRouter(prefix="/api/sales", tags=["sales"])
 
@@ -96,7 +97,7 @@ def get_sale(id: int, current_user: User = Depends(get_current_user), db: Sessio
 
 
 @router.post("")
-def create_sale(dto: SaleCreate, current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
+def create_sale(dto: SaleCreate, request: Request, current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
     try:
         existing = db.query(Sale).filter(Sale.customer_id == dto.customerId).first()
         if existing:
@@ -124,6 +125,9 @@ def create_sale(dto: SaleCreate, current_user: User = Depends(get_current_user),
         db.commit()
         db.refresh(sale)
         customer = db.query(Customer).filter(Customer.id == sale.customer_id).first()
+        log_activity(db, current_user.id, "created", "sale", sale.id,
+                     f"Created sale #{sale.id}",
+                     get_client_ip(request))
         return _sale_out(sale, customer)
     except HTTPException:
         db.rollback()
@@ -134,7 +138,7 @@ def create_sale(dto: SaleCreate, current_user: User = Depends(get_current_user),
 
 
 @router.put("/{id}")
-def update_sale(id: int, dto: SaleUpdate, current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
+def update_sale(id: int, dto: SaleUpdate, request: Request, current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
     sale = db.query(Sale).filter(Sale.id == id, Sale.employee_id == current_user.id).first()
     if not sale:
         raise HTTPException(status_code=404, detail="Sale not found")
@@ -171,6 +175,9 @@ def update_sale(id: int, dto: SaleUpdate, current_user: User = Depends(get_curre
         db.commit()
         db.refresh(sale)
         customer = db.query(Customer).filter(Customer.id == sale.customer_id).first()
+        log_activity(db, current_user.id, "updated", "sale", sale.id,
+                     f"Updated sale #{sale.id}",
+                     get_client_ip(request))
         return _sale_out(sale, customer)
     except HTTPException:
         db.rollback()
@@ -181,13 +188,17 @@ def update_sale(id: int, dto: SaleUpdate, current_user: User = Depends(get_curre
 
 
 @router.delete("/{id}")
-def delete_sale(id: int, current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
+def delete_sale(id: int, request: Request, current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
     sale = db.query(Sale).filter(Sale.id == id, Sale.employee_id == current_user.id).first()
     if not sale:
         raise HTTPException(status_code=404, detail="Sale not found")
     try:
+        s_id = sale.id
         db.delete(sale)
         db.commit()
+        log_activity(db, current_user.id, "deleted", "sale", s_id,
+                     f"Deleted sale #{s_id}",
+                     get_client_ip(request))
         return {"success": True}
     except HTTPException:
         db.rollback()

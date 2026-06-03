@@ -1,6 +1,6 @@
 from calendar import monthrange
 from datetime import datetime, date, timedelta
-from fastapi import APIRouter, Depends, HTTPException, Query
+from fastapi import APIRouter, Depends, HTTPException, Query, Request
 from sqlalchemy.orm import Session
 from sqlalchemy import func
 from typing import Optional
@@ -8,6 +8,7 @@ from ..database import get_db
 from ..models import User, Attendance
 from .auth import get_current_user
 from ..schemas import AttendanceCheckIn, AttendanceCheckOut, AttendanceOut, AttendanceSummary, UserAttendanceToday
+from ..utils.logger import log_activity, get_client_ip
 
 router = APIRouter(prefix="/api/attendance", tags=["attendance"])
 
@@ -65,6 +66,7 @@ def get_today_attendance(
 @router.post("/check-in")
 def check_in(
     dto: AttendanceCheckIn,
+    request: Request,
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
@@ -78,7 +80,8 @@ def check_in(
     if existing and existing.check_in:
         raise HTTPException(status_code=400, detail="Already checked in today")
 
-    wd = now.weekday()
+    # determine weekday-specific threshold
+    wd = now.weekday()  # 0=Mon ... 4=Fri
     if wd == 4:
         th_h, th_m = LATE_THRESHOLD_FRIDAY
     else:
@@ -95,6 +98,9 @@ def check_in(
         existing.updated_at = now
         db.commit()
         db.refresh(existing)
+        log_activity(db, current_user.id, "checked_in", "attendance", existing.id,
+                     f"Checked in at {now.strftime('%H:%M')}",
+                     get_client_ip(request))
         return _attendance_to_out(existing)
 
     record = Attendance(
@@ -109,12 +115,16 @@ def check_in(
     db.add(record)
     db.commit()
     db.refresh(record)
+    log_activity(db, current_user.id, "checked_in", "attendance", record.id,
+                 f"Checked in at {now.strftime('%H:%M')}",
+                 get_client_ip(request))
     return _attendance_to_out(record)
 
 
 @router.post("/check-out")
 def check_out(
     dto: AttendanceCheckOut,
+    request: Request,
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
@@ -136,6 +146,9 @@ def check_out(
     record.updated_at = now
     db.commit()
     db.refresh(record)
+    log_activity(db, current_user.id, "checked_out", "attendance", record.id,
+                 f"Checked out at {now.strftime('%H:%M')}",
+                 get_client_ip(request))
     return _attendance_to_out(record)
 
 

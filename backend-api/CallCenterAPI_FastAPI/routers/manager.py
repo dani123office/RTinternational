@@ -1,18 +1,19 @@
 import re
 from datetime import datetime, date, timedelta
-from fastapi import APIRouter, Depends, HTTPException, Query
+from fastapi import APIRouter, Depends, HTTPException, Query, Request
 from sqlalchemy.orm import Session
 from sqlalchemy import func
-from database import get_db
-from models import User, CallBack, Transfer, Sale
-from routers.auth import require_manager, verify_manager_agent
-from schemas import (
+from ..database import get_db
+from ..models import User, CallBack, Transfer, Sale
+from .auth import require_manager, verify_manager_agent
+from ..utils.logger import log_activity, get_client_ip
+from ..schemas import (
     AgentOut, AgentStats, ManagerTeamStats, AgentDetail,
     ManagerCallbackCreate, ManagerTransferCreate, ManagerSaleCreate,
     CallBackUpdate,
 )
-from routers.transfers import _transfer_out
-from routers.sales import _sale_out
+from .transfers import _transfer_out
+from .sales import _sale_out
 
 def _to_camel(s: str) -> str:
     parts = s.split('_')
@@ -40,7 +41,7 @@ router = APIRouter(prefix="/api/manager", tags=["manager"])
 def get_agent_ids(manager: User, db: Session) -> list[int]:
     query = db.query(User).filter(
         User.role == "agent",
-        User.is_active == 1,
+        User.is_active == True,
     )
     if manager.role != "admin":
         query = query.filter(User.manager_id == manager.id)
@@ -149,7 +150,7 @@ def get_agents(
     agents = db.query(User).filter(
         User.manager_id == manager.id,
         User.role == "agent",
-        User.is_active == 1,
+        User.is_active == True,
     ).all()
     return [
         AgentOut(
@@ -227,8 +228,8 @@ def get_manager_callbacks(
     total = query.count()
     callbacks = query.order_by(CallBack.scheduled_datetime.desc()).offset(skip).limit(limit).all()
 
-    from models import Customer
-    from routers.callbacks import _build_callback_out
+    from ..models import Customer
+    from .callbacks import _build_callback_out
     items = []
     for cb in callbacks:
         customer = db.query(Customer).filter(Customer.id == cb.customer_id).first()
@@ -276,7 +277,7 @@ def get_manager_sales(
         query = query.filter(Sale.cot_status == status)
     total = query.count()
     sales = query.order_by(Sale.created_at.desc()).offset(skip).limit(limit).all()
-    from models import Customer
+    from ..models import Customer
     items = []
     for s in sales:
         customer = db.query(Customer).filter(Customer.id == s.customer_id).first()
@@ -287,6 +288,7 @@ def get_manager_sales(
 @router.post("/callback", status_code=201)
 def create_manager_callback(
     data: ManagerCallbackCreate,
+    request: Request,
     manager: User = Depends(require_manager),
     db: Session = Depends(get_db),
 ):
@@ -396,10 +398,13 @@ def create_manager_callback(
         db.refresh(cb)
         print("cb refreshed")
 
-        from models import Customer
-        from routers.callbacks import _build_callback_out
+        from ..models import Customer
+        from .callbacks import _build_callback_out
         customer = db.query(Customer).filter(Customer.id == cb.customer_id).first()
         result = _build_callback_out(cb, customer)
+        log_activity(db, manager.id, "created", "manager_callback", cb.id,
+                     f"Created callback #{cb.id} via manager",
+                     get_client_ip(request))
         print(f"=== MANAGER CALLBACK SUCCESS ===")
         return result
     except HTTPException:
@@ -419,6 +424,7 @@ def create_manager_callback(
 @router.post("/transfer", status_code=201)
 def create_manager_transfer(
     data: ManagerTransferCreate,
+    request: Request,
     manager: User = Depends(require_manager),
     db: Session = Depends(get_db),
 ):
@@ -443,6 +449,9 @@ def create_manager_transfer(
         db.add(t)
         db.commit()
         db.refresh(t)
+        log_activity(db, manager.id, "created", "manager_transfer", t.id,
+                     f"Created transfer #{t.id} via manager",
+                     get_client_ip(request))
         return _transfer_out(t, t.customer)
     except HTTPException:
         db.rollback()
@@ -455,6 +464,7 @@ def create_manager_transfer(
 @router.post("/sale", status_code=201)
 def create_manager_sale(
     data: ManagerSaleCreate,
+    request: Request,
     manager: User = Depends(require_manager),
     db: Session = Depends(get_db),
 ):
@@ -483,6 +493,9 @@ def create_manager_sale(
         db.add(s)
         db.commit()
         db.refresh(s)
+        log_activity(db, manager.id, "created", "manager_sale", s.id,
+                     f"Created sale #{s.id} via manager",
+                     get_client_ip(request))
         return _sale_out(s, s.customer)
     except HTTPException:
         db.rollback()
@@ -496,6 +509,7 @@ def create_manager_sale(
 def update_callback(
     callback_id: int,
     dto: CallBackUpdate,
+    request: Request,
     manager: User = Depends(require_manager),
     db: Session = Depends(get_db),
 ):
@@ -511,8 +525,8 @@ def update_callback(
         if not linked:
             raise HTTPException(status_code=403, detail="Cannot modify this callback")
         
-        from models import Customer, ElectricityMeter, GasMeter
-        from routers.callbacks import _build_callback_out
+        from ..models import Customer, ElectricityMeter, GasMeter
+        from .callbacks import _build_callback_out
 
         if getattr(dto, 'assignedAgentId', None) is not None:
             if dto.assignedAgentId in agent_ids:
@@ -623,6 +637,9 @@ def update_callback(
         db.commit()
         db.refresh(cb)
         customer = db.query(Customer).filter(Customer.id == cb.customer_id).first()
+        log_activity(db, manager.id, "updated", "manager_callback", cb.id,
+                     f"Updated callback #{cb.id} via manager",
+                     get_client_ip(request))
         return _build_callback_out(cb, customer)
     except HTTPException:
         db.rollback()
@@ -642,6 +659,7 @@ def update_callback(
 def update_transfer(
     transfer_id: int,
     data: dict,
+    request: Request,
     manager: User = Depends(require_manager),
     db: Session = Depends(get_db),
 ):
@@ -673,6 +691,9 @@ def update_transfer(
                 db.add(sale)
                 db.commit()
 
+        log_activity(db, manager.id, "updated", "manager_transfer", t.id,
+                     f"Updated transfer #{t.id} via manager",
+                     get_client_ip(request))
         return _transfer_out(t, t.customer)
     except HTTPException:
         db.rollback()
@@ -686,6 +707,7 @@ def update_transfer(
 def update_sale(
     sale_id: int,
     data: dict,
+    request: Request,
     manager: User = Depends(require_manager),
     db: Session = Depends(get_db),
 ):
@@ -702,6 +724,9 @@ def update_sale(
                 setattr(s, attr, val)
         db.commit()
         db.refresh(s)
+        log_activity(db, manager.id, "updated", "manager_sale", s.id,
+                     f"Updated sale #{s.id} via manager",
+                     get_client_ip(request))
         return _sale_out(s, s.customer)
     except HTTPException:
         db.rollback()
@@ -714,6 +739,7 @@ def update_sale(
 @router.delete("/callbacks/{callback_id}")
 def delete_callback(
     callback_id: int,
+    request: Request,
     manager: User = Depends(require_manager),
     db: Session = Depends(get_db),
 ):
@@ -728,8 +754,12 @@ def delete_callback(
         ).first()
         if not linked:
             raise HTTPException(status_code=403, detail="Cannot delete this callback")
+        cb_id = cb.id
         db.delete(cb)
         db.commit()
+        log_activity(db, manager.id, "deleted", "manager_callback", cb_id,
+                     f"Deleted callback #{cb_id} via manager",
+                     get_client_ip(request))
         return {"ok": True}
     except HTTPException:
         db.rollback()
@@ -742,6 +772,7 @@ def delete_callback(
 @router.delete("/transfers/{transfer_id}")
 def delete_transfer(
     transfer_id: int,
+    request: Request,
     manager: User = Depends(require_manager),
     db: Session = Depends(get_db),
 ):
@@ -752,8 +783,12 @@ def delete_transfer(
         agent_ids = get_agent_ids(manager, db)
         if t.employee_id not in agent_ids:
             raise HTTPException(status_code=403, detail="Cannot delete this transfer")
+        t_id = t.id
         db.delete(t)
         db.commit()
+        log_activity(db, manager.id, "deleted", "manager_transfer", t_id,
+                     f"Deleted transfer #{t_id} via manager",
+                     get_client_ip(request))
         return {"ok": True}
     except HTTPException:
         db.rollback()
@@ -766,6 +801,7 @@ def delete_transfer(
 @router.delete("/sales/{sale_id}")
 def delete_sale(
     sale_id: int,
+    request: Request,
     manager: User = Depends(require_manager),
     db: Session = Depends(get_db),
 ):
@@ -776,8 +812,12 @@ def delete_sale(
         agent_ids = get_agent_ids(manager, db)
         if s.employee_id not in agent_ids:
             raise HTTPException(status_code=403, detail="Cannot delete this sale")
+        s_id = s.id
         db.delete(s)
         db.commit()
+        log_activity(db, manager.id, "deleted", "manager_sale", s_id,
+                     f"Deleted sale #{s_id} via manager",
+                     get_client_ip(request))
         return {"ok": True}
     except HTTPException:
         db.rollback()

@@ -1,11 +1,12 @@
 from datetime import date, datetime
-from fastapi import APIRouter, Depends, HTTPException, Query
+from fastapi import APIRouter, Depends, HTTPException, Query, Request
 from sqlalchemy.orm import Session
 from sqlalchemy import func
 from ..database import get_db
 from ..models import Customer, ElectricityMeter, GasMeter, User
 from ..schemas import CustomerOut, CustomerCreate, CustomerUpdate, ElectricityMeterOut, GasMeterOut, ElectricityMeterCreate, GasMeterCreate
 from .auth import get_current_user
+from ..utils.logger import log_activity, get_client_ip
 
 router = APIRouter(prefix="/api/customers", tags=["customers"])
 
@@ -92,7 +93,7 @@ def get_customer(id: int, current_user: User = Depends(get_current_user), db: Se
 
 
 @router.post("")
-def create_customer(dto: CustomerCreate, current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
+def create_customer(dto: CustomerCreate, request: Request, current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
     try:
         if dto.postcode:
             existing = db.query(Customer).filter(
@@ -139,6 +140,9 @@ def create_customer(dto: CustomerCreate, current_user: User = Depends(get_curren
 
                 db.commit()
                 db.refresh(existing)
+                log_activity(db, current_user.id, "created", "customer", existing.id,
+                             f"Updated existing customer #{existing.id} by postcode match",
+                             get_client_ip(request))
                 return _customer_out(existing)
 
         customer = Customer(
@@ -187,6 +191,9 @@ def create_customer(dto: CustomerCreate, current_user: User = Depends(get_curren
 
         db.commit()
         db.refresh(customer)
+        log_activity(db, current_user.id, "created", "customer", customer.id,
+                     f"Created customer #{customer.id}",
+                     get_client_ip(request))
         return _customer_out(customer)
     except HTTPException:
         db.rollback()
@@ -197,7 +204,7 @@ def create_customer(dto: CustomerCreate, current_user: User = Depends(get_curren
 
 
 @router.put("/{id}")
-def update_customer(id: int, dto: CustomerUpdate, current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
+def update_customer(id: int, dto: CustomerUpdate, request: Request, current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
     customer = db.query(Customer).filter(Customer.id == id).first()
     if not customer:
         raise HTTPException(status_code=404, detail="Customer not found")
@@ -251,6 +258,9 @@ def update_customer(id: int, dto: CustomerUpdate, current_user: User = Depends(g
 
         db.commit()
         db.refresh(customer)
+        log_activity(db, current_user.id, "updated", "customer", customer.id,
+                     f"Updated customer #{customer.id}",
+                     get_client_ip(request))
         return _customer_out(customer)
     except Exception:
         db.rollback()
@@ -258,7 +268,7 @@ def update_customer(id: int, dto: CustomerUpdate, current_user: User = Depends(g
 
 
 @router.delete("/{id}")
-def delete_customer(id: int, current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
+def delete_customer(id: int, request: Request, current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
     customer = db.query(Customer).filter(Customer.id == id).first()
     if not customer:
         raise HTTPException(status_code=404, detail="Customer not found")
@@ -279,8 +289,12 @@ def delete_customer(id: int, current_user: User = Depends(get_current_user), db:
         db.query(Transfer).filter(Transfer.customer_id == id).delete()
         db.query(CallBack).filter(CallBack.customer_id == id).delete()
         
+        c_id = customer.id
         db.delete(customer)
         db.commit()
+        log_activity(db, current_user.id, "deleted", "customer", c_id,
+                     f"Deleted customer #{c_id}",
+                     get_client_ip(request))
         return {"success": True}
     except Exception as e:
         db.rollback()
@@ -288,7 +302,7 @@ def delete_customer(id: int, current_user: User = Depends(get_current_user), db:
 
 
 @router.post("/{id}/electricity-meters")
-def add_electricity_meter(id: int, dto: ElectricityMeterCreate, current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
+def add_electricity_meter(id: int, dto: ElectricityMeterCreate, request: Request, current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
     customer = db.query(Customer).filter(Customer.id == id).first()
     if not customer:
         raise HTTPException(status_code=404, detail="Customer not found")
@@ -317,6 +331,10 @@ def add_electricity_meter(id: int, dto: ElectricityMeterCreate, current_user: Us
     db.add(meter)
     db.commit()
     db.refresh(meter)
+
+    log_activity(db, current_user.id, "created", "electricity_meter", meter.id,
+                 f"Added electricity meter #{meter.id} to customer #{id}",
+                 get_client_ip(request))
     
     return {
         "id": meter.id,
@@ -334,7 +352,7 @@ def add_electricity_meter(id: int, dto: ElectricityMeterCreate, current_user: Us
 
 
 @router.post("/{id}/gas-meters")
-def add_gas_meter(id: int, dto: GasMeterCreate, current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
+def add_gas_meter(id: int, dto: GasMeterCreate, request: Request, current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
     customer = db.query(Customer).filter(Customer.id == id).first()
     if not customer:
         raise HTTPException(status_code=404, detail="Customer not found")
@@ -360,6 +378,10 @@ def add_gas_meter(id: int, dto: GasMeterCreate, current_user: User = Depends(get
     db.add(meter)
     db.commit()
     db.refresh(meter)
+
+    log_activity(db, current_user.id, "created", "gas_meter", meter.id,
+                 f"Added gas meter #{meter.id} to customer #{id}",
+                 get_client_ip(request))
     
     return {
         "id": meter.id,

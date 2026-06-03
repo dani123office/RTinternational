@@ -72,7 +72,28 @@ Fix 500 errors (local and Vercel) in the RT International call center FastAPI ap
   2. The local database default was configured to connect to PostgreSQL at `localhost:5432` by default. When uvicorn ran and tried to initialize the default admin/manager users, it failed with a connection error because no postgres instance was running at localhost, causing the application to crash at startup.
   → Fixed by installing dependencies and changing default local database configuration to fall back to the existing SQLite `callcenter.db`.
 
+### ← THIS SESSION (project audit & fixes)
+
+23. **Added activity logging across all routers** — `log_activity()` in `utils/logger.py` was defined but never called. Added `log_activity` calls after every create/update/delete operation in all 10 router files (auth, callbacks, customers, transfers, sales, manager, admin, attendance, leaves, profile) in both `CallCenterAPI_FastAPI/` and `backend-api/CallCenterAPI_FastAPI/`. The `activity_logs` table is now populated in real-time.
+
+24. **Updated README.md** — replaced outdated Flutter template with actual project description covering tech stack, features, quick start, and deployment.
+
+25. **Removed dead `psycopg2-binary` dependency** from `CallCenterAPI_FastAPI/requirements.txt` (pg8000 is the active driver).
+
+26. **Loosened strict `==` pins to `>=`** in `backend-api/requirements.txt` and `backend-api/CallCenterAPI_FastAPI/requirements.txt` to match the main copy and avoid resolution failures.
+
+27. **Added Docker support** — `Dockerfile` (Python 3.12-slim) and `docker-compose.yml` (api + frontend services).
+
+28. **Added CI/CD pipeline** — `.github/workflows/ci.yml` runs backend lint (Python compile check), backend tests (testsprite), and frontend lint on push/PR to master.
+
+## Root Causes (continued)
+- **Activity logging never worked**: `log_activity()` function was defined in `utils/logger.py` but never imported or called from any router. Activity logs table was always empty. No audit trail existed despite the schema being fully set up. → Fixed by adding `log_activity()` calls after all create/update/delete endpoints across all 10 routers.
+- **No containerized development**: No Dockerfile or docker-compose.yml existed, making it harder for new developers to set up a consistent local environment. → Fixed by adding Dockerfile (Python 3.12-slim) and docker-compose.yml (API + frontend).
+- **No CI/CD automation**: Tests were never run automatically on push, allowing regressions to go undetected until manual testing. → Fixed by adding a GitHub Actions workflow that runs lint + tests on push/PR.
+
 ## Verification
 1. Push to GitHub → Vercel auto-deploys
 2. Check `https://rt-international.vercel.app/` for frontend (should load SPA)
 3. Check `https://rt-international.vercel.app/api/auth/users` (should 401 with JSON body, not 500)
+4. Check `https://rt-international.vercel.app/api/admin/audit-log` (should show activity entries, not empty array)
+5. GitHub Actions CI should run on push (`.github/workflows/ci.yml`)

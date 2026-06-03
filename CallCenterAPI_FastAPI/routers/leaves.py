@@ -1,5 +1,5 @@
 from datetime import datetime, date
-from fastapi import APIRouter, Depends, HTTPException, Query
+from fastapi import APIRouter, Depends, HTTPException, Query, Request
 from sqlalchemy.orm import Session
 from sqlalchemy import func
 from typing import Optional
@@ -7,6 +7,7 @@ from ..database import get_db
 from ..models import User, LeaveRequest
 from .auth import get_current_user
 from ..schemas import LeaveRequestCreate, LeaveRequestReview, LeaveRequestOut
+from ..utils.logger import log_activity, get_client_ip
 
 router = APIRouter(prefix="/api/leaves", tags=["leaves"])
 
@@ -31,6 +32,7 @@ def _leave_to_out(l: LeaveRequest) -> LeaveRequestOut:
 @router.post("")
 def create_leave(
     dto: LeaveRequestCreate,
+    request: Request,
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
@@ -50,6 +52,9 @@ def create_leave(
     db.add(record)
     db.commit()
     db.refresh(record)
+    log_activity(db, current_user.id, "created", "leave", record.id,
+                 f"Created leave request #{record.id}",
+                 get_client_ip(request))
     return _leave_to_out(record)
 
 
@@ -95,6 +100,7 @@ def pending_leaves(
 def review_leave(
     leave_id: int,
     dto: LeaveRequestReview,
+    request: Request,
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
@@ -113,6 +119,9 @@ def review_leave(
     record.updated_at = datetime.now()
     db.commit()
     db.refresh(record)
+    log_activity(db, current_user.id, "reviewed", "leave", record.id,
+                 f"Reviewed leave #{record.id} as {dto.status}",
+                 get_client_ip(request))
     return _leave_to_out(record)
 
 

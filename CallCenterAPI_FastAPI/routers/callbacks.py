@@ -1,10 +1,11 @@
 from datetime import datetime
-from fastapi import APIRouter, Depends, HTTPException, Query
+from fastapi import APIRouter, Depends, HTTPException, Query, Request
 from sqlalchemy.orm import Session
 from ..database import get_db
 from ..models import CallBack, Customer, ElectricityMeter, GasMeter, Transfer, User
 from ..schemas import CallBackOut, CustomerOut, ElectricityMeterOut, GasMeterOut, CallBackCreate, CallBackUpdate
 from .auth import get_current_user
+from ..utils.logger import log_activity, get_client_ip
 
 router = APIRouter(prefix="/api/callbacks", tags=["callbacks"])
 
@@ -143,7 +144,7 @@ def get_callback(id: int, current_user: User = Depends(get_current_user), db: Se
 
 
 @router.post("")
-def create_callback(dto: CallBackCreate, current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
+def create_callback(dto: CallBackCreate, request: Request, current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
     try:
         dt = dto.scheduledDateTime
         
@@ -213,6 +214,9 @@ def create_callback(dto: CallBackCreate, current_user: User = Depends(get_curren
         db.commit()
         db.refresh(callback)
         customer = db.query(Customer).filter(Customer.id == callback.customer_id).first()
+        log_activity(db, current_user.id, "created", "callback", callback.id,
+                     f"Created callback for customer #{callback.customer_id}",
+                     get_client_ip(request))
         return _build_callback_out(callback, customer)
     except HTTPException:
         db.rollback()
@@ -223,7 +227,7 @@ def create_callback(dto: CallBackCreate, current_user: User = Depends(get_curren
 
 
 @router.put("/{id}")
-def update_callback(id: int, dto: CallBackUpdate, current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
+def update_callback(id: int, dto: CallBackUpdate, request: Request, current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
     callback = db.query(CallBack).filter(CallBack.id == id).first()
     if not callback:
         raise HTTPException(status_code=404, detail="Callback not found")
@@ -353,6 +357,9 @@ def update_callback(id: int, dto: CallBackUpdate, current_user: User = Depends(g
         db.commit()
         db.refresh(callback)
         customer = db.query(Customer).filter(Customer.id == callback.customer_id).first()
+        log_activity(db, current_user.id, "updated", "callback", callback.id,
+                     f"Updated callback #{callback.id}",
+                     get_client_ip(request))
         return _build_callback_out(callback, customer)
     except HTTPException:
         db.rollback()
@@ -363,7 +370,7 @@ def update_callback(id: int, dto: CallBackUpdate, current_user: User = Depends(g
 
 
 @router.delete("/{id}")
-def delete_callback(id: int, current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
+def delete_callback(id: int, request: Request, current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
     callback = db.query(CallBack).filter(CallBack.id == id).first()
     if not callback:
         raise HTTPException(status_code=404, detail="Callback not found")
@@ -379,8 +386,12 @@ def delete_callback(id: int, current_user: User = Depends(get_current_user), db:
     if not is_auth:
         raise HTTPException(status_code=403, detail="Not authorized to delete this callback")
     try:
+        cb_id = callback.id
         db.delete(callback)
         db.commit()
+        log_activity(db, current_user.id, "deleted", "callback", cb_id,
+                     f"Deleted callback #{cb_id}",
+                     get_client_ip(request))
         return {"success": True}
     except HTTPException:
         db.rollback()

@@ -1,12 +1,13 @@
 import bcrypt
 from datetime import datetime
-from fastapi import APIRouter, Depends, HTTPException, Query
+from fastapi import APIRouter, Depends, HTTPException, Query, Request
 from fastapi.responses import Response
 from sqlalchemy.orm import Session
 from sqlalchemy import func
 from ..database import get_db
 from ..models import User, Customer, CallBack, Transfer, Sale, ActivityLog, Attendance
 from .auth import require_admin
+from ..utils.logger import log_activity, get_client_ip
 from ..schemas import (
     CreateManagerRequest, CreateAgentRequest, AssignAgentRequest,
     UpdateUserRequest, UpdateAgentStaffRequest, ApproveUserRequest, ResetUserPasswordRequest,
@@ -31,7 +32,7 @@ def _safe_div(a: int, b: int) -> float:
 
 
 @router.post("/create-manager", status_code=201)
-def create_manager(data: CreateManagerRequest, admin: User = Depends(require_admin), db: Session = Depends(get_db)):
+def create_manager(data: CreateManagerRequest, request: Request, admin: User = Depends(require_admin), db: Session = Depends(get_db)):
     try:
         existing = db.query(User).filter(User.email == data.email).first()
         if existing:
@@ -47,6 +48,9 @@ def create_manager(data: CreateManagerRequest, admin: User = Depends(require_adm
         db.add(user)
         db.commit()
         db.refresh(user)
+        log_activity(db, admin.id, "created", "manager", user.id,
+                     f"Created manager {user.email}",
+                     get_client_ip(request))
         return {"id": user.id, "name": user.name, "email": user.email, "role": user.role}
     except HTTPException:
         db.rollback()
@@ -57,7 +61,7 @@ def create_manager(data: CreateManagerRequest, admin: User = Depends(require_adm
 
 
 @router.post("/create-agent", status_code=201)
-def create_agent(data: CreateAgentRequest, admin: User = Depends(require_admin), db: Session = Depends(get_db)):
+def create_agent(data: CreateAgentRequest, request: Request, admin: User = Depends(require_admin), db: Session = Depends(get_db)):
     try:
         existing = db.query(User).filter(User.email == data.email).first()
         if existing:
@@ -89,6 +93,9 @@ def create_agent(data: CreateAgentRequest, admin: User = Depends(require_admin),
         db.add(user)
         db.commit()
         db.refresh(user)
+        log_activity(db, admin.id, "created", "agent", user.id,
+                     f"Created agent {user.email}",
+                     get_client_ip(request))
         return {"id": user.id, "name": user.name, "email": user.email, "role": user.role, "managerId": user.manager_id}
     except HTTPException:
         db.rollback()
@@ -278,6 +285,7 @@ def get_agent_detail(
 def update_agent_staff(
     agent_id: int,
     data: UpdateAgentStaffRequest,
+    request: Request,
     admin: User = Depends(require_admin),
     db: Session = Depends(get_db),
 ):
@@ -315,6 +323,9 @@ def update_agent_staff(
             agent.emerg_contact_number = data.emergContactNumber or None
         db.commit()
         db.refresh(agent)
+        log_activity(db, admin.id, "updated", "agent", agent.id,
+                     f"Updated agent #{agent.id} staff info",
+                     get_client_ip(request))
         return AgentOut(
             id=agent.id, name=agent.name, email=agent.email,
             role=agent.role, isActive=agent.is_active, managerId=agent.manager_id,
@@ -340,6 +351,7 @@ def update_agent_staff(
 @router.put("/user/{user_id}")
 def update_user(
     user_id: int, data: UpdateUserRequest,
+    request: Request,
     admin: User = Depends(require_admin), db: Session = Depends(get_db),
 ):
     try:
@@ -366,6 +378,9 @@ def update_user(
             user.manager_id = data.managerId
         db.commit()
         db.refresh(user)
+        log_activity(db, admin.id, "updated", "user", user.id,
+                     f"Updated user #{user.id}",
+                     get_client_ip(request))
         return {"id": user.id, "name": user.name, "email": user.email, "role": user.role, "isActive": 1 if user.is_active else 0, "managerId": user.manager_id}
     except HTTPException:
         db.rollback()
@@ -376,7 +391,7 @@ def update_user(
 
 
 @router.delete("/user/{user_id}")
-def delete_user(user_id: int, admin: User = Depends(require_admin), db: Session = Depends(get_db)):
+def delete_user(user_id: int, request: Request, admin: User = Depends(require_admin), db: Session = Depends(get_db)):
     try:
         user = db.query(User).filter(User.id == user_id).first()
         if not user:
@@ -392,8 +407,12 @@ def delete_user(user_id: int, admin: User = Depends(require_admin), db: Session 
         db.query(Transfer).filter(Transfer.employee_id == user.id).delete()
         db.query(Sale).filter(Sale.employee_id == user.id).delete()
         db.query(Customer).filter(Customer.created_by == user.id).delete()
+        u_id = user.id
         db.delete(user)
         db.commit()
+        log_activity(db, admin.id, "deleted", "user", u_id,
+                     f"Deleted user {name}",
+                     get_client_ip(request))
         return {"ok": True, "message": f"User {name} and all associated records permanently deleted"}
     except HTTPException:
         db.rollback()
@@ -404,7 +423,7 @@ def delete_user(user_id: int, admin: User = Depends(require_admin), db: Session 
 
 
 @router.patch("/assign-agent")
-def assign_agent(data: AssignAgentRequest, admin: User = Depends(require_admin), db: Session = Depends(get_db)):
+def assign_agent(data: AssignAgentRequest, request: Request, admin: User = Depends(require_admin), db: Session = Depends(get_db)):
     try:
         agent = db.query(User).filter(User.id == data.agentId, User.role == "agent").first()
         if not agent:
@@ -416,6 +435,9 @@ def assign_agent(data: AssignAgentRequest, admin: User = Depends(require_admin),
             raise HTTPException(status_code=400, detail="Manager not found or inactive")
         agent.manager_id = data.managerId
         db.commit()
+        log_activity(db, admin.id, "updated", "agent_assignment", agent.id,
+                     f"Assigned agent #{agent.id} to manager #{data.managerId}",
+                     get_client_ip(request))
         return {"ok": True, "agentId": agent.id, "managerId": manager.id}
     except HTTPException:
         db.rollback()
@@ -446,6 +468,7 @@ def get_pending_users(admin: User = Depends(require_admin), db: Session = Depend
 @router.post("/approve-user/{user_id}")
 def approve_user(
     user_id: int, data: ApproveUserRequest,
+    request: Request,
     admin: User = Depends(require_admin), db: Session = Depends(get_db),
 ):
     user = db.query(User).filter(User.id == user_id).first()
@@ -464,12 +487,16 @@ def approve_user(
     user.is_active = True
     db.commit()
     db.refresh(user)
+    log_activity(db, admin.id, "approved", "user", user.id,
+                 f"Approved user {user.email}",
+                 get_client_ip(request))
     return {"ok": True, "message": f"User {user.name} approved and assigned to {manager.name}"}
 
 
 @router.post("/reset-user-password/{user_id}")
 def reset_user_password(
     user_id: int, data: ResetUserPasswordRequest,
+    request: Request,
     admin: User = Depends(require_admin), db: Session = Depends(get_db),
 ):
     user = db.query(User).filter(User.id == user_id).first()
@@ -479,6 +506,9 @@ def reset_user_password(
         raise HTTPException(status_code=400, detail="Password must be at least 6 characters")
     user.password_hash = bcrypt.hashpw(data.newPassword.encode("utf-8"), bcrypt.gensalt()).decode("utf-8")
     db.commit()
+    log_activity(db, admin.id, "password_reset", "user", user.id,
+                 f"Password reset for user {user.email}",
+                 get_client_ip(request))
     return {"ok": True, "message": f"Password for {user.name} has been reset"}
 
 

@@ -1,10 +1,11 @@
-from fastapi import APIRouter, Depends, HTTPException, Query
+from fastapi import APIRouter, Depends, HTTPException, Query, Request
 from sqlalchemy.orm import Session
 from ..database import get_db
 from ..models import Transfer, Customer, CallBack, User, Sale
 from ..schemas import TransferOut, CustomerOut, ElectricityMeterOut, GasMeterOut, TransferCreate, TransferUpdate, SaleOut
 from datetime import datetime
 from .auth import get_current_user
+from ..utils.logger import log_activity, get_client_ip
 
 router = APIRouter(prefix="/api/transfers", tags=["transfers"])
 
@@ -136,7 +137,7 @@ def get_transfer(id: int, current_user: User = Depends(get_current_user), db: Se
 
 
 @router.post("")
-def create_transfer(dto: TransferCreate, current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
+def create_transfer(dto: TransferCreate, request: Request, current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
     try:
         existing = db.query(Transfer).filter(Transfer.customer_id == dto.customerId).first()
         if existing:
@@ -210,6 +211,9 @@ def create_transfer(dto: TransferCreate, current_user: User = Depends(get_curren
         db.commit()
         db.refresh(transfer)
         customer = db.query(Customer).filter(Customer.id == transfer.customer_id).first()
+        log_activity(db, current_user.id, "created", "transfer", transfer.id,
+                     f"Created transfer #{transfer.id}",
+                     get_client_ip(request))
         return _transfer_out(transfer, customer)
     except HTTPException:
         db.rollback()
@@ -220,7 +224,7 @@ def create_transfer(dto: TransferCreate, current_user: User = Depends(get_curren
 
 
 @router.put("/{id}")
-def update_transfer(id: int, dto: TransferUpdate, current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
+def update_transfer(id: int, dto: TransferUpdate, request: Request, current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
     transfer = db.query(Transfer).filter(Transfer.id == id).first()
     if not transfer:
         raise HTTPException(status_code=404, detail="Transfer not found")
@@ -315,6 +319,9 @@ def update_transfer(id: int, dto: TransferUpdate, current_user: User = Depends(g
                 db.commit()
 
         customer = db.query(Customer).filter(Customer.id == transfer.customer_id).first()
+        log_activity(db, current_user.id, "updated", "transfer", transfer.id,
+                     f"Updated transfer #{transfer.id}",
+                     get_client_ip(request))
         return _transfer_out(transfer, customer)
     except HTTPException:
         db.rollback()
@@ -325,7 +332,7 @@ def update_transfer(id: int, dto: TransferUpdate, current_user: User = Depends(g
 
 
 @router.delete("/{id}")
-def delete_transfer(id: int, current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
+def delete_transfer(id: int, request: Request, current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
     transfer = db.query(Transfer).filter(Transfer.id == id).first()
     if not transfer:
         raise HTTPException(status_code=404, detail="Transfer not found")
@@ -339,8 +346,12 @@ def delete_transfer(id: int, current_user: User = Depends(get_current_user), db:
     if not is_auth:
         raise HTTPException(status_code=403, detail="Not authorized to delete this transfer")
     try:
+        t_id = transfer.id
         db.delete(transfer)
         db.commit()
+        log_activity(db, current_user.id, "deleted", "transfer", t_id,
+                     f"Deleted transfer #{t_id}",
+                     get_client_ip(request))
         return {"success": True}
     except HTTPException:
         db.rollback()

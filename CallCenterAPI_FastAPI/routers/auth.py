@@ -3,11 +3,12 @@ import bcrypt
 import os
 import secrets
 from datetime import datetime, timedelta
-from fastapi import APIRouter, Depends, HTTPException, Header
+from fastapi import APIRouter, Depends, HTTPException, Header, Request
 from sqlalchemy.orm import Session
 from ..database import get_db
 from ..models import User
 from ..schemas import LoginRequest, LoginResponse, RegisterRequest, ForgotPasswordRequest, ResetPasswordRequest, UserOut
+from ..utils.logger import log_activity, get_client_ip
 
 router = APIRouter(prefix="/api/auth", tags=["auth"])
 
@@ -102,7 +103,7 @@ def verify_manager_agent(manager: User, agent_id: int, db: Session) -> User:
 
 
 @router.post("/login")
-def login(request: LoginRequest, db: Session = Depends(get_db)):
+def login(request: LoginRequest, fastapi_req: Request, db: Session = Depends(get_db)):
     user = db.query(User).filter(User.email == request.email).first()
     if not user:
         raise HTTPException(status_code=401, detail="Invalid credentials")
@@ -116,6 +117,9 @@ def login(request: LoginRequest, db: Session = Depends(get_db)):
 
     token = _create_token(user.id)
     refresh = _create_refresh_token(user.id)
+    log_activity(db, user.id, "login", "auth", None,
+                 f"User {user.email} logged in",
+                 get_client_ip(fastapi_req))
     return LoginResponse(
         token=token,
         refreshToken=refresh,
@@ -162,7 +166,7 @@ def refresh_token(db: Session = Depends(get_db), authorization: str = Header(Non
 
 
 @router.post("/register")
-def register(request: RegisterRequest, db: Session = Depends(get_db)):
+def register(request: RegisterRequest, fastapi_req: Request, db: Session = Depends(get_db)):
     existing = db.query(User).filter(User.email == request.email).first()
     if existing:
         raise HTTPException(status_code=400, detail="Email already exists")
@@ -178,6 +182,10 @@ def register(request: RegisterRequest, db: Session = Depends(get_db)):
     db.add(user)
     db.commit()
     db.refresh(user)
+
+    log_activity(db, user.id, "registered", "user", user.id,
+                 f"User {user.email} registered as {user.role}",
+                 get_client_ip(fastapi_req))
 
     if request.role == "manager":
         return {"message": "Manager account created successfully. You can now log in."}
@@ -207,7 +215,7 @@ def forgot_password(request: ForgotPasswordRequest, db: Session = Depends(get_db
 
 
 @router.post("/reset-password")
-def reset_password(request: ResetPasswordRequest, db: Session = Depends(get_db)):
+def reset_password(request: ResetPasswordRequest, fastapi_req: Request, db: Session = Depends(get_db)):
     user = db.query(User).filter(
         User.reset_token == request.token,
         User.reset_token_expiry > datetime.utcnow(),
@@ -223,6 +231,10 @@ def reset_password(request: ResetPasswordRequest, db: Session = Depends(get_db))
     user.reset_token = None
     user.reset_token_expiry = None
     db.commit()
+
+    log_activity(db, user.id, "password_reset", "auth", user.id,
+                 f"Password reset for user {user.email}",
+                 get_client_ip(fastapi_req))
 
     return {"message": "Password has been reset successfully"}
 
