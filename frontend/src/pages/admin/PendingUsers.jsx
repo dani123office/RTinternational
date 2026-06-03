@@ -5,7 +5,6 @@ import { UserPlus, CheckCircle, XCircle, Loader2, UserRoundCog, CalendarCheck, C
 import { APP_STYLES } from '@/lib/styles'
 import DataTable from '@/components/shared/DataTable'
 import LoadingSpinner from '@/components/shared/LoadingSpinner'
-import EmptyState from '@/components/shared/EmptyState'
 
 export default function PendingUsers() {
   const { pendingUsers, managers, loadPendingUsers, loadManagers, approveUser } = useAdminStore()
@@ -132,7 +131,7 @@ export default function PendingUsers() {
               </div>
               <div>
                 <h1 className="text-2xl font-extrabold text-slate-900 tracking-tight">Pending Approvals</h1>
-                <p className="text-sm text-slate-400 mt-0.5">{pendingUsers.length} user{pendingUsers.length !== 1 ? 's' : ''} waiting for approval</p>
+                <p className="text-sm text-slate-400 mt-0.5">{pendingUsers.length} {pendingUsers.length === 1 ? 'user' : 'users'} waiting for approval</p>
               </div>
             </div>
           </div>
@@ -164,7 +163,11 @@ export default function PendingUsers() {
               {leavesLoading ? (
                 <p className="text-sm text-slate-400 text-center py-6">Loading...</p>
               ) : pendingLeaves.length === 0 ? (
-                <p className="text-sm text-slate-400 text-center py-6">No pending leave requests.</p>
+                <div className="flex flex-col items-center justify-center py-6">
+                  <CalendarCheck size={28} color="#94a3b8" />
+                  <p className="text-sm font-semibold text-slate-500 mt-3">No pending leave requests</p>
+                  <p className="text-xs text-slate-400 mt-1">All caught up!</p>
+                </div>
               ) : (
                 <div className="overflow-x-auto">
                   <table className="w-full text-sm">
@@ -227,7 +230,11 @@ export default function PendingUsers() {
             </div>
             <div className="rt-card-body">
               {pendingUsers.length === 0 ? (
-                <EmptyState icon={UserPlus} title="No pending approvals" description="All users have been approved" />
+                <div className="flex flex-col items-center justify-center py-6">
+                  <UserPlus size={28} color="#94a3b8" />
+                  <p className="text-sm font-semibold text-slate-500 mt-3">You're all caught up!</p>
+                  <p className="text-xs text-slate-400 mt-1">No pending approvals</p>
+                </div>
               ) : (
                 <DataTable columns={columns} data={pendingUsers} pageSize={10} />
               )}
