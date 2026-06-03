@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { useManagerStore } from '@/store/managerStore'
 import { Bell, PhoneCall, ArrowLeftRight, PoundSterling } from 'lucide-react'
 import { APP_STYLES } from '@/lib/styles'
@@ -14,6 +15,7 @@ const typeConfig = {
 }
 
 export default function ManagerNotifications() {
+  const navigate = useNavigate()
   const { notifications, loadNotifications, loadAgents, isLoading } = useManagerStore()
   const [filter, setFilter] = useState('')
 
@@ -50,7 +52,12 @@ export default function ManagerNotifications() {
                 const cfg = typeConfig[n.type] || { icon: Bell, bg: '#f1f5f9', color: '#64748b' }
                 const Icon = cfg.icon
                 return (
-                  <div key={i} className="rt-card flex items-center gap-4 p-4 hover:bg-slate-50/50 transition-colors">
+                  <div key={i} onClick={() => {
+                    const path = n.type === 'callback' ? `/manager/callbacks/${n.id}`
+                      : n.type === 'transfer' ? `/manager/transfers/${n.id}`
+                      : n.type === 'sale' ? `/sales/${n.id}` : '#'
+                    if (path !== '#') navigate(path)
+                  }} className="rt-card flex items-center gap-4 p-4 hover:bg-slate-50/50 transition-colors cursor-pointer">
                     <div className="w-10 h-10 rounded-xl flex items-center justify-center shrink-0" style={{ background: cfg.bg }}>
                       <Icon size={18} color={cfg.color} />
                     </div>
