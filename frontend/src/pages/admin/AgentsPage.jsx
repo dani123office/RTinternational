@@ -80,18 +80,30 @@ export default function AgentsPage() {
       header: 'Actions',
       cell: (row) => (
         <div className="flex gap-1 justify-end" onClick={(e) => e.stopPropagation()}>
-          <button onClick={() => setShowResetPwd(row)} title="Reset password" className="p-1.5 rounded-lg border-none bg-transparent text-amber-500 cursor-pointer hover:bg-amber-50 transition-colors">
-            <KeyRound size={14} />
-          </button>
-          <button onClick={() => setShowAssign(row)} title="Assign manager" className="p-1.5 rounded-lg border-none bg-transparent text-indigo-500 cursor-pointer hover:bg-indigo-50 transition-colors">
-            <UserRoundCog size={14} />
-          </button>
-          <button onClick={() => handleToggleActive(row)} title="Toggle active" className="p-1.5 rounded-lg border-none bg-transparent text-slate-500 cursor-pointer hover:bg-slate-100 transition-colors">
-            <Ban size={14} />
-          </button>
-          <button onClick={() => handleDelete(row)} title="Delete" className="p-1.5 rounded-lg border-none bg-transparent text-red-500 cursor-pointer hover:bg-red-50 transition-colors">
-            <Trash2 size={14} />
-          </button>
+          <span className="rt-tooltip-wrap">
+            <button onClick={() => setShowResetPwd(row)} className="p-1.5 rounded-lg border-none bg-transparent text-amber-500 cursor-pointer hover:bg-amber-50 transition-colors">
+              <KeyRound size={14} />
+            </button>
+            <span className="rt-tooltip">Reset password</span>
+          </span>
+          <span className="rt-tooltip-wrap">
+            <button onClick={() => setShowAssign(row)} className="p-1.5 rounded-lg border-none bg-transparent text-indigo-500 cursor-pointer hover:bg-indigo-50 transition-colors">
+              <UserRoundCog size={14} />
+            </button>
+            <span className="rt-tooltip">Assign manager</span>
+          </span>
+          <span className="rt-tooltip-wrap">
+            <button onClick={() => handleToggleActive(row)} className="p-1.5 rounded-lg border-none bg-transparent text-slate-500 cursor-pointer hover:bg-slate-100 transition-colors">
+              <Ban size={14} />
+            </button>
+            <span className="rt-tooltip">{row.isActive ? 'Deactivate' : 'Activate'}</span>
+          </span>
+          <span className="rt-tooltip-wrap">
+            <button onClick={() => handleDelete(row)} className="p-1.5 rounded-lg border-none bg-transparent text-red-500 cursor-pointer hover:bg-red-50 transition-colors">
+              <Trash2 size={14} />
+            </button>
+            <span className="rt-tooltip">Delete agent</span>
+          </span>
         </div>
       ),
     },
