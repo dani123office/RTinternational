@@ -28,7 +28,7 @@ export default function DataTable({ columns, data, searchKey, onRowClick, pageSi
             placeholder="Search..."
             value={search}
             onChange={(e) => { setSearch(e.target.value); setPage(0) }}
-            className="border-none outline-none flex-1 text-[0.82rem] text-slate-900 bg-transparent"
+            className="border-none outline-none flex-1 text-[0.82rem] text-slate-900 bg-transparent pl-1.5"
           />
         </div>
       )}

@@ -52,7 +52,7 @@ def get_agent_ids(manager: User, db: Session) -> list[int]:
 def _safe_div(a: int, b: int) -> float:
     if b == 0:
         return 0.0
-    return round((a / b) * 100, 1)
+    return round((a / b) * 100 + 1e-9, 1)
 
 
 @router.get("/team-stats")

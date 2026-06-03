@@ -168,10 +168,10 @@ export default function Sidebar({ collapsed, onToggle, mobileOpen, onMobileClose
           </div>
         ) : null}
 
-        <div className="p-4 border-t shrink-0 overflow-hidden" style={{ borderColor: 'rgba(255,255,255,0.06)' }}>
-          <p style={{ color: 'rgba(255,255,255,0.2)', fontSize: '0.68rem', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>&copy;&nbsp;2026&nbsp;RT&nbsp;International</p>
-          <p style={{ color: 'rgba(255,255,255,0.12)', fontSize: '0.6rem', marginTop: '2px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{ROLE_FOOTER[role]}</p>
-          <p style={{ color: 'rgba(255,255,255,0.12)', fontSize: '0.6rem', marginTop: '2px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>Credit: M Ahsan Shahid</p>
+        <div className="p-4 border-t shrink-0 overflow-hidden" style={{ borderColor: 'rgba(255,255,255,0.08)' }}>
+          <p style={{ color: 'rgba(255,255,255,0.55)', fontSize: '0.68rem', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>&copy;&nbsp;2026&nbsp;RT&nbsp;International</p>
+          <p style={{ color: 'rgba(255,255,255,0.4)', fontSize: '0.6rem', marginTop: '2px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{ROLE_FOOTER[role]}</p>
+          <p style={{ color: 'rgba(255,255,255,0.4)', fontSize: '0.6rem', marginTop: '2px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>Credit: M Ahsan Shahid</p>
         </div>
       </aside>
     </>

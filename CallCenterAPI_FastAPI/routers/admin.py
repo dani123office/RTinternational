@@ -25,7 +25,7 @@ router = APIRouter(prefix="/api/admin", tags=["admin"])
 def _safe_div(a: int, b: int) -> float:
     if b == 0:
         return 0.0
-    return round((a / b) * 100, 1)
+    return round((a / b) * 100 + 1e-9, 1)
 
 
 # ─── User Management ─────────────────────────────────────

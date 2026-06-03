@@ -172,4 +172,19 @@ export const APP_STYLES = `
     transition:background .15s,color .15s;
   }
   .rt-btn-icon:hover { background:#f1f5f9; color:#0f172a; }
+
+  .rt-tooltip-wrap { position:relative; display:inline-flex; }
+  .rt-tooltip-wrap .rt-tooltip {
+    position:absolute; bottom:calc(100% + 6px); left:50%; transform:translateX(-50%);
+    white-space:nowrap; padding:3px 8px; border-radius:6px;
+    background:#0f172a; color:#fff; font-size:11px; font-weight:500;
+    pointer-events:none; opacity:0; transition:opacity .15s ease;
+    z-index:50;
+  }
+  .rt-tooltip-wrap:hover .rt-tooltip,
+  .rt-tooltip-wrap:focus-within .rt-tooltip { opacity:1; }
+  .rt-tooltip-wrap .rt-tooltip::after {
+    content:''; position:absolute; top:100%; left:50%; transform:translateX(-50%);
+    border:4px solid transparent; border-top-color:#0f172a;
+  }
 `
