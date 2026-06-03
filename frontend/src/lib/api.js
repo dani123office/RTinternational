@@ -140,6 +140,7 @@ export const endpoints = {
     stats: '/api/attendance/stats',
     teamToday: '/api/attendance/team-today',
     agentHistory: (id) => `/api/attendance/agent-history/${id}`,
+    record: (id) => `/api/attendance/record/${id}`,
   },
   leaves: {
     create: '/api/leaves',

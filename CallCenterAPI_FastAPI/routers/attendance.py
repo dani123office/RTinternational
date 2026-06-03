@@ -7,7 +7,14 @@ from typing import Optional
 from ..database import get_db
 from ..models import User, Attendance
 from .auth import get_current_user
+from pydantic import BaseModel
 from ..schemas import AttendanceCheckIn, AttendanceCheckOut, AttendanceOut, AttendanceSummary, UserAttendanceToday
+
+
+class AttendanceRecordOut(BaseModel):
+    record: AttendanceOut
+    agentName: str
+    agentEmail: str
 from ..utils.logger import log_activity, get_client_ip
 
 router = APIRouter(prefix="/api/attendance", tags=["attendance"])
@@ -300,3 +307,30 @@ def agent_history(
         "perPage": per_page,
         "totalPages": (total + per_page - 1) // per_page,
     }
+
+
+@router.get("/record/{record_id}")
+def attendance_record(
+    record_id: int,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    if current_user.role not in ("manager", "admin"):
+        raise HTTPException(status_code=403, detail="Only managers and admins can view attendance records")
+
+    record = db.query(Attendance).filter(Attendance.id == record_id).first()
+    if not record:
+        raise HTTPException(status_code=404, detail="Attendance record not found")
+
+    agent = db.query(User).filter(User.id == record.user_id).first()
+    if not agent:
+        raise HTTPException(status_code=404, detail="Agent not found")
+
+    if current_user.role == "manager" and agent.manager_id != current_user.id:
+        raise HTTPException(status_code=403, detail="You can only view your own team members")
+
+    return AttendanceRecordOut(
+        record=_attendance_to_out(record),
+        agentName=agent.name,
+        agentEmail=agent.email,
+    )

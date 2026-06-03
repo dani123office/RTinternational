@@ -1,10 +1,12 @@
 import { useEffect, useState, useCallback } from 'react'
+import { useNavigate } from 'react-router-dom'
 import api, { endpoints } from '@/lib/api'
 import { useAuthStore } from '@/store/authStore'
 import { APP_STYLES } from '@/lib/styles'
 import { Users, Clock, CheckCircle, AlertTriangle, XCircle, Search, Calendar, CalendarCheck, ChevronLeft, ChevronRight } from 'lucide-react'
 
 export default function ManagerAttendance() {
+  const navigate = useNavigate()
   const { user } = useAuthStore()
   const [team, setTeam] = useState([])
   const [loading, setLoading] = useState(true)
@@ -187,7 +189,7 @@ export default function ManagerAttendance() {
                           </thead>
                           <tbody>
                             {agentHistory.items.map((r) => (
-                              <tr key={r.id} className="hover:bg-slate-50 transition-colors" style={{ borderBottom: '1px solid #f8fafc' }}>
+                              <tr key={r.id} onClick={() => navigate(`/${user?.role}/attendance/${r.id}`)} className="hover:bg-slate-50 transition-colors cursor-pointer" style={{ borderBottom: '1px solid #f8fafc' }}>
                                 <td className="py-2.5 px-2 font-semibold text-slate-800">{new Date(r.date).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })}</td>
                                 <td className="py-2.5 px-2 text-slate-600">
                                   {r.checkIn ? new Date(r.checkIn).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true }) : '-'}

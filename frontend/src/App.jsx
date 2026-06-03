@@ -22,6 +22,7 @@ import CustomerDetail from '@/pages/CustomerDetail'
 import ProfileSettings from '@/pages/ProfileSettings'
 import TeamDashboard from '@/pages/manager/TeamDashboard'
 import ManagerAttendance from '@/pages/manager/ManagerAttendance'
+import AttendanceDetail from '@/pages/AttendanceDetail'
 import AgentDetail from '@/pages/manager/AgentDetail'
 import ManagerCallbacks from '@/pages/manager/ManagerCallbacks'
 import ManagerCallbackDetail from '@/pages/manager/ManagerCallbackDetail'
@@ -98,6 +99,7 @@ export default function App() {
       <Route path="/manager" element={<RoleRoute allowedRoles={['manager']}><AppLayout /></RoleRoute>}>
         <Route index element={<TeamDashboard />} />
         <Route path="attendance" element={<ManagerAttendance />} />
+        <Route path="attendance/:id" element={<AttendanceDetail />} />
         <Route path="agents" element={<ManagerAgentsList />} />
         <Route path="agents/:id" element={<AgentDetail />} />
         <Route path="callbacks" element={<ManagerCallbacks />} />
@@ -111,6 +113,7 @@ export default function App() {
       <Route path="/admin" element={<RoleRoute allowedRoles={['admin']}><AppLayout /></RoleRoute>}>
         <Route index element={<AdminDashboard />} />
         <Route path="attendance" element={<ManagerAttendance />} />
+        <Route path="attendance/:id" element={<AttendanceDetail />} />
         <Route path="managers" element={<ManagersPage />} />
         <Route path="managers/:id" element={<AdminManagerDetail />} />
         <Route path="pending" element={<PendingUsers />} />
