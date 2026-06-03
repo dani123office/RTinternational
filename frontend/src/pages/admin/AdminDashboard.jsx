@@ -383,13 +383,15 @@ export default function AdminDashboard() {
                     <div className="rt-card-body">
                   <div className="flex flex-col gap-2 max-h-[320px] overflow-auto">
                     {feed.length > 0 ? feed.slice(0, 15).map((item, i) => (
-                      <div key={i} onClick={() => { if (item.type === 'callback') navigate(`/admin/callbacks/${item.id}`); else if (item.type === 'transfer') navigate(`/admin/transfers/${item.id}`); else if (item.type === 'sale') navigate(`/admin/sales/${item.id}`) }} className={`flex items-center gap-2 p-2 rounded-lg text-sm ${i % 2 === 0 ? 'bg-slate-50' : ''} cursor-pointer hover:bg-slate-50`}>
+                      <div key={item.id ?? i} onClick={() => { if (item.type === 'callback') navigate(`/admin/callbacks/${item.id}`); else if (item.type === 'transfer') navigate(`/admin/transfers/${item.id}`); else if (item.type === 'sale') navigate(`/admin/sales/${item.id}`) }} className={`grid grid-cols-[auto_1fr_auto] items-center gap-2 p-2 rounded-lg text-sm ${i % 2 === 0 ? 'bg-slate-50' : ''} cursor-pointer hover:bg-slate-50`}>
                         <span className="w-1.5 h-1.5 rounded-full shrink-0" style={{
                           background: item.type === 'callback' ? '#6366f1' : item.type === 'transfer' ? '#22c55e' : '#f59e0b',
                         }} />
-                        <span className="font-semibold text-slate-900 truncate capitalize">{item.agentName}</span>
-                        <span className="text-slate-500 truncate">{item.description}</span>
-                        <span className="text-slate-400 text-xs ml-auto shrink-0 whitespace-nowrap">
+                        <div className="min-w-0 flex items-center gap-1.5">
+                          <span className="font-semibold text-slate-900 truncate capitalize shrink-0 max-w-[40%]">{item.agentName}</span>
+                          <span className="text-slate-500 truncate min-w-0">{item.description}</span>
+                        </div>
+                        <span className="text-slate-400 text-xs shrink-0 whitespace-nowrap text-right" style={{ minWidth: '68px' }}>
                           {item.timestamp ? new Date(item.timestamp).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' }) : ''}
                         </span>
                       </div>

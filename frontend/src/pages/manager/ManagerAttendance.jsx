@@ -49,12 +49,13 @@ export default function ManagerAttendance() {
   const late = team.filter((t) => t.attendance?.status === 'late').length
   const absent = team.filter((t) => !t.attendance?.checkIn).length
   const present = team.filter((t) => t.attendance?.checkIn).length
+  const onTime = present - late
 
   return (
     <>
       <style>{APP_STYLES}</style>
       <div className="rt-page">
-        <div style={{ maxWidth: '960px', margin: '0 auto' }}>
+          <div style={{ maxWidth: '960px', margin: '0 auto', overflow: 'hidden' }}>
           <div className="rt-fade" style={{ marginBottom: '24px' }}>
             <h1 className="rt-page-title">Team Attendance</h1>
             <p className="rt-page-subtitle">Today's attendance overview</p>
@@ -63,7 +64,7 @@ export default function ManagerAttendance() {
           {/* Summary Cards */}
           <div className="rt-fade rt-d1 grid grid-cols-2 sm:grid-cols-4 gap-3 mb-6">
             {[
-              { label: 'Checked In', value: present, color: '#16a34a', bg: '#dcfce7', icon: CheckCircle },
+              { label: 'On Time', value: onTime, color: '#16a34a', bg: '#dcfce7', icon: CheckCircle },
               { label: 'Late Arrivals', value: late, color: '#dc2626', bg: '#fee2e2', icon: AlertTriangle },
               { label: 'Active Now', value: checkedIn, color: '#6366f1', bg: '#eef2ff', icon: Clock },
               { label: 'Absent', value: absent, color: '#64748b', bg: '#f1f5f9', icon: XCircle },
@@ -99,7 +100,7 @@ export default function ManagerAttendance() {
                     value={search}
                     onChange={(e) => setSearch(e.target.value)}
                     placeholder="Search..."
-                    className="rt-input text-xs py-1.5 pl-8 w-[140px]"
+                    className="rt-input text-xs py-1.5 pl-9 w-[140px]"
                   />
                 </div>
               </div>
@@ -109,7 +110,7 @@ export default function ManagerAttendance() {
                 ) : filtered.length === 0 ? (
                   <p className="text-sm text-slate-400 text-center py-8">No team members found.</p>
                 ) : (
-                  <div className="flex flex-col gap-1">
+                  <div className="flex flex-col gap-1 max-h-[400px] overflow-y-auto">
                     {filtered.map((t) => {
                       const isLate = t.attendance?.status === 'late'
                       const isIn = !!t.attendance?.checkIn

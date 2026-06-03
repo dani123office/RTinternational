@@ -570,7 +570,7 @@ def performance_overview(admin: User = Depends(require_admin), db: Session = Dep
         ))
 
     agents_data.sort(key=lambda x: x.conversionRate, reverse=True)
-    top_agents = agents_data[:5]
+    top_agents = agents_data[:10]
     bottom_agents = list(reversed(agents_data[-5:])) if len(agents_data) > 5 else list(reversed(agents_data))
 
     total_cb = sum(a.callbacks for a in agents_data)
