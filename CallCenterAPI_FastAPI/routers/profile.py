@@ -2,6 +2,7 @@ import bcrypt
 from datetime import datetime
 from fastapi import APIRouter, Depends, HTTPException, Request
 from sqlalchemy.orm import Session
+from sqlalchemy import func
 from ..database import get_db
 from ..models import User
 from .auth import get_current_user
@@ -81,7 +82,7 @@ def update_profile(
         current_user.name = dto.name.strip()
     if dto.email is not None:
         clean = dto.email.strip().lower()
-        existing = db.query(User).filter(User.email == clean, User.id != current_user.id).first()
+        existing = db.query(User).filter(func.lower(User.email) == clean, User.id != current_user.id).first()
         if existing:
             raise HTTPException(status_code=400, detail="Email already in use")
         current_user.email = clean

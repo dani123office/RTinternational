@@ -34,13 +34,14 @@ def _safe_div(a: int, b: int) -> float:
 @router.post("/create-manager", status_code=201)
 def create_manager(data: CreateManagerRequest, request: Request, admin: User = Depends(require_admin), db: Session = Depends(get_db)):
     try:
-        existing = db.query(User).filter(User.email == data.email).first()
+        email = data.email.strip().lower()
+        existing = db.query(User).filter(func.lower(User.email) == email).first()
         if existing:
             raise HTTPException(status_code=400, detail="Email already exists")
         hashed = bcrypt.hashpw(data.password.encode("utf-8"), bcrypt.gensalt()).decode("utf-8")
         user = User(
             name=data.name,
-            email=data.email,
+            email=email,
             password_hash=hashed,
             role="manager",
             is_active=1,
@@ -63,7 +64,8 @@ def create_manager(data: CreateManagerRequest, request: Request, admin: User = D
 @router.post("/create-agent", status_code=201)
 def create_agent(data: CreateAgentRequest, request: Request, admin: User = Depends(require_admin), db: Session = Depends(get_db)):
     try:
-        existing = db.query(User).filter(User.email == data.email).first()
+        email = data.email.strip().lower()
+        existing = db.query(User).filter(func.lower(User.email) == email).first()
         if existing:
             raise HTTPException(status_code=400, detail="Email already exists")
         manager = db.query(User).filter(
@@ -74,7 +76,7 @@ def create_agent(data: CreateAgentRequest, request: Request, admin: User = Depen
         hashed = bcrypt.hashpw(data.password.encode("utf-8"), bcrypt.gensalt()).decode("utf-8")
         user = User(
             name=data.name,
-            email=data.email,
+            email=email,
             password_hash=hashed,
             role="agent",
             manager_id=data.managerId,
@@ -297,7 +299,7 @@ def update_agent_staff(
             agent.name = data.name
         if data.email is not None:
             clean = data.email.strip().lower()
-            existing = db.query(User).filter(User.email == clean, User.id != agent_id).first()
+            existing = db.query(User).filter(func.lower(User.email) == clean, User.id != agent_id).first()
             if existing:
                 raise HTTPException(status_code=400, detail="Email already in use")
             agent.email = clean
@@ -361,10 +363,11 @@ def update_user(
         if data.name is not None:
             user.name = data.name
         if data.email is not None:
-            existing = db.query(User).filter(User.email == data.email, User.id != user_id).first()
+            clean = data.email.strip().lower()
+            existing = db.query(User).filter(func.lower(User.email) == clean, User.id != user_id).first()
             if existing:
                 raise HTTPException(status_code=400, detail="Email already in use")
-            user.email = data.email
+            user.email = clean
         if data.isActive is not None:
             user.is_active = data.isActive
         if data.managerId is not None:

@@ -5,6 +5,7 @@ import secrets
 from datetime import datetime, timedelta
 from fastapi import APIRouter, Depends, HTTPException, Header, Request
 from sqlalchemy.orm import Session
+from sqlalchemy import func
 from ..database import get_db
 from ..models import User
 from ..schemas import LoginRequest, LoginResponse, RegisterRequest, ForgotPasswordRequest, ResetPasswordRequest, UserOut
@@ -104,7 +105,8 @@ def verify_manager_agent(manager: User, agent_id: int, db: Session) -> User:
 
 @router.post("/login")
 def login(request: LoginRequest, fastapi_req: Request, db: Session = Depends(get_db)):
-    user = db.query(User).filter(User.email == request.email).first()
+    email = request.email.strip().lower()
+    user = db.query(User).filter(func.lower(User.email) == email).first()
     if not user:
         raise HTTPException(status_code=401, detail="Invalid credentials")
     if not user.is_active:
@@ -167,14 +169,15 @@ def refresh_token(db: Session = Depends(get_db), authorization: str = Header(Non
 
 @router.post("/register")
 def register(request: RegisterRequest, fastapi_req: Request, db: Session = Depends(get_db)):
-    existing = db.query(User).filter(User.email == request.email).first()
+    email = request.email.strip().lower()
+    existing = db.query(User).filter(func.lower(User.email) == email).first()
     if existing:
         raise HTTPException(status_code=400, detail="Email already exists")
 
     hashed = bcrypt.hashpw(request.password.encode("utf-8"), bcrypt.gensalt()).decode("utf-8")
     user = User(
         name=request.name,
-        email=request.email,
+        email=email,
         password_hash=hashed,
         role=request.role or "agent",
         is_active=1 if request.role == "manager" else 0,
@@ -194,7 +197,8 @@ def register(request: RegisterRequest, fastapi_req: Request, db: Session = Depen
 
 @router.post("/forgot-password")
 def forgot_password(request: ForgotPasswordRequest, db: Session = Depends(get_db)):
-    user = db.query(User).filter(User.email == request.email).first()
+    email = request.email.strip().lower()
+    user = db.query(User).filter(func.lower(User.email) == email).first()
     if not user:
         return {"message": "If this email exists, a reset link has been sent."}
 

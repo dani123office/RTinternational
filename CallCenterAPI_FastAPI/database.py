@@ -95,7 +95,7 @@ def _ensure_tables():
         return
     try:
         Base.metadata.create_all(bind=engine)
-        from sqlalchemy import text, inspect as sa_inspect
+        from sqlalchemy import text, func, inspect as sa_inspect
         inspector = sa_inspect(engine)
         for table_name, table in Base.metadata.tables.items():
             existing_columns = {c["name"] for c in inspector.get_columns(table_name)}
@@ -120,7 +120,7 @@ def _ensure_tables():
                 return bcrypt.hashpw(pw.encode("utf-8"), bcrypt.gensalt()).decode("utf-8")
 
             def _ensure_user(email, defaults):
-                existing = db.query(User).filter(User.email == email).first()
+                existing = db.query(User).filter(func.lower(User.email) == email.lower()).first()
                 if not existing:
                     u = User(email=email, **defaults)
                     db.add(u)
