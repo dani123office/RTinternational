@@ -87,10 +87,22 @@ Fix 500 errors (local and Vercel) in the RT International call center FastAPI ap
 
 29. **Cleaned up useless files** — removed 23 debug/parse scripts from root, 19 test/utility scripts from `CallCenterAPI_FastAPI/`, abandoned `frontend/my-crm/` directory, `callcenter.db` from git tracking, `__pycache__/` dirs, and the stale `backend-api/` mirror. Project is now lean.
 
+30. **Fixed salary slip PDF generator** — rewrote `_SalaryPDF.build_slip()` to a 3-column Salary Component table format (Salary Component | Amount/Value | Percentage Notes, right column unbordered). Commission now shows actual value (Rs. 0 when none) instead of "If any". Commission excluded from `daily_rate` deduction calculation (base = basic+hra+utility+conveyance only). NET SALARY card shows full gross without deductions. Fixed divider line position above bold rows (`ey/dy + row_h - 2`) with 20pt gap (`y -= 30`) between divider and first row. Added missing `_fmt` import in `admin.py` to fix 500 on `/api/admin/salary/slip/{user_id}`.
+
+31. **Simplified admin dashboard** — AdminDashboard now shows only top 3 agents via `.slice(0, 3)`.
+
+32. **Simplified ManagerAttendance.jsx** — replaced complex multi-view layout with clean single-table team attendance view. Added stats bar (Present/Late/Absent), status column, check-in/check-out reason columns.
+
+33. **Added agent attendance history modal** — clicking any row in ManagerAttendance opens a modal showing the agent's name/email and paginated attendance history table with date, check-in, check-out, status, and reason columns. Fetched via `endpoints.attendance.agentHistory(id)`. Modal includes close button, backdrop blur, and pagination controls.
+
+34. **Merged Staff Management page** — `/admin/managers` and `/admin/agents` merged into single `/admin/staff` with Managers + Agents tabs. Sidebar updated to single "Staff Management" entry with redirects from old routes.
+
 ## Root Causes (continued)
 - **Activity logging never worked**: `log_activity()` function was defined in `utils/logger.py` but never imported or called from any router. Activity logs table was always empty. No audit trail existed despite the schema being fully set up. → Fixed by adding `log_activity()` calls after all create/update/delete endpoints across all 10 routers.
 - **No containerized development**: No Dockerfile or docker-compose.yml existed, making it harder for new developers to set up a consistent local environment. → Fixed by adding Dockerfile (Python 3.12-slim) and docker-compose.yml (API + frontend).
 - **No CI/CD automation**: Tests were never run automatically on push, allowing regressions to go undetected until manual testing. → Fixed by adding a GitHub Actions workflow that runs lint + tests on push/PR.
+- **Salary slip PDF had incorrect layout**: Commission showed "If any" instead of actual value, daily deduction rate incorrectly included commission, NET SALARY showed gross minus deductions instead of full gross, divider lines were positioned below bold rows instead of above them, and there was no gap between section divider and first data row. → Fixed by rewriting `build_slip()` with proper 3-column table, correct commission handling, and proper divider positioning.
+- **No agent attendance history view**: Managers/admin could see today's attendance but had no way to view an agent's historical attendance records. → Fixed by adding a clickable row that opens a modal with paginated attendance history via `endpoints.attendance.agentHistory(id)`.
 
 ## Verification
 1. Push to GitHub → Vercel auto-deploys

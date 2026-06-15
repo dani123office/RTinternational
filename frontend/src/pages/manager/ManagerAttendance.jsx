@@ -1,9 +1,7 @@
 import { useEffect, useState } from 'react'
-import { useNavigate } from 'react-router-dom'
 import api, { endpoints } from '@/lib/api'
-import { useAuthStore } from '@/store/authStore'
 import { APP_STYLES } from '@/lib/styles'
-import { Search, CheckCircle, XCircle, AlertTriangle, Clock } from 'lucide-react'
+import { Search, CheckCircle, XCircle, AlertTriangle, Clock, X, ChevronLeft, ChevronRight, History } from 'lucide-react'
 
 function formatDuration(checkIn, checkOut) {
   if (!checkIn || !checkOut) return checkIn ? 'In progress' : '-'
@@ -15,15 +13,35 @@ function formatDuration(checkIn, checkOut) {
 }
 
 export default function ManagerAttendance() {
-  const navigate = useNavigate()
-  const { user } = useAuthStore()
   const [team, setTeam] = useState([])
   const [loading, setLoading] = useState(true)
   const [search, setSearch] = useState('')
+  const [selectedMember, setSelectedMember] = useState(null)
+  const [history, setHistory] = useState({ items: [], total: 0, page: 1, totalPages: 0 })
+  const [historyLoading, setHistoryLoading] = useState(false)
 
   useEffect(() => {
     api.get(endpoints.attendance.teamToday).then(res => setTeam(res.data)).catch(() => {}).finally(() => setLoading(false))
   }, [])
+
+  const openHistory = async (member) => {
+    setSelectedMember(member)
+    await fetchHistory(member.userId, 1)
+  }
+
+  const fetchHistory = async (userId, page = 1) => {
+    setHistoryLoading(true)
+    try {
+      const res = await api.get(endpoints.attendance.agentHistory(userId), { params: { page, perPage: 15 } })
+      setHistory(res.data)
+    } catch { /* noop */ }
+    setHistoryLoading(false)
+  }
+
+  const closeHistory = () => {
+    setSelectedMember(null)
+    setHistory({ items: [], total: 0, page: 1, totalPages: 0 })
+  }
 
   const filtered = team.filter((t) =>
     t.userName.toLowerCase().includes(search.toLowerCase()) ||
@@ -117,7 +135,6 @@ export default function ManagerAttendance() {
                         : '-'
                       const durationLabel = formatDuration(member.attendance?.checkIn, member.attendance?.checkOut)
                       const status = member.attendance?.checkIn ? (member.attendance?.status === 'late' ? 'Late' : 'On time') : 'Absent'
-                      const attendanceId = member.attendance?.id
 
                       const statusStyle = {
                         Late: { bg: '#fee2e2', color: '#b91c1c' },
@@ -128,8 +145,8 @@ export default function ManagerAttendance() {
                       return (
                         <tr
                           key={member.userId}
-                          className={`border-b border-slate-100 hover:bg-slate-50 ${attendanceId ? 'cursor-pointer' : 'cursor-default'}`}
-                          onClick={() => attendanceId && navigate(`/${user?.role}/attendance/${attendanceId}`)}
+                          className="border-b border-slate-100 hover:bg-slate-50 cursor-pointer transition-colors"
+                          onClick={() => openHistory(member)}
                         >
                           <td className="px-4 py-4">
                             <div className="font-semibold text-slate-900">{member.userName}</div>
@@ -167,6 +184,101 @@ export default function ManagerAttendance() {
           </div>
         </div>
       </div>
+
+      {/* History Modal */}
+      {selectedMember && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm" onClick={closeHistory}>
+          <div className="bg-white rounded-2xl w-[90%] max-w-[800px] shadow-2xl max-h-[85vh] flex flex-col" onClick={e => e.stopPropagation()}>
+            <div className="flex items-center justify-between px-6 py-4 border-b border-slate-100 shrink-0">
+              <div className="flex items-center gap-3">
+                <div className="w-9 h-9 rounded-xl flex items-center justify-center" style={{ background: '#eef2ff' }}>
+                  <History size={16} color="#6366f1" />
+                </div>
+                <div>
+                  <h3 className="text-base font-semibold text-slate-900">{selectedMember.userName}</h3>
+                  <p className="text-xs text-slate-400">{selectedMember.userEmail} · Attendance History</p>
+                </div>
+              </div>
+              <button onClick={closeHistory} className="w-8 h-8 rounded-lg border-0 bg-slate-50 text-slate-400 cursor-pointer flex items-center justify-center hover:bg-slate-100 transition-colors">
+                <X size={16} />
+              </button>
+            </div>
+            <div className="p-6 overflow-y-auto flex-1">
+              {historyLoading ? (
+                <p className="text-sm text-slate-400 text-center py-8">Loading history...</p>
+              ) : history.items?.length === 0 ? (
+                <p className="text-sm text-slate-400 text-center py-8">No attendance records found.</p>
+              ) : (
+                <>
+                  <div className="overflow-x-auto">
+                    <table className="w-full text-sm">
+                      <thead>
+                        <tr style={{ borderBottom: '1px solid #f1f5f9' }}>
+                          <th className="text-left py-2.5 px-2 font-semibold text-slate-500 text-xs uppercase">Date</th>
+                          <th className="text-left py-2.5 px-2 font-semibold text-slate-500 text-xs uppercase">Check In</th>
+                          <th className="text-left py-2.5 px-2 font-semibold text-slate-500 text-xs uppercase">Check Out</th>
+                          <th className="text-left py-2.5 px-2 font-semibold text-slate-500 text-xs uppercase">Status</th>
+                          <th className="text-left py-2.5 px-2 font-semibold text-slate-500 text-xs uppercase">Checkin Reason</th>
+                          <th className="text-left py-2.5 px-2 font-semibold text-slate-500 text-xs uppercase">Checkout Reason</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {history.items.map((r) => (
+                          <tr key={r.id} className="hover:bg-slate-50 transition-colors" style={{ borderBottom: '1px solid #f8fafc' }}>
+                            <td className="py-2.5 px-2 font-semibold text-slate-800">{new Date(r.date).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}</td>
+                            <td className="py-2.5 px-2 text-slate-600">
+                              {r.checkIn ? new Date(r.checkIn).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true }) : '-'}
+                            </td>
+                            <td className="py-2.5 px-2 text-slate-600">
+                              {r.checkOut ? new Date(r.checkOut).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true }) : '-'}
+                            </td>
+                            <td className="py-2.5 px-2">
+                              <span className="text-xs font-bold px-2 py-0.5 rounded-full" style={{
+                                background: r.status === 'late' ? '#fee2e2' : '#dcfce7',
+                                color: r.status === 'late' ? '#dc2626' : '#16a34a',
+                              }}>
+                                {r.status === 'late' ? 'LATE' : r.status === 'present' ? 'ON TIME' : r.status.toUpperCase()}
+                              </span>
+                            </td>
+                            <td className="py-2.5 px-2 text-slate-500 text-xs max-w-[130px] truncate" title={r.checkin_reason || ''}>
+                              {r.checkin_reason || '-'}
+                            </td>
+                            <td className="py-2.5 px-2 text-slate-500 text-xs max-w-[130px] truncate" title={r.checkout_reason || ''}>
+                              {r.checkout_reason || '-'}
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                  {history.totalPages > 1 && (
+                    <div className="flex items-center justify-between mt-4 pt-4" style={{ borderTop: '1px solid #f1f5f9' }}>
+                      <p className="text-xs text-slate-400">{history.total} total records</p>
+                      <div className="flex items-center gap-2">
+                        <button
+                          disabled={history.page <= 1}
+                          onClick={() => fetchHistory(selectedMember.userId, history.page - 1)}
+                          className="p-1.5 rounded-lg border border-slate-200 bg-white cursor-pointer disabled:opacity-40"
+                        >
+                          <ChevronLeft size={14} />
+                        </button>
+                        <span className="text-xs font-semibold text-slate-500">{history.page} / {history.totalPages}</span>
+                        <button
+                          disabled={history.page >= history.totalPages}
+                          onClick={() => fetchHistory(selectedMember.userId, history.page + 1)}
+                          className="p-1.5 rounded-lg border border-slate-200 bg-white cursor-pointer disabled:opacity-40"
+                        >
+                          <ChevronRight size={14} />
+                        </button>
+                      </div>
+                    </div>
+                  )}
+                </>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
     </>
   )
 }
