@@ -327,7 +327,7 @@ export default function PendingUsers() {
                                 style={{ background: 'linear-gradient(135deg, #22c55e, #16a34a)' }}
                               >
                                 {loanReviewProcessing === l.id ? <Loader2 size={12} className="animate-spin" /> : <Check size={12} />}
-                                Sanction
+                                Approve
                               </button>
                               <button
                                 onClick={() => handleLoanReview(l.id, 'rejected')}
