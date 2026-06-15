@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import api, { endpoints } from '@/lib/api'
 import { useAuthStore } from '@/store/authStore'
 import { APP_STYLES } from '@/lib/styles'
-import { Search } from 'lucide-react'
+import { Search, CheckCircle, XCircle, AlertTriangle, Clock } from 'lucide-react'
 
 function formatDuration(checkIn, checkOut) {
   if (!checkIn || !checkOut) return checkIn ? 'In progress' : '-'
@@ -30,6 +30,10 @@ export default function ManagerAttendance() {
     t.userEmail.toLowerCase().includes(search.toLowerCase())
   )
 
+  const present = team.filter(t => t.attendance?.checkIn && t.attendance?.status !== 'late').length
+  const late = team.filter(t => t.attendance?.status === 'late').length
+  const absent = team.filter(t => !t.attendance?.checkIn).length
+
   return (
     <>
       <style>{APP_STYLES}</style>
@@ -37,7 +41,31 @@ export default function ManagerAttendance() {
         <div style={{ maxWidth: '960px', margin: '0 auto' }}>
           <div className="rt-fade" style={{ marginBottom: '20px' }}>
             <h1 className="rt-page-title">Attendance</h1>
-            <p className="rt-page-subtitle">Simple team attendance view for today</p>
+            <p className="rt-page-subtitle">Team attendance overview for today</p>
+          </div>
+
+          <div className="rt-fade grid grid-cols-3 gap-3 mb-5">
+            <div className="rounded-xl p-4 text-center flex items-center justify-center gap-2.5" style={{ background: '#dcfce7' }}>
+              <CheckCircle size={18} color="#16a34a" />
+              <div>
+                <p className="text-xl font-extrabold" style={{ color: '#166534' }}>{present}</p>
+                <p className="text-xs font-semibold" style={{ color: '#15803d' }}>Present</p>
+              </div>
+            </div>
+            <div className="rounded-xl p-4 text-center flex items-center justify-center gap-2.5" style={{ background: '#fef3c7' }}>
+              <AlertTriangle size={18} color="#d97706" />
+              <div>
+                <p className="text-xl font-extrabold" style={{ color: '#92400e' }}>{late}</p>
+                <p className="text-xs font-semibold" style={{ color: '#b45309' }}>Late</p>
+              </div>
+            </div>
+            <div className="rounded-xl p-4 text-center flex items-center justify-center gap-2.5" style={{ background: '#fee2e2' }}>
+              <XCircle size={18} color="#dc2626" />
+              <div>
+                <p className="text-xl font-extrabold" style={{ color: '#991b1b' }}>{absent}</p>
+                <p className="text-xs font-semibold" style={{ color: '#b91c1c' }}>Absent</p>
+              </div>
+            </div>
           </div>
 
           <div className="rt-card rt-fade">
@@ -63,14 +91,17 @@ export default function ManagerAttendance() {
               ) : filtered.length === 0 ? (
                 <p className="text-sm text-slate-400 text-center py-8">No attendance records found.</p>
               ) : (
-                <table className="w-full min-w-[600px] text-sm border-separate border-spacing-0">
+                <table className="w-full min-w-[700px] text-sm border-separate border-spacing-0">
                   <thead>
                     <tr className="bg-slate-50 text-slate-500 uppercase text-xs tracking-[0.16em]">
                       <th className="text-left px-4 py-3">Employee Name</th>
+                      <th className="text-left px-4 py-3">Status</th>
                       <th className="text-left px-4 py-3">Date</th>
                       <th className="text-left px-4 py-3">Check-In</th>
                       <th className="text-left px-4 py-3">Check-Out</th>
                       <th className="text-left px-4 py-3">Duration</th>
+                      <th className="text-left px-4 py-3">Check-In Reason</th>
+                      <th className="text-left px-4 py-3">Check-Out Reason</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -88,6 +119,12 @@ export default function ManagerAttendance() {
                       const status = member.attendance?.checkIn ? (member.attendance?.status === 'late' ? 'Late' : 'On time') : 'Absent'
                       const attendanceId = member.attendance?.id
 
+                      const statusStyle = {
+                        Late: { bg: '#fee2e2', color: '#b91c1c' },
+                        'On time': { bg: '#dcfce7', color: '#166534' },
+                        Absent: { bg: '#f1f5f9', color: '#64748b' },
+                      }[status]
+
                       return (
                         <tr
                           key={member.userId}
@@ -98,18 +135,27 @@ export default function ManagerAttendance() {
                             <div className="font-semibold text-slate-900">{member.userName}</div>
                             <div className="text-xs text-slate-500 truncate">{member.userEmail}</div>
                           </td>
+                          <td className="px-4 py-4">
+                            <span className="inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-xs font-semibold" style={{ background: statusStyle.bg, color: statusStyle.color }}>
+                              <Clock size={11} />
+                              {status}
+                            </span>
+                          </td>
                           <td className="px-4 py-4 text-slate-600">{dateLabel}</td>
                           <td className="px-4 py-4 text-slate-600">{checkInLabel}</td>
                           <td className="px-4 py-4 text-slate-600">{checkOutLabel}</td>
                           <td className="px-4 py-4 text-slate-600">
                             <span className="inline-flex items-center rounded-full px-2.5 py-1 text-xs font-semibold"
-                              style={{
-                                background: status === 'Late' ? '#fee2e2' : status === 'On time' ? '#dcfce7' : '#f1f5f9',
-                                color: status === 'Late' ? '#b91c1c' : status === 'On time' ? '#166534' : '#64748b',
-                              }}
+                              style={{ background: statusStyle.bg, color: statusStyle.color }}
                             >
                               {durationLabel}
                             </span>
+                          </td>
+                          <td className="px-4 py-4 text-slate-500 text-xs max-w-[130px] truncate" title={member.attendance?.checkin_reason || ''}>
+                            {member.attendance?.checkin_reason || '-'}
+                          </td>
+                          <td className="px-4 py-4 text-slate-500 text-xs max-w-[130px] truncate" title={member.attendance?.checkout_reason || ''}>
+                            {member.attendance?.checkout_reason || '-'}
                           </td>
                         </tr>
                       )
