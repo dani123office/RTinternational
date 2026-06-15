@@ -225,27 +225,27 @@ class _SalaryPDF:
         # left earnings column
         ey = y
         for lbl, amt, bold in earnings:
+            if bold:  # thin divider above bold row
+                buf.append(self._sg(*self.C_DIV))
+                buf.append(self._lw(0.4))
+                buf.append(self._line(LM, ey + 10, left_col_right, ey + 10))
             buf.append(self._fg(*self.C_LABEL if not bold else self.C_DARK))
             buf.append(self._t(LM, ey, lbl, "Helvetica-Bold" if bold else "Helvetica", 8.5))
             buf.append(self._fg(*self.C_DARK))
             buf.append(self._tr(left_col_right, ey, amt, "Helvetica-Bold" if bold else "Helvetica", 8.5))
-            if bold:  # thin divider above gross salary row
-                buf.append(self._sg(*self.C_DIV))
-                buf.append(self._lw(0.4))
-                buf.append(self._line(LM, ey + row_h - 4, left_col_right, ey + row_h - 4))
             ey -= row_h
 
         # right deductions column
         dy = y
         for lbl, amt, bold in deductions:
+            if bold:  # thin divider above bold row
+                buf.append(self._sg(*self.C_DIV))
+                buf.append(self._lw(0.4))
+                buf.append(self._line(CM, dy + 10, right_col_right, dy + 10))
             buf.append(self._fg(*self.C_LABEL if not bold else self.C_DARK))
             buf.append(self._t(CM, dy, lbl, "Helvetica-Bold" if bold else "Helvetica", 8.5))
             buf.append(self._fg(*self.C_DARK))
             buf.append(self._tr(right_col_right, dy, amt, "Helvetica-Bold" if bold else "Helvetica", 8.5))
-            if bold:
-                buf.append(self._sg(*self.C_DIV))
-                buf.append(self._lw(0.4))
-                buf.append(self._line(CM, dy + row_h - 4, right_col_right, dy + row_h - 4))
             dy -= row_h
 
         y = min(ey, dy) - 25
