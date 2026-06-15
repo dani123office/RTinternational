@@ -17,7 +17,7 @@ from ..schemas import (
 from .callbacks import _build_callback_out
 from .transfers import _transfer_out
 from .sales import _sale_out
-from .salary import _SalaryPDF, _employee_id, _month_name, _attendance_summary
+from .salary import _SalaryPDF, _employee_id, _month_name, _attendance_summary, _fmt
 
 router = APIRouter(prefix="/api/admin", tags=["admin"])
 
