@@ -1,7 +1,8 @@
 import { useEffect, useState, useCallback } from 'react'
 import api, { endpoints } from '@/lib/api'
 import { useAuthStore } from '@/store/authStore'
-import { Clock, LogIn, LogOut, History, MapPin, ChevronLeft, ChevronRight } from 'lucide-react'
+import { useToast } from '@/components/ui/toastContext'
+import { Clock, LogIn, LogOut, History, MapPin, ChevronLeft, ChevronRight, AlertTriangle, X, Loader2 } from 'lucide-react'
 import { APP_STYLES } from '@/lib/styles'
 
 const TIME_OPTS = { hour: 'numeric', minute: '2-digit', second: '2-digit', hour12: true }
@@ -43,6 +44,7 @@ function ClockCard({ label, timezone, sub, accent, flag }) {
 
 export default function Attendance() {
   const { user } = useAuthStore()
+  const { toast } = useToast()
   const [, forceUpdate] = useState(0)
   useEffect(() => {
     const id = setInterval(() => forceUpdate(n => n + 1), 1000)
@@ -51,6 +53,11 @@ export default function Attendance() {
   const [todayRecord, setTodayRecord] = useState(null)
   const [history, setHistory] = useState({ items: [], total: 0, page: 1, totalPages: 0 })
   const [stats, setStats] = useState({ presentCount: 0, lateCount: 0, absentCount: 0, totalDays: 0 })
+  const [showLateModal, setShowLateModal] = useState(false)
+  const [lateDate, setLateDate] = useState('')
+  const [lateTime, setLateTime] = useState('')
+  const [lateReason, setLateReason] = useState('')
+  const [lateSubmitting, setLateSubmitting] = useState(false)
   const [checkinReason, setCheckinReason] = useState('')
   const [checkoutReason, setCheckoutReason] = useState('')
   const [loading, setLoading] = useState(true)
@@ -111,6 +118,29 @@ export default function Attendance() {
     } catch (err) {
       alert(err?.response?.data?.detail || 'Check-out failed')
     } finally { setActionLoading(false) }
+  }
+
+  const handleReportLate = async () => {
+    if (!lateDate) { toast('Please select a date', 'error'); return }
+    if (!lateTime) { toast('Please select expected arrival time', 'error'); return }
+    if (!lateReason.trim()) { toast('Please explain the reason for late arrival', 'error'); return }
+
+    setLateSubmitting(true)
+    try {
+      await api.post(endpoints.attendance.reportLateArrival, {
+        date: lateDate,
+        expected_arrival_time: lateTime + ':00',
+        reason: lateReason.trim(),
+      })
+      toast('Late arrival reported successfully', 'success')
+      setShowLateModal(false)
+      setLateDate('')
+      setLateTime('')
+      setLateReason('')
+      await loadStats()
+    } catch (err) {
+      toast(err?.response?.data?.detail || 'Failed to report late arrival', 'error')
+    } finally { setLateSubmitting(false) }
   }
 
   const isCheckedIn = !!todayRecord?.checkIn
@@ -290,6 +320,127 @@ export default function Attendance() {
               </div>
             ))}
           </div>
+
+          {/* Report Late Arrival */}
+          <div className="rt-fade mb-6 flex justify-end">
+            <button
+              onClick={() => { setLateDate(new Date().toISOString().split('T')[0]); setShowLateModal(true) }}
+              className="flex items-center gap-1.5 px-4 py-2 rounded-xl text-sm font-bold text-white cursor-pointer border-0 transition-all"
+              style={{ background: 'linear-gradient(135deg, #f59e0b, #d97706)' }}
+            >
+              <AlertTriangle size={16} /> Report Late Arrival
+            </button>
+          </div>
+
+          {/* Late Arrival Modal */}
+          {showLateModal && (
+            <div style={{
+              position: 'fixed', inset: 0, zIndex: 1000,
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              background: 'rgba(0,0,0,0.5)', backdropFilter: 'blur(4px)',
+            }}>
+              <div style={{
+                background: '#fff', borderRadius: '20px', width: '480px', maxWidth: '92vw',
+                boxShadow: '0 20px 60px rgba(0,0,0,0.2)', overflow: 'hidden',
+              }}>
+                <div style={{
+                  display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+                  padding: '20px 24px', borderBottom: '1px solid #f1f5f9',
+                }}>
+                  <h2 style={{ fontSize: '18px', fontWeight: 700, color: '#0f172a', fontFamily: "'DM Sans', serif" }}>
+                    Report Late Arrival
+                  </h2>
+                  <button
+                    onClick={() => setShowLateModal(false)}
+                    className="flex items-center justify-center cursor-pointer border-0 rounded-lg bg-transparent"
+                    style={{ width: 32, height: 32, color: '#94a3b8' }}
+                  >
+                    <X size={18} />
+                  </button>
+                </div>
+
+                <div style={{ padding: '24px' }}>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+                    <div style={{ display: 'flex', gap: '16px' }}>
+                      <div style={{ flex: 1, position: 'relative' }}>
+                        <label style={{ fontSize: '11px', fontWeight: 700, color: '#64748b', textTransform: 'uppercase', display: 'block', marginBottom: '6px' }}>Date</label>
+                        <div style={{ position: 'relative' }}>
+                          <input
+                            type="date"
+                            value={lateDate}
+                            onChange={(e) => setLateDate(e.target.value)}
+                            style={{
+                              width: '100%', padding: '10px 14px', border: '2px solid #3b82f6', borderRadius: '10px',
+                              fontSize: '14px', color: '#0f172a', outline: 'none', background: '#fff',
+                            }}
+                          />
+                          <Clock size={16} style={{ position: 'absolute', right: 10, top: '50%', transform: 'translateY(-50%)', color: '#94a3b8', pointerEvents: 'none' }} />
+                        </div>
+                      </div>
+                      <div style={{ flex: 1 }}>
+                        <label style={{ fontSize: '11px', fontWeight: 700, color: '#64748b', textTransform: 'uppercase', display: 'block', marginBottom: '6px' }}>Exp. Arrival Time</label>
+                        <div style={{ position: 'relative' }}>
+                          <input
+                            type="time"
+                            value={lateTime}
+                            onChange={(e) => setLateTime(e.target.value)}
+                            placeholder="--:--"
+                            style={{
+                              width: '100%', padding: '10px 14px', border: '1px solid #e2e6ec', borderRadius: '10px',
+                              fontSize: '14px', color: '#0f172a', outline: 'none', background: '#f8fafc',
+                            }}
+                          />
+                          <Clock size={16} style={{ position: 'absolute', right: 10, top: '50%', transform: 'translateY(-50%)', color: '#94a3b8', pointerEvents: 'none' }} />
+                        </div>
+                      </div>
+                    </div>
+                    <div>
+                      <label style={{ fontSize: '11px', fontWeight: 700, color: '#64748b', textTransform: 'uppercase', display: 'block', marginBottom: '6px' }}>Reason</label>
+                      <textarea
+                        value={lateReason}
+                        onChange={(e) => setLateReason(e.target.value)}
+                        placeholder="Explain the reason for late arrival..."
+                        rows={4}
+                        style={{
+                          width: '100%', padding: '10px 14px', border: '1px solid #e2e6ec', borderRadius: '10px',
+                          fontSize: '14px', color: '#0f172a', outline: 'none', resize: 'vertical',
+                          fontFamily: 'inherit', background: '#f8fafc',
+                        }}
+                      />
+                    </div>
+                  </div>
+                </div>
+
+                <div style={{
+                  display: 'flex', justifyContent: 'flex-end', gap: '10px',
+                  padding: '16px 24px', borderTop: '1px solid #f1f5f9',
+                }}>
+                  <button
+                    onClick={() => setShowLateModal(false)}
+                    className="cursor-pointer"
+                    style={{
+                      padding: '10px 20px', borderRadius: '10px', border: '1px solid #e2e8f0',
+                      background: '#fff', color: '#0f172a', fontSize: '13px', fontWeight: 600,
+                    }}
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    onClick={handleReportLate}
+                    disabled={lateSubmitting}
+                    className="flex items-center gap-1.5 cursor-pointer disabled:opacity-50"
+                    style={{
+                      padding: '10px 20px', borderRadius: '10px', border: 'none',
+                      background: '#3b82f6', color: '#fff', fontSize: '13px', fontWeight: 600,
+                    }}
+                  >
+                    {lateSubmitting ? <Loader2 size={14} className="animate-spin" /> : null}
+                    {lateSubmitting ? 'Submitting...' : 'Submit Record'}
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
 
           {/* History */}
           <div className="rt-card rt-fade rt-d3">

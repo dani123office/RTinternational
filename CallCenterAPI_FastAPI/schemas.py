@@ -1,4 +1,4 @@
-from datetime import datetime, date, timedelta
+from datetime import datetime, date, time, timedelta
 from pydantic import BaseModel, Field, field_validator
 from typing import Optional, List
 import re
@@ -1593,6 +1593,12 @@ class AttendanceCheckOut(BaseModel):
     checkout_reason: Optional[str] = Field(None, max_length=500, description="Reason for check-out")
 
 
+class LateArrivalReport(BaseModel):
+    date: date
+    expected_arrival_time: time
+    reason: str = Field(..., min_length=1, max_length=1000, description="Reason for late arrival")
+
+
 class AttendanceOut(BaseModel):
     id: int
     userId: int
@@ -1602,6 +1608,8 @@ class AttendanceOut(BaseModel):
     status: str
     checkin_reason: Optional[str] = None
     checkout_reason: Optional[str] = None
+    expected_arrival_time: Optional[str] = None
+    late_arrival_reason: Optional[str] = None
     createdAt: datetime
     updatedAt: datetime
 

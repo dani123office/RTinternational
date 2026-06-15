@@ -262,6 +262,8 @@ class Attendance(Base):
     status = Column(String(20), nullable=False, default="present")
     checkout_reason = Column(Text, nullable=True)
     checkin_reason = Column(Text, nullable=True)
+    expected_arrival_time = Column(Time, nullable=True)
+    late_arrival_reason = Column(Text, nullable=True)
     created_at = Column(DateTime, default=datetime.now)
     updated_at = Column(DateTime, default=datetime.now, onupdate=datetime.now)
     __table_args__ = (

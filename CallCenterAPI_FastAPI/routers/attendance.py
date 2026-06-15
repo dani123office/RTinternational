@@ -9,7 +9,7 @@ from ..database import get_db
 from ..models import User, Attendance
 from .auth import get_current_user
 from pydantic import BaseModel
-from ..schemas import AttendanceCheckIn, AttendanceCheckOut, AttendanceOut, AttendanceSummary, UserAttendanceToday
+from ..schemas import AttendanceCheckIn, AttendanceCheckOut, AttendanceOut, AttendanceSummary, UserAttendanceToday, LateArrivalReport
 import openpyxl
 from openpyxl.styles import Font, PatternFill, Alignment, Border, Side
 
@@ -31,6 +31,8 @@ class AttendanceFeedItem(BaseModel):
     status: str
     checkin_reason: Optional[str] = None
     checkout_reason: Optional[str] = None
+    expected_arrival_time: Optional[str] = None
+    late_arrival_reason: Optional[str] = None
 from ..utils.logger import log_activity, get_client_ip
 
 router = APIRouter(prefix="/api/attendance", tags=["attendance"])
@@ -57,6 +59,8 @@ def _attendance_to_out(a: Attendance) -> AttendanceOut:
         status=a.status,
         checkout_reason=a.checkout_reason,
         checkin_reason=a.checkin_reason,
+        expected_arrival_time=a.expected_arrival_time.strftime("%H:%M") if a.expected_arrival_time else None,
+        late_arrival_reason=a.late_arrival_reason,
         createdAt=a.created_at,
         updatedAt=a.updated_at,
     )
@@ -171,6 +175,49 @@ def check_out(
     db.refresh(record)
     log_activity(db, current_user.id, "checked_out", "attendance", record.id,
                  f"Checked out at {now.strftime('%H:%M')}",
+                 get_client_ip(request))
+    return _attendance_to_out(record)
+
+
+@router.post("/report-late-arrival")
+def report_late_arrival(
+    dto: LateArrivalReport,
+    request: Request,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    if dto.date > _today_pkt():
+        raise HTTPException(status_code=400, detail="Cannot report late arrival for a future date")
+
+    record = db.query(Attendance).filter(
+        Attendance.user_id == current_user.id,
+        Attendance.date == dto.date,
+    ).first()
+
+    if not record:
+        record = Attendance(
+            user_id=current_user.id,
+            date=dto.date,
+            status="late",
+            check_in=None,
+            check_out=None,
+            expected_arrival_time=dto.expected_arrival_time,
+            late_arrival_reason=dto.reason,
+            created_at=_now_pkt(),
+            updated_at=_now_pkt(),
+        )
+        db.add(record)
+    else:
+        record.expected_arrival_time = dto.expected_arrival_time
+        record.late_arrival_reason = dto.reason
+        if record.status == "present":
+            record.status = "late"
+        record.updated_at = _now_pkt()
+
+    db.commit()
+    db.refresh(record)
+    log_activity(db, current_user.id, "reported_late", "attendance", record.id,
+                 f"Reported late arrival for {dto.date}: expected {dto.expected_arrival_time.strftime('%H:%M')}",
                  get_client_ip(request))
     return _attendance_to_out(record)
 
@@ -392,6 +439,8 @@ def attendance_feed(
             status=a.status,
             checkin_reason=a.checkin_reason,
             checkout_reason=a.checkout_reason,
+            expected_arrival_time=a.expected_arrival_time.strftime("%H:%M") if a.expected_arrival_time else None,
+            late_arrival_reason=a.late_arrival_reason,
         )
         for a, u in rows
     ]
@@ -432,7 +481,7 @@ def attendance_export(
     ws = wb.active
     ws.title = "Attendance Feed"
 
-    headers = ["Date", "Employee Name", "Email", "Status", "Check In", "Check Out", "Check-in Reason", "Check-out Reason"]
+    headers = ["Date", "Employee Name", "Email", "Status", "Check In", "Check Out", "Check-in Reason", "Check-out Reason", "Exp. Arrival Time", "Late Arrival Reason"]
     header_font = Font(bold=True, color="FFFFFF", size=11)
     header_fill = PatternFill(start_color="4F46E5", end_color="4F46E5", fill_type="solid")
     thin_border = Border(
@@ -459,6 +508,8 @@ def attendance_export(
             a.check_out.strftime("%H:%M") if a.check_out else "",
             a.checkin_reason or "",
             a.checkout_reason or "",
+            a.expected_arrival_time.strftime("%H:%M") if a.expected_arrival_time else "",
+            a.late_arrival_reason or "",
         ]
         for col_idx, val in enumerate(values, 1):
             cell = ws.cell(row=row_idx, column=col_idx, value=val)
@@ -473,6 +524,8 @@ def attendance_export(
     ws.column_dimensions["F"].width = 10
     ws.column_dimensions["G"].width = 28
     ws.column_dimensions["H"].width = 28
+    ws.column_dimensions["I"].width = 16
+    ws.column_dimensions["J"].width = 28
 
     output = io.BytesIO()
     wb.save(output)
