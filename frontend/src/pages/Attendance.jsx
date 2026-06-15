@@ -176,9 +176,18 @@ export default function Attendance() {
       <style>{APP_STYLES}</style>
       <div className="rt-page">
         <div style={{ maxWidth: '960px', margin: '0 auto' }}>
-          <div className="rt-fade" style={{ marginBottom: '28px' }}>
-            <h1 className="rt-page-title">Attendance</h1>
-            <p className="rt-page-subtitle">{formatDate('Asia/Karachi')}</p>
+          <div className="rt-fade flex items-center justify-between" style={{ marginBottom: '28px' }}>
+            <div>
+              <h1 className="rt-page-title">Attendance</h1>
+              <p className="rt-page-subtitle">{formatDate('Asia/Karachi')}</p>
+            </div>
+            <button
+              onClick={() => { setLateDate(new Date().toISOString().split('T')[0]); setShowLateModal(true) }}
+              className="flex items-center gap-1.5 px-4 py-2 rounded-xl text-sm font-bold text-white cursor-pointer border-0 transition-all"
+              style={{ background: 'linear-gradient(135deg, #f59e0b, #d97706)' }}
+            >
+              <AlertTriangle size={16} /> Report Late Arrival
+            </button>
           </div>
 
           {/* Clocks */}
@@ -319,17 +328,6 @@ export default function Attendance() {
                 <p className="text-xs font-semibold mt-1" style={{ color: s.color }}>{s.label}</p>
               </div>
             ))}
-          </div>
-
-          {/* Report Late Arrival */}
-          <div className="rt-fade mb-6 flex justify-end">
-            <button
-              onClick={() => { setLateDate(new Date().toISOString().split('T')[0]); setShowLateModal(true) }}
-              className="flex items-center gap-1.5 px-4 py-2 rounded-xl text-sm font-bold text-white cursor-pointer border-0 transition-all"
-              style={{ background: 'linear-gradient(135deg, #f59e0b, #d97706)' }}
-            >
-              <AlertTriangle size={16} /> Report Late Arrival
-            </button>
           </div>
 
           {/* Late Arrival Modal */}
