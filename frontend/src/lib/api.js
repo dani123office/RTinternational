@@ -143,6 +143,7 @@ export const endpoints = {
     record: (id) => `/api/attendance/record/${id}`,
     feed: '/api/attendance/feed',
     export: '/api/attendance/export',
+    lateArrivals: '/api/attendance/late-arrivals',
     reportLateArrival: '/api/attendance/report-late-arrival',
   },
     leaves: {

@@ -537,3 +537,58 @@ def attendance_export(
         media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
         headers={"Content-Disposition": f'attachment; filename="{filename}"'},
     )
+
+
+@router.get("/late-arrivals")
+def late_arrivals(
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+    from_date: date = Query(..., description="Start date (YYYY-MM-DD)"),
+    to_date: date = Query(..., description="End date (YYYY-MM-DD)"),
+    page: int = Query(1, ge=1),
+    per_page: int = Query(20, ge=1, le=100),
+):
+    if current_user.role not in ("manager", "admin"):
+        raise HTTPException(status_code=403, detail="Only managers and admins can view late arrivals")
+
+    query = db.query(Attendance, User).join(User, Attendance.user_id == User.id)
+
+    if current_user.role == "manager":
+        query = query.filter(User.manager_id == current_user.id, User.role == "agent")
+
+    query = query.filter(
+        Attendance.late_arrival_reason.isnot(None),
+        Attendance.date >= from_date,
+        Attendance.date <= to_date,
+    )
+
+    total = query.with_entities(func.count()).scalar()
+    rows = query.order_by(Attendance.date.desc(), User.name.asc()).offset(
+        (page - 1) * per_page
+    ).limit(per_page).all()
+
+    items = [
+        AttendanceFeedItem(
+            id=a.id,
+            userId=a.user_id,
+            userName=u.name,
+            userEmail=u.email,
+            date=a.date,
+            checkIn=a.check_in,
+            checkOut=a.check_out,
+            status=a.status,
+            checkin_reason=a.checkin_reason,
+            checkout_reason=a.checkout_reason,
+            expected_arrival_time=a.expected_arrival_time.strftime("%H:%M") if a.expected_arrival_time else None,
+            late_arrival_reason=a.late_arrival_reason,
+        )
+        for a, u in rows
+    ]
+
+    return {
+        "items": items,
+        "total": total,
+        "page": page,
+        "perPage": per_page,
+        "totalPages": (total + per_page - 1) // per_page if total else 0,
+    }
