@@ -142,3 +142,23 @@ def review_loan(
                  f"Reviewed loan #{record.id} as {dto.status}",
                  get_client_ip(request))
     return _loan_to_out(record)
+
+
+@router.delete("/{loan_id}")
+def delete_loan(
+    loan_id: int,
+    request: Request,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    if current_user.role != "admin":
+        raise HTTPException(status_code=403, detail="Only admins can delete loans")
+    record = db.query(LoanRequest).filter(LoanRequest.id == loan_id).first()
+    if not record:
+        raise HTTPException(status_code=404, detail="Loan request not found")
+    db.delete(record)
+    db.commit()
+    log_activity(db, current_user.id, "deleted", "loan", loan_id,
+                 f"Deleted loan request #{loan_id}",
+                 get_client_ip(request))
+    return {"detail": "Loan request deleted"}

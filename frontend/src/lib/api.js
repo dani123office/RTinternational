@@ -144,12 +144,14 @@ export const endpoints = {
     feed: '/api/attendance/feed',
     export: '/api/attendance/export',
   },
-  leaves: {
+    leaves: {
     create: '/api/leaves',
     my: '/api/leaves/my',
     pending: '/api/leaves/pending',
+    all: '/api/leaves/all',
     review: (id) => `/api/leaves/${id}/review`,
     agent: (id) => `/api/leaves/agent/${id}`,
+    delete: (id) => `/api/leaves/${id}`,
   },
   loans: {
     create: '/api/loans',
@@ -157,6 +159,7 @@ export const endpoints = {
     pending: '/api/loans/pending',
     all: '/api/loans/all',
     review: (id) => `/api/loans/${id}/review`,
+    delete: (id) => `/api/loans/${id}`,
   },
   salary: {
     slip: '/api/salary/slip',

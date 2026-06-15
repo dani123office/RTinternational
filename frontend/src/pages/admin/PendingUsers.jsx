@@ -20,7 +20,10 @@ export default function PendingUsers() {
   const [loansLoading, setLoansLoading] = useState(false)
   const [loanReviewProcessing, setLoanReviewProcessing] = useState(null)
   const [loanHistory, setLoanHistory] = useState({ items: [], total: 0, page: 1, totalPages: 0 })
-  const [historyLoading, setHistoryLoading] = useState(false)
+  const [loanHistoryLoading, setLoanHistoryLoading] = useState(false)
+  const [leaveHistory, setLeaveHistory] = useState({ items: [], total: 0, page: 1, totalPages: 0 })
+  const [leaveHistoryLoading, setLeaveHistoryLoading] = useState(false)
+  const [deleteProcessing, setDeleteProcessing] = useState(null)
 
   useEffect(() => {
     api.get(endpoints.leaves.pending)
@@ -30,16 +33,48 @@ export default function PendingUsers() {
       .then(res => { setLoansLoading(false); setPendingLoans(res.data || []) })
       .catch(() => setLoansLoading(false))
     api.get(endpoints.loans.all, { params: { page: 1, per_page: 20 } })
-      .then(res => { setHistoryLoading(false); setLoanHistory(res.data) })
-      .catch(() => setHistoryLoading(false))
+      .then(res => { setLoanHistoryLoading(false); setLoanHistory(res.data) })
+      .catch(() => setLoanHistoryLoading(false))
+    api.get(endpoints.leaves.all, { params: { page: 1, per_page: 20 } })
+      .then(res => { setLeaveHistoryLoading(false); setLeaveHistory(res.data) })
+      .catch(() => setLeaveHistoryLoading(false))
   }, [])
 
-  const loadHistory = useCallback((p) => {
-    setHistoryLoading(true)
+  const loadLoanHistory = useCallback((p) => {
+    setLoanHistoryLoading(true)
     api.get(endpoints.loans.all, { params: { page: p, per_page: 20 } })
-      .then(res => { setHistoryLoading(false); setLoanHistory(res.data) })
-      .catch(() => setHistoryLoading(false))
+      .then(res => { setLoanHistoryLoading(false); setLoanHistory(res.data) })
+      .catch(() => setLoanHistoryLoading(false))
   }, [])
+
+  const loadLeaveHistory = useCallback((p) => {
+    setLeaveHistoryLoading(true)
+    api.get(endpoints.leaves.all, { params: { page: p, per_page: 20 } })
+      .then(res => { setLeaveHistoryLoading(false); setLeaveHistory(res.data) })
+      .catch(() => setLeaveHistoryLoading(false))
+  }, [])
+
+  const handleDeleteLoan = async (id) => {
+    if (!window.confirm('Delete this loan record permanently?')) return
+    setDeleteProcessing(id)
+    try {
+      await api.delete(endpoints.loans.delete(id))
+      setLoanHistory((prev) => ({ ...prev, items: prev.items.filter((l) => l.id !== id), total: prev.total - 1 }))
+    } catch (err) {
+      alert(err?.response?.data?.detail || 'Failed to delete loan')
+    } finally { setDeleteProcessing(null) }
+  }
+
+  const handleDeleteLeave = async (id) => {
+    if (!window.confirm('Delete this leave record permanently?')) return
+    setDeleteProcessing(id)
+    try {
+      await api.delete(endpoints.leaves.delete(id))
+      setLeaveHistory((prev) => ({ ...prev, items: prev.items.filter((l) => l.id !== id), total: prev.total - 1 }))
+    } catch (err) {
+      alert(err?.response?.data?.detail || 'Failed to delete leave')
+    } finally { setDeleteProcessing(null) }
+  }
 
   useEffect(() => {
     Promise.all([loadPendingUsers(), loadManagers()]).then(() => setLoading(false))
@@ -346,7 +381,7 @@ export default function PendingUsers() {
               </div>
             </div>
             <div className="rt-card-body p-0 overflow-x-auto">
-              {historyLoading ? (
+              {loanHistoryLoading ? (
                 <p className="text-sm text-slate-400 text-center py-6">Loading history...</p>
               ) : loanHistory.items?.length === 0 ? (
                 <div className="flex flex-col items-center justify-center py-6">
@@ -363,6 +398,7 @@ export default function PendingUsers() {
                         <th className="text-left py-2.5 px-3 font-semibold text-slate-500 text-xs uppercase">Reason</th>
                         <th className="text-left py-2.5 px-3 font-semibold text-slate-500 text-xs uppercase">Status</th>
                         <th className="text-left py-2.5 px-3 font-semibold text-slate-500 text-xs uppercase">Date</th>
+                        <th className="text-left py-2.5 px-3 font-semibold text-slate-500 text-xs uppercase">Action</th>
                       </tr>
                     </thead>
                     <tbody>
@@ -384,6 +420,13 @@ export default function PendingUsers() {
                               </span>
                             </td>
                             <td className="py-2.5 px-3 text-slate-600 text-xs">{new Date(l.createdAt).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}</td>
+                            <td className="py-2.5 px-3">
+                              <button onClick={() => handleDeleteLoan(l.id)} disabled={deleteProcessing === l.id}
+                                className="flex items-center gap-1 px-2 py-1 rounded-lg text-xs font-semibold cursor-pointer border-0 text-white disabled:opacity-50 transition-all"
+                                style={{ background: 'linear-gradient(135deg, #ef4444, #dc2626)' }}>
+                                <X size={10} /> Delete
+                              </button>
+                            </td>
                           </tr>
                         )
                       })}
@@ -393,9 +436,88 @@ export default function PendingUsers() {
                     <div className="flex items-center justify-between px-3 py-3" style={{ borderTop: '1px solid #f1f5f9' }}>
                       <p className="text-xs text-slate-400">{loanHistory.total} total</p>
                       <div className="flex items-center gap-2">
-                        <button disabled={loanHistory.page <= 1} onClick={() => loadHistory(loanHistory.page - 1)} className="p-1.5 rounded-lg border border-slate-200 bg-white cursor-pointer disabled:opacity-40"><ChevronLeft size={14} /></button>
+                        <button disabled={loanHistory.page <= 1} onClick={() => loadLoanHistory(loanHistory.page - 1)} className="p-1.5 rounded-lg border border-slate-200 bg-white cursor-pointer disabled:opacity-40"><ChevronLeft size={14} /></button>
                         <span className="text-xs font-semibold text-slate-500">{loanHistory.page} / {loanHistory.totalPages}</span>
-                        <button disabled={loanHistory.page >= loanHistory.totalPages} onClick={() => loadHistory(loanHistory.page + 1)} className="p-1.5 rounded-lg border border-slate-200 bg-white cursor-pointer disabled:opacity-40"><ChevronRight size={14} /></button>
+                        <button disabled={loanHistory.page >= loanHistory.totalPages} onClick={() => loadLoanHistory(loanHistory.page + 1)} className="p-1.5 rounded-lg border border-slate-200 bg-white cursor-pointer disabled:opacity-40"><ChevronRight size={14} /></button>
+                      </div>
+                    </div>
+                  )}
+                </>
+              )}
+            </div>
+          </div>
+
+          {/* Leave History */}
+          <div className="rt-fade rt-card" style={{ marginTop: '24px' }}>
+            <div className="rt-card-header">
+              <div className="flex items-center gap-2.5">
+                <div className="rt-card-icon" style={{ background: '#f1f5f9' }}>
+                  <CalendarCheck size={16} color="#64748b" />
+                </div>
+                <h2 className="rt-card-title">Leave History ({leaveHistory.total || 0})</h2>
+              </div>
+            </div>
+            <div className="rt-card-body p-0 overflow-x-auto">
+              {leaveHistoryLoading ? (
+                <p className="text-sm text-slate-400 text-center py-6">Loading history...</p>
+              ) : leaveHistory.items?.length === 0 ? (
+                <div className="flex flex-col items-center justify-center py-6">
+                  <CalendarCheck size={28} color="#94a3b8" />
+                  <p className="text-sm font-semibold text-slate-500 mt-3">No leave history</p>
+                </div>
+              ) : (
+                <>
+                  <table className="w-full text-sm">
+                    <thead>
+                      <tr style={{ borderBottom: '1px solid #f1f5f9' }}>
+                        <th className="text-left py-2.5 px-3 font-semibold text-slate-500 text-xs uppercase">Agent</th>
+                        <th className="text-left py-2.5 px-3 font-semibold text-slate-500 text-xs uppercase">Type</th>
+                        <th className="text-left py-2.5 px-3 font-semibold text-slate-500 text-xs uppercase">From</th>
+                        <th className="text-left py-2.5 px-3 font-semibold text-slate-500 text-xs uppercase">To</th>
+                        <th className="text-left py-2.5 px-3 font-semibold text-slate-500 text-xs uppercase">Reason</th>
+                        <th className="text-left py-2.5 px-3 font-semibold text-slate-500 text-xs uppercase">Status</th>
+                        <th className="text-left py-2.5 px-3 font-semibold text-slate-500 text-xs uppercase">Action</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {leaveHistory.items.map((l) => {
+                        const s = l.status === 'approved'
+                          ? { bg: '#dcfce7', color: '#16a34a', label: 'Approved' }
+                          : l.status === 'rejected'
+                          ? { bg: '#fee2e2', color: '#dc2626', label: 'Rejected' }
+                          : { bg: '#fef3c7', color: '#d97706', label: 'Pending' }
+                        return (
+                          <tr key={l.id} className="hover:bg-slate-50 transition-colors" style={{ borderBottom: '1px solid #f8fafc' }}>
+                            <td className="py-2.5 px-3 font-semibold text-slate-800 text-xs">{l.userName || `User #${l.userId}`}</td>
+                            <td className="py-2.5 px-3 text-slate-600 text-xs">{l.leaveType}</td>
+                            <td className="py-2.5 px-3 text-slate-600 text-xs">{new Date(l.fromDate).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}</td>
+                            <td className="py-2.5 px-3 text-slate-600 text-xs">{new Date(l.toDate).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}</td>
+                            <td className="py-2.5 px-3 text-slate-500 text-xs max-w-[120px] truncate">{l.reason || '-'}</td>
+                            <td className="py-2.5 px-3">
+                              <span className="inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-semibold" style={{ background: s.bg, color: s.color }}>
+                                {l.status === 'approved' ? <CheckCircle size={11} /> : l.status === 'rejected' ? <XCircle size={11} /> : <Clock size={11} />}
+                                {s.label}
+                              </span>
+                            </td>
+                            <td className="py-2.5 px-3">
+                              <button onClick={() => handleDeleteLeave(l.id)} disabled={deleteProcessing === l.id}
+                                className="flex items-center gap-1 px-2 py-1 rounded-lg text-xs font-semibold cursor-pointer border-0 text-white disabled:opacity-50 transition-all"
+                                style={{ background: 'linear-gradient(135deg, #ef4444, #dc2626)' }}>
+                                <X size={10} /> Delete
+                              </button>
+                            </td>
+                          </tr>
+                        )
+                      })}
+                    </tbody>
+                  </table>
+                  {leaveHistory.totalPages > 1 && (
+                    <div className="flex items-center justify-between px-3 py-3" style={{ borderTop: '1px solid #f1f5f9' }}>
+                      <p className="text-xs text-slate-400">{leaveHistory.total} total</p>
+                      <div className="flex items-center gap-2">
+                        <button disabled={leaveHistory.page <= 1} onClick={() => loadLeaveHistory(leaveHistory.page - 1)} className="p-1.5 rounded-lg border border-slate-200 bg-white cursor-pointer disabled:opacity-40"><ChevronLeft size={14} /></button>
+                        <span className="text-xs font-semibold text-slate-500">{leaveHistory.page} / {leaveHistory.totalPages}</span>
+                        <button disabled={leaveHistory.page >= leaveHistory.totalPages} onClick={() => loadLeaveHistory(leaveHistory.page + 1)} className="p-1.5 rounded-lg border border-slate-200 bg-white cursor-pointer disabled:opacity-40"><ChevronRight size={14} /></button>
                       </div>
                     </div>
                   )}

@@ -146,7 +146,7 @@ def agent_leaves(
         LeaveRequest.user_id == agent_id,
     ).scalar()
     records = db.query(LeaveRequest).filter(
-        LeaveRequest.user_id == agent_id,
+            LeaveRequest.user_id == agent_id,
     ).order_by(
         LeaveRequest.created_at.desc()
     ).offset((page - 1) * per_page).limit(per_page).all()
@@ -158,3 +158,48 @@ def agent_leaves(
         "perPage": per_page,
         "totalPages": (total + per_page - 1) // per_page,
     }
+
+
+@router.get("/all")
+def all_leaves(
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+    page: int = Query(1, ge=1),
+    per_page: int = Query(20, ge=1, le=100),
+    status: Optional[str] = Query(None),
+):
+    if current_user.role != "admin":
+        raise HTTPException(status_code=403, detail="Only admins can view all leaves")
+    q = db.query(LeaveRequest)
+    if status:
+        q = q.filter(LeaveRequest.status == status)
+    total = q.with_entities(func.count()).scalar()
+    records = q.order_by(LeaveRequest.created_at.desc()).offset(
+        (page - 1) * per_page).limit(per_page).all()
+    return {
+        "items": [_leave_to_out(r) for r in records],
+        "total": total,
+        "page": page,
+        "perPage": per_page,
+        "totalPages": (total + per_page - 1) // per_page,
+    }
+
+
+@router.delete("/{leave_id}")
+def delete_leave(
+    leave_id: int,
+    request: Request,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    if current_user.role != "admin":
+        raise HTTPException(status_code=403, detail="Only admins can delete leaves")
+    record = db.query(LeaveRequest).filter(LeaveRequest.id == leave_id).first()
+    if not record:
+        raise HTTPException(status_code=404, detail="Leave request not found")
+    db.delete(record)
+    db.commit()
+    log_activity(db, current_user.id, "deleted", "leave", leave_id,
+                 f"Deleted leave request #{leave_id}",
+                 get_client_ip(request))
+    return {"detail": "Leave request deleted"}
