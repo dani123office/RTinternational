@@ -155,6 +155,7 @@ export const endpoints = {
     create: '/api/loans',
     my: '/api/loans/my',
     pending: '/api/loans/pending',
+    all: '/api/loans/all',
     review: (id) => `/api/loans/${id}/review`,
   },
   salary: {

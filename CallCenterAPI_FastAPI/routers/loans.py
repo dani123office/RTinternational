@@ -92,6 +92,29 @@ def pending_loans(
     return [_loan_to_out(r) for r in records]
 
 
+@router.get("/all")
+def all_loans(
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+    page: int = Query(1, ge=1),
+    per_page: int = Query(20, ge=1, le=100),
+):
+    if current_user.role != "admin":
+        raise HTTPException(status_code=403, detail="Only admins can view all loans")
+    total = db.query(func.count(LoanRequest.id)).scalar()
+    records = db.query(LoanRequest).order_by(
+        LoanRequest.created_at.desc()
+    ).offset((page - 1) * per_page).limit(per_page).all()
+
+    return {
+        "items": [_loan_to_out(r) for r in records],
+        "total": total,
+        "page": page,
+        "perPage": per_page,
+        "totalPages": (total + per_page - 1) // per_page if total else 0,
+    }
+
+
 @router.put("/{loan_id}/review")
 def review_loan(
     loan_id: int,

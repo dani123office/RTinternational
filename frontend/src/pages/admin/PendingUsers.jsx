@@ -1,7 +1,7 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useCallback } from 'react'
 import { useAdminStore } from '@/store/adminStore'
 import api, { endpoints } from '@/lib/api'
-import { UserPlus, CheckCircle, XCircle, Loader2, UserRoundCog, CalendarCheck, Check, X, Wallet } from 'lucide-react'
+import { UserPlus, CheckCircle, XCircle, Loader2, UserRoundCog, CalendarCheck, Check, X, Wallet, ChevronLeft, ChevronRight, Clock } from 'lucide-react'
 import { APP_STYLES } from '@/lib/styles'
 import DataTable from '@/components/shared/DataTable'
 import LoadingSpinner from '@/components/shared/LoadingSpinner'
@@ -19,6 +19,8 @@ export default function PendingUsers() {
   const [pendingLoans, setPendingLoans] = useState([])
   const [loansLoading, setLoansLoading] = useState(false)
   const [loanReviewProcessing, setLoanReviewProcessing] = useState(null)
+  const [loanHistory, setLoanHistory] = useState({ items: [], total: 0, page: 1, totalPages: 0 })
+  const [historyLoading, setHistoryLoading] = useState(false)
 
   useEffect(() => {
     api.get(endpoints.leaves.pending)
@@ -27,6 +29,16 @@ export default function PendingUsers() {
     api.get(endpoints.loans.pending)
       .then(res => { setLoansLoading(false); setPendingLoans(res.data || []) })
       .catch(() => setLoansLoading(false))
+    api.get(endpoints.loans.all, { params: { page: 1, per_page: 20 } })
+      .then(res => { setHistoryLoading(false); setLoanHistory(res.data) })
+      .catch(() => setHistoryLoading(false))
+  }, [])
+
+  const loadHistory = useCallback((p) => {
+    setHistoryLoading(true)
+    api.get(endpoints.loans.all, { params: { page: p, per_page: 20 } })
+      .then(res => { setHistoryLoading(false); setLoanHistory(res.data) })
+      .catch(() => setHistoryLoading(false))
   }, [])
 
   useEffect(() => {
@@ -319,6 +331,75 @@ export default function PendingUsers() {
                 </div>
               ) : (
                 <DataTable columns={columns} data={pendingUsers} pageSize={10} />
+              )}
+            </div>
+          </div>
+
+          {/* Loan History */}
+          <div className="rt-fade rt-card" style={{ marginTop: '24px' }}>
+            <div className="rt-card-header">
+              <div className="flex items-center gap-2.5">
+                <div className="rt-card-icon" style={{ background: '#f1f5f9' }}>
+                  <Wallet size={16} color="#64748b" />
+                </div>
+                <h2 className="rt-card-title">Loan History ({loanHistory.total || 0})</h2>
+              </div>
+            </div>
+            <div className="rt-card-body p-0 overflow-x-auto">
+              {historyLoading ? (
+                <p className="text-sm text-slate-400 text-center py-6">Loading history...</p>
+              ) : loanHistory.items?.length === 0 ? (
+                <div className="flex flex-col items-center justify-center py-6">
+                  <Wallet size={28} color="#94a3b8" />
+                  <p className="text-sm font-semibold text-slate-500 mt-3">No loan history</p>
+                </div>
+              ) : (
+                <>
+                  <table className="w-full text-sm">
+                    <thead>
+                      <tr style={{ borderBottom: '1px solid #f1f5f9' }}>
+                        <th className="text-left py-2.5 px-3 font-semibold text-slate-500 text-xs uppercase">Agent</th>
+                        <th className="text-left py-2.5 px-3 font-semibold text-slate-500 text-xs uppercase">Amount</th>
+                        <th className="text-left py-2.5 px-3 font-semibold text-slate-500 text-xs uppercase">Reason</th>
+                        <th className="text-left py-2.5 px-3 font-semibold text-slate-500 text-xs uppercase">Status</th>
+                        <th className="text-left py-2.5 px-3 font-semibold text-slate-500 text-xs uppercase">Date</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {loanHistory.items.map((l) => {
+                        const s = l.status === 'approved'
+                          ? { bg: '#dcfce7', color: '#16a34a', label: 'Approved' }
+                          : l.status === 'rejected'
+                          ? { bg: '#fee2e2', color: '#dc2626', label: 'Rejected' }
+                          : { bg: '#fef3c7', color: '#d97706', label: 'Pending' }
+                        return (
+                          <tr key={l.id} className="hover:bg-slate-50 transition-colors" style={{ borderBottom: '1px solid #f8fafc' }}>
+                            <td className="py-2.5 px-3 font-semibold text-slate-800 text-xs">{l.userName || `User #${l.userId}`}</td>
+                            <td className="py-2.5 px-3 font-bold text-slate-900 text-sm">Rs. {Number(l.amount).toLocaleString()}</td>
+                            <td className="py-2.5 px-3 text-slate-500 text-xs max-w-[160px] truncate">{l.reason || '-'}</td>
+                            <td className="py-2.5 px-3">
+                              <span className="inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-semibold" style={{ background: s.bg, color: s.color }}>
+                                {l.status === 'approved' ? <CheckCircle size={11} /> : l.status === 'rejected' ? <XCircle size={11} /> : <Clock size={11} />}
+                                {s.label}
+                              </span>
+                            </td>
+                            <td className="py-2.5 px-3 text-slate-600 text-xs">{new Date(l.createdAt).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}</td>
+                          </tr>
+                        )
+                      })}
+                    </tbody>
+                  </table>
+                  {loanHistory.totalPages > 1 && (
+                    <div className="flex items-center justify-between px-3 py-3" style={{ borderTop: '1px solid #f1f5f9' }}>
+                      <p className="text-xs text-slate-400">{loanHistory.total} total</p>
+                      <div className="flex items-center gap-2">
+                        <button disabled={loanHistory.page <= 1} onClick={() => loadHistory(loanHistory.page - 1)} className="p-1.5 rounded-lg border border-slate-200 bg-white cursor-pointer disabled:opacity-40"><ChevronLeft size={14} /></button>
+                        <span className="text-xs font-semibold text-slate-500">{loanHistory.page} / {loanHistory.totalPages}</span>
+                        <button disabled={loanHistory.page >= loanHistory.totalPages} onClick={() => loadHistory(loanHistory.page + 1)} className="p-1.5 rounded-lg border border-slate-200 bg-white cursor-pointer disabled:opacity-40"><ChevronRight size={14} /></button>
+                      </div>
+                    </div>
+                  )}
+                </>
               )}
             </div>
           </div>
