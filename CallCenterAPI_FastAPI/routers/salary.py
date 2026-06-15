@@ -273,7 +273,7 @@ def download_salary_slip(
         ("House Rent Allowance", _fmt(int(hra)), "15%"),
         ("Utility Allowance", _fmt(int(utility)), "30%"),
         ("Conveyance Allowance", _fmt(int(conveyance)), "5%"),
-        ("Commission", _fmt(int(commission)) if commission else "If any", ""),
+        ("Commission", _fmt(int(commission)), ""),
         ("Total", _fmt(total), ""),
     ]
 

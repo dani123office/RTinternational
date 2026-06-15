@@ -745,10 +745,7 @@ def admin_salary_slip(
         ("Utility Allowance", _fmt(int(utility)), "30%"),
         ("Conveyance Allowance", _fmt(int(conveyance)), "5%"),
     ]
-    if commission > 0:
-        components.append(("Commission", _fmt(int(commission)), ""))
-    else:
-        components.append(("Commission", "If any", ""))
+    components.append(("Commission", _fmt(int(commission)), ""))
     components.append(("Total", _fmt(total), ""))
 
     pdf = _SalaryPDF()
