@@ -1,9 +1,18 @@
-import { useEffect, useState, useCallback } from 'react'
+import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import api, { endpoints } from '@/lib/api'
 import { useAuthStore } from '@/store/authStore'
 import { APP_STYLES } from '@/lib/styles'
-import { Users, Clock, CheckCircle, AlertTriangle, XCircle, Search, Calendar, CalendarCheck, ChevronLeft, ChevronRight } from 'lucide-react'
+import { Search } from 'lucide-react'
+
+function formatDuration(checkIn, checkOut) {
+  if (!checkIn || !checkOut) return checkIn ? 'In progress' : '-'
+  const diff = new Date(checkOut).getTime() - new Date(checkIn).getTime()
+  const minutes = Math.max(0, Math.floor(diff / 60000))
+  const hours = Math.floor(minutes / 60)
+  const mins = minutes % 60
+  return hours ? `${hours}h ${mins}m` : `${mins}m`
+}
 
 export default function ManagerAttendance() {
   const navigate = useNavigate()
@@ -11,35 +20,9 @@ export default function ManagerAttendance() {
   const [team, setTeam] = useState([])
   const [loading, setLoading] = useState(true)
   const [search, setSearch] = useState('')
-  const [selectedAgentId, setSelectedAgentId] = useState(null)
-  const [agentHistory, setAgentHistory] = useState({ items: [], total: 0, page: 1, totalPages: 0 })
-  const [historyPage, setHistoryPage] = useState(1)
-  const [historyLoading, setHistoryLoading] = useState(false)
-  const [agentLeaves, setAgentLeaves] = useState([])
-  const [leavesLoading, setLeavesLoading] = useState(false)
 
-  const loadTeam = useCallback(async () => {
-    setLoading(true)
-    try {
-      const res = await api.get(endpoints.attendance.teamToday)
-      setTeam(res.data)
-    } catch {} finally { setLoading(false) }
-  }, [])
-
-  useEffect(() => { loadTeam() }, [loadTeam])
-
-  const loadAgentHistory = useCallback(async (agentId, page = 1) => {
-    setHistoryLoading(true)
-    setLeavesLoading(true)
-    try {
-      const res = await api.get(endpoints.attendance.agentHistory(agentId), { params: { page, perPage: 10 } })
-      setAgentHistory(res.data)
-      setSelectedAgentId(agentId)
-    } catch {} finally { setHistoryLoading(false) }
-    try {
-      const res = await api.get(endpoints.leaves.agent(agentId), { params: { page: 1, perPage: 20 } })
-      setAgentLeaves(res.data.items || [])
-    } catch {} finally { setLeavesLoading(false) }
+  useEffect(() => {
+    api.get(endpoints.attendance.teamToday).then(res => setTeam(res.data)).catch(() => {}).finally(() => setLoading(false))
   }, [])
 
   const filtered = team.filter((t) =>
@@ -47,247 +30,93 @@ export default function ManagerAttendance() {
     t.userEmail.toLowerCase().includes(search.toLowerCase())
   )
 
-  const checkedIn = team.filter((t) => t.attendance?.checkIn && !t.attendance?.checkOut).length
-  const late = team.filter((t) => t.attendance?.status === 'late').length
-  const absent = team.filter((t) => !t.attendance?.checkIn).length
-  const present = team.filter((t) => t.attendance?.checkIn).length
-  const onTime = present - late
-
   return (
     <>
       <style>{APP_STYLES}</style>
       <div className="rt-page">
-          <div style={{ maxWidth: '960px', margin: '0 auto', overflow: 'hidden' }}>
-          <div className="rt-fade" style={{ marginBottom: '24px' }}>
-            <h1 className="rt-page-title">Team Attendance</h1>
-            <p className="rt-page-subtitle">Today's attendance overview</p>
+        <div style={{ maxWidth: '960px', margin: '0 auto' }}>
+          <div className="rt-fade" style={{ marginBottom: '20px' }}>
+            <h1 className="rt-page-title">Attendance</h1>
+            <p className="rt-page-subtitle">Simple team attendance view for today</p>
           </div>
 
-          {/* Summary Cards */}
-          <div className="rt-fade rt-d1 grid grid-cols-2 sm:grid-cols-4 gap-3 mb-6">
-            {[
-              { label: 'On Time', value: onTime, color: '#16a34a', bg: '#dcfce7', icon: CheckCircle },
-              { label: 'Late Arrivals', value: late, color: '#dc2626', bg: '#fee2e2', icon: AlertTriangle },
-              { label: 'Active Now', value: checkedIn, color: '#6366f1', bg: '#eef2ff', icon: Clock },
-              { label: 'Absent', value: absent, color: '#64748b', bg: '#f1f5f9', icon: XCircle },
-            ].map((s) => {
-              const Icon = s.icon
-              return (
-                <div key={s.label} className="rounded-2xl p-4" style={{ background: s.bg, border: `1px solid ${s.color}20` }}>
-                  <div className="flex items-center justify-between mb-2">
-                    <div className="w-8 h-8 rounded-lg flex items-center justify-center" style={{ background: s.color + '20' }}>
-                      <Icon size={15} color={s.color} />
-                    </div>
-                    <span className="text-xl font-extrabold" style={{ color: s.color }}>{s.value}</span>
-                  </div>
-                  <p className="text-xs font-semibold" style={{ color: s.color }}>{s.label}</p>
-                </div>
-              )
-            })}
-          </div>
-
-          <div className="grid grid-cols-1 lg:grid-cols-[1fr_1fr] gap-5">
-            {/* Team List */}
-            <div className="rt-card rt-fade rt-d2">
-              <div className="rt-card-header">
-                <div className="flex items-center gap-2.5">
-                  <div className="rt-card-icon" style={{ background: '#eef2ff' }}>
-                    <Users size={16} color="#6366f1" />
-                  </div>
-                  <h2 className="rt-card-title">Team Members ({team.length})</h2>
-                </div>
-                <div className="relative">
-                  <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2" style={{ color: '#94a3b8' }} />
-                  <input
-                    value={search}
-                    onChange={(e) => setSearch(e.target.value)}
-                    placeholder="Search..."
-                    className="rt-input text-xs py-1.5 pl-9 w-[140px]"
-                  />
-                </div>
+          <div className="rt-card rt-fade">
+            <div className="rt-card-header justify-between gap-3">
+              <div>
+                <h2 className="rt-card-title">Today's Attendance</h2>
+                <p className="text-sm text-slate-500">{team.length} staff members</p>
               </div>
-              <div className="rt-card-body p-2">
-                {loading ? (
-                  <p className="text-sm text-slate-400 text-center py-8">Loading...</p>
-                ) : filtered.length === 0 ? (
-                  <p className="text-sm text-slate-400 text-center py-8">No team members found.</p>
-                ) : (
-                  <div className="flex flex-col gap-1 max-h-[400px] overflow-y-auto">
-                    {filtered.map((t) => {
-                      const isLate = t.attendance?.status === 'late'
-                      const isIn = !!t.attendance?.checkIn
-                      const isOut = !!t.attendance?.checkOut
-                      return (
-                        <div
-                          key={t.userId}
-                          onClick={() => loadAgentHistory(t.userId, 1)}
-                          className="flex items-center gap-3 p-3 rounded-xl cursor-pointer transition-all duration-150"
-                          style={{
-                            background: selectedAgentId === t.userId ? '#f5f3ff' : 'transparent',
-                            border: selectedAgentId === t.userId ? '1px solid #ddd6fe' : '1px solid transparent',
-                          }}
-                        >
-                          <div className="w-9 h-9 rounded-xl flex items-center justify-center shrink-0 font-bold text-sm"
-                            style={{ background: isLate ? '#fee2e2' : isIn ? '#dcfce7' : '#f1f5f9', color: isLate ? '#dc2626' : isIn ? '#16a34a' : '#94a3b8' }}>
-                            {t.userName.charAt(0).toUpperCase()}
-                          </div>
-                          <div className="flex-1 min-w-0">
-                            <p className="text-sm font-bold truncate text-slate-900">{t.userName}</p>
-                            <p className="text-xs text-slate-400 truncate">{t.userEmail}</p>
-                          </div>
-                          {!isIn ? (
-                            <span className="text-xs font-bold px-2 py-0.5 rounded-full bg-slate-100 text-slate-500">ABSENT</span>
-                          ) : isLate ? (
-                            <span className="text-xs font-bold px-2 py-0.5 rounded-full bg-red-50 text-red-600">LATE</span>
-                          ) : isOut ? (
-                            <span className="text-xs font-bold px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-600">DONE</span>
-                          ) : (
-                            <span className="text-xs font-bold px-2 py-0.5 rounded-full bg-green-50 text-green-600">ACTIVE</span>
-                          )}
-                        </div>
-                      )
-                    })}
-                  </div>
-                )}
+              <div className="relative">
+                <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2" style={{ color: '#94a3b8' }} />
+                <input
+                  value={search}
+                  onChange={(e) => setSearch(e.target.value)}
+                  placeholder="Search by name or email"
+                  className="rt-input text-sm py-2 pl-10 pr-3 w-[240px]"
+                />
               </div>
             </div>
 
-            {/* Agent History */}
-            <div className="rt-card rt-fade rt-d3">
-              <div className="rt-card-header">
-                <div className="flex items-center gap-2.5">
-                  <div className="rt-card-icon" style={{ background: '#f5f3ff' }}>
-                    <Calendar size={16} color="#8b5cf6" />
-                  </div>
-                  <h2 className="rt-card-title">
-                    {selectedAgentId
-                      ? `History — ${team.find((t) => t.userId === selectedAgentId)?.userName || 'Agent'}`
-                      : 'Select an Agent'}
-                  </h2>
-                </div>
-              </div>
-              <div className="rt-card-body">
-                {!selectedAgentId ? (
-                  <p className="text-sm text-slate-400 text-center py-8">Click on a team member to view their attendance history.</p>
-                ) : historyLoading ? (
-                  <p className="text-sm text-slate-400 text-center py-8">Loading...</p>
-                ) : agentHistory.items.length === 0 ? (
-                  <p className="text-sm text-slate-400 text-center py-8">No attendance records found.</p>
-                ) : (
-                  <>
-                    <div className="overflow-x-auto">
-                      <table className="w-full text-sm">
-                        <thead>
-                          <tr style={{ borderBottom: '1px solid #f1f5f9' }}>
-                              <th className="text-left py-2.5 px-2 font-semibold text-slate-500 text-xs uppercase">Date</th>
-                              <th className="text-left py-2.5 px-2 font-semibold text-slate-500 text-xs uppercase">Check In</th>
-                              <th className="text-left py-2.5 px-2 font-semibold text-slate-500 text-xs uppercase">Check Out</th>
-                              <th className="text-left py-2.5 px-2 font-semibold text-slate-500 text-xs uppercase">Status</th>
-                              <th className="text-left py-2.5 px-2 font-semibold text-slate-500 text-xs uppercase">Checkin Reason</th>
-                              <th className="text-left py-2.5 px-2 font-semibold text-slate-500 text-xs uppercase">Checkout Reason</th>
-                            </tr>
-                          </thead>
-                          <tbody>
-                            {agentHistory.items.map((r) => (
-                              <tr key={r.id} onClick={() => navigate(`/${user?.role}/attendance/${r.id}`)} className="hover:bg-slate-50 transition-colors cursor-pointer" style={{ borderBottom: '1px solid #f8fafc' }}>
-                                <td className="py-2.5 px-2 font-semibold text-slate-800">{new Date(r.date).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })}</td>
-                                <td className="py-2.5 px-2 text-slate-600">
-                                  {r.checkIn ? new Date(r.checkIn).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true }) : '-'}
-                                </td>
-                                <td className="py-2.5 px-2 text-slate-600">
-                                  {r.checkOut ? new Date(r.checkOut).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true }) : '-'}
-                                </td>
-                                <td className="py-2.5 px-2">
-                                  <span className="text-xs font-bold px-2 py-0.5 rounded-full" style={{
-                                    background: r.status === 'late' ? '#fee2e2' : '#dcfce7',
-                                    color: r.status === 'late' ? '#dc2626' : '#16a34a',
-                                  }}>
-                                    {r.status === 'late' ? 'LATE' : 'ON TIME'}
-                                  </span>
-                                </td>
-                                <td className="py-2.5 px-2 text-slate-500 text-xs max-w-[120px] truncate" title={r.checkin_reason || ''}>
-                                  {r.checkin_reason || '-'}
-                                </td>
-                                <td className="py-2.5 px-2 text-slate-500 text-xs max-w-[120px] truncate" title={r.checkout_reason || ''}>
-                                  {r.checkout_reason || '-'}
-                                </td>
-                            </tr>
-                          ))}
-                        </tbody>
-                      </table>
-                    </div>
+            <div className="rt-card-body p-0 overflow-x-auto">
+              {loading ? (
+                <p className="text-sm text-slate-400 text-center py-8">Loading attendance...</p>
+              ) : filtered.length === 0 ? (
+                <p className="text-sm text-slate-400 text-center py-8">No attendance records found.</p>
+              ) : (
+                <table className="w-full min-w-[600px] text-sm border-separate border-spacing-0">
+                  <thead>
+                    <tr className="bg-slate-50 text-slate-500 uppercase text-xs tracking-[0.16em]">
+                      <th className="text-left px-4 py-3">Employee Name</th>
+                      <th className="text-left px-4 py-3">Date</th>
+                      <th className="text-left px-4 py-3">Check-In</th>
+                      <th className="text-left px-4 py-3">Check-Out</th>
+                      <th className="text-left px-4 py-3">Duration</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {filtered.map((member) => {
+                      const dateLabel = member.attendance?.date
+                        ? new Date(member.attendance.date).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })
+                        : new Date().toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })
+                      const checkInLabel = member.attendance?.checkIn
+                        ? new Date(member.attendance.checkIn).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' })
+                        : '-'
+                      const checkOutLabel = member.attendance?.checkOut
+                        ? new Date(member.attendance.checkOut).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' })
+                        : '-'
+                      const durationLabel = formatDuration(member.attendance?.checkIn, member.attendance?.checkOut)
+                      const status = member.attendance?.checkIn ? (member.attendance?.status === 'late' ? 'Late' : 'On time') : 'Absent'
+                      const attendanceId = member.attendance?.id
 
-                    {agentHistory.totalPages > 1 && (
-                      <div className="flex items-center justify-between mt-4 pt-3" style={{ borderTop: '1px solid #f1f5f9' }}>
-                        <p className="text-xs text-slate-400">{agentHistory.total} records</p>
-                        <div className="flex items-center gap-2">
-                          <button
-                            disabled={agentHistory.page <= 1}
-                            onClick={() => { const p = agentHistory.page - 1; setHistoryPage(p); loadAgentHistory(selectedAgentId, p) }}
-                            className="p-1.5 rounded-lg border border-slate-200 bg-white cursor-pointer disabled:opacity-40"
-                          >
-                            <ChevronLeft size={14} />
-                          </button>
-                          <span className="text-xs font-semibold text-slate-500">{agentHistory.page} / {agentHistory.totalPages}</span>
-                          <button
-                            disabled={agentHistory.page >= agentHistory.totalPages}
-                            onClick={() => { const p = agentHistory.page + 1; setHistoryPage(p); loadAgentHistory(selectedAgentId, p) }}
-                            className="p-1.5 rounded-lg border border-slate-200 bg-white cursor-pointer disabled:opacity-40"
-                          >
-                            <ChevronRight size={14} />
-                          </button>
-                        </div>
-                      </div>
-                    )}
-                  </>
-                )}
-                {/* Leave History */}
-                {selectedAgentId && (
-                  <>
-                    <div className="flex items-center gap-2 mt-6 mb-3">
-                      <CalendarCheck size={14} color="#d97706" />
-                      <p className="text-xs font-bold uppercase tracking-wide text-slate-500">Leave Requests</p>
-                    </div>
-                    {leavesLoading ? (
-                      <p className="text-sm text-slate-400 text-center py-4">Loading...</p>
-                    ) : agentLeaves.length === 0 ? (
-                      <p className="text-sm text-slate-400 text-center py-4">No leave requests.</p>
-                    ) : (
-                      <div className="overflow-x-auto">
-                        <table className="w-full text-sm">
-                          <thead>
-                            <tr style={{ borderBottom: '1px solid #f1f5f9' }}>
-                              <th className="text-left py-2 px-2 font-semibold text-slate-500 text-xs uppercase">Type</th>
-                              <th className="text-left py-2 px-2 font-semibold text-slate-500 text-xs uppercase">From</th>
-                              <th className="text-left py-2 px-2 font-semibold text-slate-500 text-xs uppercase">To</th>
-                              <th className="text-left py-2 px-2 font-semibold text-slate-500 text-xs uppercase">Reason</th>
-                              <th className="text-left py-2 px-2 font-semibold text-slate-500 text-xs uppercase">Status</th>
-                            </tr>
-                          </thead>
-                          <tbody>
-                            {agentLeaves.map((l) => (
-                              <tr key={l.id} className="hover:bg-slate-50 transition-colors" style={{ borderBottom: '1px solid #f8fafc' }}>
-                                <td className="py-2 px-2 font-semibold text-slate-800 text-xs">{l.leaveType}</td>
-                                <td className="py-2 px-2 text-slate-600 text-xs">{new Date(l.fromDate).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })}</td>
-                                <td className="py-2 px-2 text-slate-600 text-xs">{new Date(l.toDate).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })}</td>
-                                <td className="py-2 px-2 text-slate-500 text-xs max-w-[120px] truncate">{l.reason || '-'}</td>
-                                <td className="py-2 px-2">
-                                  <span className="text-xs font-bold px-2 py-0.5 rounded-full" style={{
-                                    background: l.status === 'approved' ? '#dcfce7' : l.status === 'rejected' ? '#fee2e2' : '#fef3c7',
-                                    color: l.status === 'approved' ? '#16a34a' : l.status === 'rejected' ? '#dc2626' : '#d97706',
-                                  }}>
-                                    {l.status.charAt(0).toUpperCase() + l.status.slice(1)}
-                                  </span>
-                                </td>
-                              </tr>
-                            ))}
-                          </tbody>
-                        </table>
-                      </div>
-                    )}
-                  </>
-                )}
-              </div>
+                      return (
+                        <tr
+                          key={member.userId}
+                          className={`border-b border-slate-100 hover:bg-slate-50 ${attendanceId ? 'cursor-pointer' : 'cursor-default'}`}
+                          onClick={() => attendanceId && navigate(`/${user?.role}/attendance/${attendanceId}`)}
+                        >
+                          <td className="px-4 py-4">
+                            <div className="font-semibold text-slate-900">{member.userName}</div>
+                            <div className="text-xs text-slate-500 truncate">{member.userEmail}</div>
+                          </td>
+                          <td className="px-4 py-4 text-slate-600">{dateLabel}</td>
+                          <td className="px-4 py-4 text-slate-600">{checkInLabel}</td>
+                          <td className="px-4 py-4 text-slate-600">{checkOutLabel}</td>
+                          <td className="px-4 py-4 text-slate-600">
+                            <span className="inline-flex items-center rounded-full px-2.5 py-1 text-xs font-semibold"
+                              style={{
+                                background: status === 'Late' ? '#fee2e2' : status === 'On time' ? '#dcfce7' : '#f1f5f9',
+                                color: status === 'Late' ? '#b91c1c' : status === 'On time' ? '#166534' : '#64748b',
+                              }}
+                            >
+                              {durationLabel}
+                            </span>
+                          </td>
+                        </tr>
+                      )
+                    })}
+                  </tbody>
+                </table>
+              )}
             </div>
           </div>
         </div>
