@@ -20,6 +20,7 @@ import SaleDetail from '@/pages/SaleDetail'
 import Customers from '@/pages/Customers'
 import CustomerDetail from '@/pages/CustomerDetail'
 import Loans from '@/pages/Loans'
+import LeaveRequests from '@/pages/LeaveRequests'
 import ProfileSettings from '@/pages/ProfileSettings'
 import TeamDashboard from '@/pages/manager/TeamDashboard'
 import ManagerAttendance from '@/pages/manager/ManagerAttendance'
@@ -96,6 +97,7 @@ export default function App() {
         <Route path="customers" element={<RoleRoute allowedRoles={['agent']}><Customers /></RoleRoute>} />
         <Route path="customers/:id" element={<RoleRoute allowedRoles={['agent']}><CustomerDetail /></RoleRoute>} />
         <Route path="loans" element={<RoleRoute allowedRoles={['agent', 'manager']}><Loans /></RoleRoute>} />
+        <Route path="leaves" element={<RoleRoute allowedRoles={['agent']}><LeaveRequests /></RoleRoute>} />
       </Route>
 
       <Route path="/manager" element={<RoleRoute allowedRoles={['manager']}><AppLayout /></RoleRoute>}>

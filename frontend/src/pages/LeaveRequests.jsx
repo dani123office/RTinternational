@@ -1,0 +1,243 @@
+import { useEffect, useState } from 'react'
+import api, { endpoints } from '@/lib/api'
+import { APP_STYLES } from '@/lib/styles'
+import { useToast } from '@/components/ui/toastContext'
+import { CalendarCheck, Plus, Loader2, Clock, CheckCircle, XCircle, ChevronLeft, ChevronRight } from 'lucide-react'
+
+const LEAVE_TYPES = ['Sick Leave', 'Annual Leave', 'Personal Leave', 'Other']
+
+const statusStyle = {
+  pending: { bg: '#fef3c7', color: '#d97706', label: 'Pending' },
+  approved: { bg: '#dcfce7', color: '#16a34a', label: 'Approved' },
+  rejected: { bg: '#fee2e2', color: '#dc2626', label: 'Rejected' },
+}
+
+export default function LeaveRequests() {
+  const { toast } = useToast()
+  const [data, setData] = useState({ items: [], total: 0, page: 1, totalPages: 0 })
+  const [loading, setLoading] = useState(true)
+  const [showForm, setShowForm] = useState(false)
+  const [leaveType, setLeaveType] = useState('')
+  const [fromDate, setFromDate] = useState('')
+  const [toDate, setToDate] = useState('')
+  const [reason, setReason] = useState('')
+  const [submitting, setSubmitting] = useState(false)
+
+  useEffect(() => {
+    api.get(endpoints.leaves.my, { params: { page: 1, per_page: 20 } })
+      .then(res => setData(res.data))
+      .catch(() => {})
+      .finally(() => setLoading(false))
+  }, [])
+
+  const loadLeaves = (p) => {
+    setLoading(true)
+    api.get(endpoints.leaves.my, { params: { page: p, per_page: 20 } })
+      .then(res => setData(res.data))
+      .catch(() => {})
+      .finally(() => setLoading(false))
+  }
+
+  const handleSubmit = async () => {
+    if (!leaveType) { toast('Please select leave type', 'error'); return }
+    if (!fromDate || !toDate) { toast('Please select from and to dates', 'error'); return }
+    if (fromDate > toDate) { toast('From date cannot be after to date', 'error'); return }
+
+    setSubmitting(true)
+    try {
+      await api.post(endpoints.leaves.create, {
+        leave_type: leaveType,
+        from_date: fromDate,
+        to_date: toDate,
+        reason: reason.trim() || null,
+      })
+      toast('Leave request submitted', 'success')
+      setShowForm(false)
+      setLeaveType('')
+      setFromDate('')
+      setToDate('')
+      setReason('')
+      loadLeaves(1)
+    } catch (err) {
+      toast(err?.response?.data?.detail || 'Failed to submit leave request', 'error')
+    } finally { setSubmitting(false) }
+  }
+
+  return (
+    <>
+      <style>{APP_STYLES}</style>
+      <div className="rt-page">
+        <div style={{ maxWidth: '720px', margin: '0 auto' }}>
+          <div className="rt-fade flex items-center justify-between mb-6">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-xl flex items-center justify-center" style={{ background: '#fffbeb' }}>
+                <CalendarCheck size={20} color="#d97706" />
+              </div>
+              <div>
+                <h1 className="rt-page-title">Leave Requests</h1>
+                <p className="rt-page-subtitle">Apply for and track your leave requests</p>
+              </div>
+            </div>
+            {!showForm && (
+              <button
+                onClick={() => setShowForm(true)}
+                className="flex items-center gap-1.5 px-4 py-2 rounded-xl text-sm font-bold text-white cursor-pointer border-0 transition-all"
+                style={{ background: 'linear-gradient(135deg, #6366f1, #4f46e5)' }}
+              >
+                <Plus size={16} /> New Request
+              </button>
+            )}
+          </div>
+
+          {showForm && (
+            <div className="rt-card rt-fade mb-6">
+              <div className="rt-card-header">
+                <div className="rt-card-header-left">
+                  <div className="rt-card-icon" style={{ background: '#eef2ff' }}>
+                    <Plus size={16} color="#6366f1" />
+                  </div>
+                  <span className="rt-card-title">New Leave Request</span>
+                </div>
+                <button onClick={() => setShowForm(false)} className="text-xs font-semibold text-slate-400 bg-transparent border-0 cursor-pointer">Cancel</button>
+              </div>
+              <div className="rt-card-body" style={{ padding: '24px 28px' }}>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '18px' }}>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                    <label style={{ fontSize: '11px', fontWeight: 700, color: '#64748b', textTransform: 'uppercase' }}>Leave Type</label>
+                    <select
+                      value={leaveType}
+                      onChange={(e) => setLeaveType(e.target.value)}
+                      style={{
+                        padding: '10px 14px', border: '1px solid #e2e6ec', borderRadius: '10px',
+                        fontSize: '14px', color: '#0f172a', outline: 'none', maxWidth: '280px', background: '#f8fafc',
+                      }}
+                    >
+                      <option value="">Select leave type</option>
+                      {LEAVE_TYPES.map((t) => <option key={t} value={t}>{t}</option>)}
+                    </select>
+                  </div>
+                  <div style={{ display: 'flex', gap: '16px' }}>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', flex: 1 }}>
+                      <label style={{ fontSize: '11px', fontWeight: 700, color: '#64748b', textTransform: 'uppercase' }}>From Date</label>
+                      <input
+                        type="date"
+                        value={fromDate}
+                        onChange={(e) => setFromDate(e.target.value)}
+                        style={{
+                          padding: '10px 14px', border: '1px solid #e2e6ec', borderRadius: '10px',
+                          fontSize: '14px', color: '#0f172a', outline: 'none', background: '#f8fafc', width: '100%',
+                        }}
+                      />
+                    </div>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', flex: 1 }}>
+                      <label style={{ fontSize: '11px', fontWeight: 700, color: '#64748b', textTransform: 'uppercase' }}>To Date</label>
+                      <input
+                        type="date"
+                        value={toDate}
+                        onChange={(e) => setToDate(e.target.value)}
+                        style={{
+                          padding: '10px 14px', border: '1px solid #e2e6ec', borderRadius: '10px',
+                          fontSize: '14px', color: '#0f172a', outline: 'none', background: '#f8fafc', width: '100%',
+                        }}
+                      />
+                    </div>
+                  </div>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                    <label style={{ fontSize: '11px', fontWeight: 700, color: '#64748b', textTransform: 'uppercase' }}>Reason</label>
+                    <textarea
+                      value={reason}
+                      onChange={(e) => setReason(e.target.value)}
+                      placeholder="Explain the reason for your leave..."
+                      rows={3}
+                      style={{
+                        padding: '10px 14px', border: '1px solid #e2e6ec', borderRadius: '10px',
+                        fontSize: '14px', color: '#0f172a', outline: 'none', resize: 'vertical',
+                        fontFamily: 'inherit', background: '#f8fafc',
+                      }}
+                    />
+                  </div>
+                  <div>
+                    <button
+                      onClick={handleSubmit}
+                      disabled={submitting}
+                      className="flex items-center gap-1.5 px-5 py-2.5 rounded-xl text-sm font-bold text-white cursor-pointer border-0 transition-all disabled:opacity-50"
+                      style={{ background: 'linear-gradient(135deg, #6366f1, #4f46e5)' }}
+                    >
+                      {submitting ? <Loader2 size={16} className="animate-spin" /> : <CalendarCheck size={16} />}
+                      {submitting ? 'Submitting...' : 'Submit Request'}
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+
+          <div className="rt-card rt-fade">
+            <div className="rt-card-header">
+              <div>
+                <h2 className="rt-card-title">Your Requests</h2>
+                <p className="text-sm text-slate-500">{data.total} total</p>
+              </div>
+            </div>
+            <div className="rt-card-body p-0 overflow-x-auto">
+              {loading ? (
+                <p className="text-sm text-slate-400 text-center py-8">Loading...</p>
+              ) : data.items?.length === 0 ? (
+                <div className="flex flex-col items-center py-10">
+                  <CalendarCheck size={32} color="#94a3b8" />
+                  <p className="text-sm font-semibold text-slate-500 mt-3">No leave requests yet</p>
+                </div>
+              ) : (
+                <table className="w-full min-w-[550px] text-sm border-separate border-spacing-0">
+                  <thead>
+                    <tr className="bg-slate-50 text-slate-500 uppercase text-xs tracking-[0.16em]">
+                      <th className="text-left px-4 py-3">Date</th>
+                      <th className="text-left px-4 py-3">Type</th>
+                      <th className="text-left px-4 py-3">From</th>
+                      <th className="text-left px-4 py-3">To</th>
+                      <th className="text-left px-4 py-3">Reason</th>
+                      <th className="text-left px-4 py-3">Status</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {data.items.map((r) => {
+                      const s = statusStyle[r.status] || statusStyle.pending
+                      return (
+                        <tr key={r.id} className="border-b border-slate-100 hover:bg-slate-50 transition-colors">
+                          <td className="px-4 py-3.5 font-semibold text-slate-800 text-xs">
+                            {new Date(r.createdAt).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}
+                          </td>
+                          <td className="px-4 py-3.5 font-semibold text-slate-800 text-xs">{r.leaveType}</td>
+                          <td className="px-4 py-3.5 text-slate-600 text-xs">{new Date(r.fromDate).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })}</td>
+                          <td className="px-4 py-3.5 text-slate-600 text-xs">{new Date(r.toDate).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })}</td>
+                          <td className="px-4 py-3.5 text-slate-500 text-xs max-w-[160px] truncate" title={r.reason || ''}>{r.reason || '-'}</td>
+                          <td className="px-4 py-3.5">
+                            <span className="inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-xs font-semibold" style={{ background: s.bg, color: s.color }}>
+                              {r.status === 'pending' ? <Clock size={11} /> : r.status === 'approved' ? <CheckCircle size={11} /> : <XCircle size={11} />}
+                              {s.label}
+                            </span>
+                          </td>
+                        </tr>
+                      )
+                    })}
+                  </tbody>
+                </table>
+              )}
+            </div>
+
+            {data.totalPages > 1 && (
+              <div className="flex items-center justify-between px-4 py-3" style={{ borderTop: '1px solid #f1f5f9' }}>
+                <p className="text-xs text-slate-400">{data.total} total</p>
+                <div className="flex items-center gap-2">
+                  <button disabled={data.page <= 1} onClick={() => loadLeaves(data.page - 1)} className="p-1.5 rounded-lg border border-slate-200 bg-white cursor-pointer disabled:opacity-40"><ChevronLeft size={14} /></button>
+                  <span className="text-xs font-semibold text-slate-500">{data.page} / {data.totalPages}</span>
+                  <button disabled={data.page >= data.totalPages} onClick={() => loadLeaves(data.page + 1)} className="p-1.5 rounded-lg border border-slate-200 bg-white cursor-pointer disabled:opacity-40"><ChevronRight size={14} /></button>
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+      </div>
+    </>
+  )
+}

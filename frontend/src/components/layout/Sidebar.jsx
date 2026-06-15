@@ -6,7 +6,7 @@ import {
   PoundSterling, Users, ChevronLeft, ChevronRight,
   UsersRound, BarChart3, Bell, Shield,
   Activity, Settings, UserPlus, Clock,
-  DollarSign, CalendarDays, Wallet,
+  DollarSign, CalendarDays, Wallet, CalendarCheck,
 } from 'lucide-react'
 
 const NAV_ITEMS = {
@@ -40,6 +40,7 @@ const NAV_ITEMS = {
     { to: '/sales', icon: PoundSterling, label: 'Sales' },
     { to: '/customers', icon: Users, label: 'Customers' },
     { to: '/loans', icon: Wallet, label: 'Loan Request' },
+    { to: '/leaves', icon: CalendarCheck, label: 'Leave Request' },
     { to: '/profile', icon: Settings, label: 'Profile' },
   ],
 }

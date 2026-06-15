@@ -1,9 +1,8 @@
 import { useEffect, useState, useCallback } from 'react'
 import api, { endpoints } from '@/lib/api'
 import { useAuthStore } from '@/store/authStore'
-import { Clock, LogIn, LogOut, History, MapPin, ChevronLeft, ChevronRight, Plus, CalendarCheck, CheckCircle, XCircle } from 'lucide-react'
+import { Clock, LogIn, LogOut, History, MapPin, ChevronLeft, ChevronRight } from 'lucide-react'
 import { APP_STYLES } from '@/lib/styles'
-import NewLeaveRequestModal from '@/components/leave/NewLeaveRequestModal'
 
 const TIME_OPTS = { hour: 'numeric', minute: '2-digit', second: '2-digit', hour12: true }
 const DATE_OPTS = { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' }
@@ -141,44 +140,6 @@ export default function Attendance() {
   }
 
   const checkoutNotesRequired = isCheckedIn && !isCheckedOut && isBefore10PM_PKT()
-
-  const [showLeaveModal, setShowLeaveModal] = useState(false)
-  const [myLeaves, setMyLeaves] = useState([])
-  const [leavesLoading, setLeavesLoading] = useState(false)
-
-  const loadMyLeaves = useCallback(async () => {
-    setLeavesLoading(true)
-    try {
-      const res = await api.get(endpoints.leaves.my, { params: { page: 1, perPage: 20 } })
-      setMyLeaves(res.data.items || [])
-    } catch {} finally { setLeavesLoading(false) }
-  }, [])
-
-  useEffect(() => { loadMyLeaves() }, [loadMyLeaves])
-
-  const handleCreateLeave = async (data) => {
-    try {
-      await api.post(endpoints.leaves.create, data)
-      setShowLeaveModal(false)
-      loadMyLeaves()
-    } catch (err) {
-      alert(err?.response?.data?.detail || 'Failed to create leave request')
-    }
-  }
-
-  function statusBadge(status) {
-    const map = {
-      pending: { bg: '#fef3c7', color: '#d97706', label: 'Pending' },
-      approved: { bg: '#dcfce7', color: '#16a34a', label: 'Approved' },
-      rejected: { bg: '#fee2e2', color: '#dc2626', label: 'Rejected' },
-    }
-    const s = map[status] || map.pending
-    return (
-      <span className="text-xs font-bold px-2 py-0.5 rounded-full" style={{ background: s.bg, color: s.color }}>
-        {s.label}
-      </span>
-    )
-  }
 
   return (
     <>
@@ -417,62 +378,6 @@ export default function Attendance() {
             </div>
           </div>
 
-          {/* My Leave Requests */}
-          <div className="rt-card rt-fade rt-d4" style={{ marginTop: '24px' }}>
-            <div className="rt-card-header">
-              <div className="flex items-center gap-2.5">
-                <div className="rt-card-icon" style={{ background: '#fffbeb' }}>
-                  <CalendarCheck size={16} color="#d97706" />
-                </div>
-                <h2 className="rt-card-title">My Leave Requests</h2>
-              </div>
-              <button
-                onClick={() => setShowLeaveModal(true)}
-                className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg text-xs font-semibold cursor-pointer border-0 transition-all duration-200 text-white"
-                style={{ background: 'linear-gradient(135deg, #6366f1, #4f46e5)' }}
-              >
-                <Plus size={14} /> New Request
-              </button>
-            </div>
-            <div className="rt-card-body">
-              {leavesLoading ? (
-                <p className="text-sm text-slate-400 text-center py-6">Loading...</p>
-              ) : myLeaves.length === 0 ? (
-                <p className="text-sm text-slate-400 text-center py-6">No leave requests yet.</p>
-              ) : (
-                <div className="overflow-x-auto">
-                  <table className="w-full text-sm">
-                    <thead>
-                      <tr style={{ borderBottom: '1px solid #f1f5f9' }}>
-                        <th className="text-left py-2.5 px-2 font-semibold text-slate-500 text-xs uppercase">Type</th>
-                        <th className="text-left py-2.5 px-2 font-semibold text-slate-500 text-xs uppercase">From</th>
-                        <th className="text-left py-2.5 px-2 font-semibold text-slate-500 text-xs uppercase">To</th>
-                        <th className="text-left py-2.5 px-2 font-semibold text-slate-500 text-xs uppercase">Reason</th>
-                        <th className="text-left py-2.5 px-2 font-semibold text-slate-500 text-xs uppercase">Status</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {myLeaves.map((l) => (
-                        <tr key={l.id} className="hover:bg-slate-50 transition-colors" style={{ borderBottom: '1px solid #f8fafc' }}>
-                          <td className="py-2.5 px-2 font-semibold text-slate-800 text-xs">{l.leaveType}</td>
-                          <td className="py-2.5 px-2 text-slate-600 text-xs">{new Date(l.fromDate).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })}</td>
-                          <td className="py-2.5 px-2 text-slate-600 text-xs">{new Date(l.toDate).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })}</td>
-                          <td className="py-2.5 px-2 text-slate-500 text-xs max-w-[160px] truncate">{l.reason || '-'}</td>
-                          <td className="py-2.5 px-2">{statusBadge(l.status)}</td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-              )}
-            </div>
-          </div>
-
-          <NewLeaveRequestModal
-            open={showLeaveModal}
-            onOpenChange={setShowLeaveModal}
-            onSubmit={handleCreateLeave}
-          />
         </div>
       </div>
     </>
