@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import api, { endpoints } from '@/lib/api'
 import { APP_STYLES } from '@/lib/styles'
-import { Search, CheckCircle, XCircle, AlertTriangle, Clock, X, ChevronLeft, ChevronRight, History } from 'lucide-react'
+import { Search, CheckCircle, XCircle, Clock, X, ChevronLeft, ChevronRight, History } from 'lucide-react'
 
 function formatDuration(checkIn, checkOut) {
   if (!checkIn || !checkOut) return checkIn ? 'In progress' : '-'
@@ -48,8 +48,7 @@ export default function ManagerAttendance() {
     t.userEmail.toLowerCase().includes(search.toLowerCase())
   )
 
-  const present = team.filter(t => t.attendance?.checkIn && t.attendance?.status !== 'late').length
-  const late = team.filter(t => t.attendance?.status === 'late').length
+  const present = team.filter(t => t.attendance?.checkIn).length
   const absent = team.filter(t => !t.attendance?.checkIn).length
 
   return (
@@ -62,19 +61,12 @@ export default function ManagerAttendance() {
             <p className="rt-page-subtitle">Team attendance overview for today</p>
           </div>
 
-          <div className="rt-fade grid grid-cols-3 gap-3 mb-5">
+          <div className="rt-fade grid grid-cols-2 gap-3 mb-5">
             <div className="rounded-xl p-4 text-center flex items-center justify-center gap-2.5" style={{ background: '#dcfce7' }}>
               <CheckCircle size={18} color="#16a34a" />
               <div>
                 <p className="text-xl font-extrabold" style={{ color: '#166534' }}>{present}</p>
                 <p className="text-xs font-semibold" style={{ color: '#15803d' }}>Present</p>
-              </div>
-            </div>
-            <div className="rounded-xl p-4 text-center flex items-center justify-center gap-2.5" style={{ background: '#fef3c7' }}>
-              <AlertTriangle size={18} color="#d97706" />
-              <div>
-                <p className="text-xl font-extrabold" style={{ color: '#92400e' }}>{late}</p>
-                <p className="text-xs font-semibold" style={{ color: '#b45309' }}>Late</p>
               </div>
             </div>
             <div className="rounded-xl p-4 text-center flex items-center justify-center gap-2.5" style={{ background: '#fee2e2' }}>
