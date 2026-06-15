@@ -3,7 +3,7 @@ import { useAuthStore } from '@/store/authStore'
 import { useToast } from '@/components/ui/toastContext'
 import api from '@/lib/api'
 import { APP_STYLES } from '@/lib/styles'
-import { Loader2, User, Mail, Phone, Shield, Key, Calendar, Save, Building2, Percent, UserSquare2, CreditCard, Briefcase, DollarSign, Heart, BadgePercent } from 'lucide-react'
+import { Loader2, User, Mail, Phone, Shield, Calendar, Save, Building2, Percent, UserSquare2 } from 'lucide-react'
 
 export default function ProfileSettings() {
   const { user } = useAuthStore()
@@ -16,9 +16,6 @@ export default function ProfileSettings() {
   const [name, setName] = useState('')
   const [email, setEmail] = useState('')
   const [phone, setPhone] = useState('')
-  const [currentPassword, setCurrentPassword] = useState('')
-  const [newPassword, setNewPassword] = useState('')
-  const [confirmPassword, setConfirmPassword] = useState('')
 
   const isManager = user?.role === 'manager'
   const isAdmin = user?.role === 'admin'
@@ -44,23 +41,11 @@ export default function ProfileSettings() {
   }, [toast])
 
   const handleSave = async () => {
-    if (newPassword && newPassword !== confirmPassword) {
-      toast('New passwords do not match', 'error')
-      return
-    }
-
     setSaving(true)
     try {
       const body = { name: name.trim(), email: email.trim(), phone: phone.trim() || null }
-      if (newPassword) {
-        body.currentPassword = currentPassword
-        body.newPassword = newPassword
-      }
       const res = await api.put('/api/profile', body)
       setProfile(res.data)
-      setCurrentPassword('')
-      setNewPassword('')
-      setConfirmPassword('')
       toast('Profile updated successfully', 'success')
     } catch (err) {
       const msg = err.response?.data?.detail || 'Failed to update profile'
@@ -220,71 +205,6 @@ export default function ProfileSettings() {
                     onFocus={(e) => { e.target.style.borderColor = accentColor }}
                     onBlur={(e) => { e.target.style.borderColor = '#e2e6ec' }}
                   />
-                </div>
-              </div>
-            </div>
-          </div>
-
-          {/* Password Section */}
-          <div className="rt-card rt-fade rt-d3" style={{ marginBottom: '24px' }}>
-            <div className="rt-card-header">
-              <div className="rt-card-header-left">
-                <div className="rt-card-icon" style={{ background: 'rgba(239,68,68,0.1)' }}>
-                  <Key size={16} color="#ef4444" />
-                </div>
-                <span className="rt-card-title">Change Password</span>
-              </div>
-            </div>
-            <div className="rt-card-body" style={{ padding: '24px 28px' }}>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-                  <label style={{ fontSize: '11px', fontWeight: 700, color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Current Password</label>
-                  <input
-                    type="password"
-                    value={currentPassword}
-                    onChange={(e) => setCurrentPassword(e.target.value)}
-                    style={{
-                      padding: '10px 14px', border: '1px solid #e2e6ec', borderRadius: '10px',
-                      fontSize: '14px', color: '#0f172a', outline: 'none',
-                      background: '#f8fafc', maxWidth: '340px',
-                    }}
-                    onFocus={(e) => { e.target.style.borderColor = '#ef4444' }}
-                    onBlur={(e) => { e.target.style.borderColor = '#e2e6ec' }}
-                  />
-                </div>
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-                    <label style={{ fontSize: '11px', fontWeight: 700, color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.5px' }}>New Password</label>
-                    <input
-                      type="password"
-                      value={newPassword}
-                      onChange={(e) => setNewPassword(e.target.value)}
-                      placeholder="Min. 6 characters"
-                      style={{
-                        padding: '10px 14px', border: '1px solid #e2e6ec', borderRadius: '10px',
-                        fontSize: '14px', color: '#0f172a', outline: 'none',
-                        background: '#f8fafc',
-                      }}
-                      onFocus={(e) => { e.target.style.borderColor = '#ef4444' }}
-                      onBlur={(e) => { e.target.style.borderColor = '#e2e6ec' }}
-                    />
-                  </div>
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-                    <label style={{ fontSize: '11px', fontWeight: 700, color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Confirm Password</label>
-                    <input
-                      type="password"
-                      value={confirmPassword}
-                      onChange={(e) => setConfirmPassword(e.target.value)}
-                      placeholder="Repeat new password"
-                      style={{
-                        padding: '10px 14px', border: '1px solid #e2e6ec', borderRadius: '10px',
-                        fontSize: '14px', color: '#0f172a', outline: 'none',
-                        background: '#f8fafc',
-                      }}
-                      onFocus={(e) => { e.target.style.borderColor = '#ef4444' }}
-                      onBlur={(e) => { e.target.style.borderColor = '#e2e6ec' }}
-                    />
-                  </div>
                 </div>
               </div>
             </div>
