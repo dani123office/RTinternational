@@ -346,7 +346,7 @@ export default function AdminDashboard() {
                 <div className="rt-card-body">
                   {perf?.topAgents?.length > 0 ? (
                     <div className="flex flex-col gap-2">
-                      {perf.topAgents.map((a, i) => (
+                      {perf.topAgents.slice(0, 3).map((a, i) => (
                         <div key={a.id} onClick={() => navigate(`/admin/agents/${a.id}`)} className={`flex items-center gap-3 p-2.5 rounded-xl ${i === 0 ? 'bg-violet-50' : 'bg-slate-50'} cursor-pointer hover:bg-slate-100`}>
                           <span className={`w-6 h-6 rounded-md flex items-center justify-center text-xs font-bold shrink-0 ${i < 3 ? 'text-white' : 'text-slate-500 bg-slate-200'}`}
                             style={{ background: i === 0 ? '#8b5cf6' : i === 1 ? '#6366f1' : i === 2 ? '#3b82f6' : undefined }}>
