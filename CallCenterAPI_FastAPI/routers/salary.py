@@ -247,6 +247,7 @@ class _SalaryPDF:
 def download_salary_slip(
     month: int = Query(None, ge=1, le=12),
     year: int = Query(None, ge=2020, le=2100),
+    commission: float = Query(0.0, ge=0),
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
@@ -265,14 +266,14 @@ def download_salary_slip(
 
     daily_rate = total / working_days if working_days > 0 else 0
     absent_deduction = round(daily_rate * absent_days, 0)
-    net_salary = int(total - absent_deduction)
+    net_salary = int(total - absent_deduction + commission)
 
     components = [
         ("Basic Salary", _fmt(int(basic)), "50%"),
         ("House Rent Allowance", _fmt(int(hra)), "15%"),
         ("Utility Allowance", _fmt(int(utility)), "30%"),
         ("Conveyance Allowance", _fmt(int(conveyance)), "5%"),
-        ("Commission", "If any", ""),
+        ("Commission", _fmt(int(commission)) if commission else "If any", ""),
         ("Total", _fmt(total), ""),
     ]
 
