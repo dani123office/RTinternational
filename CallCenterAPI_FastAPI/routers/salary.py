@@ -216,7 +216,7 @@ class _SalaryPDF:
         buf.append(self._sg(*self.C_DIV))
         buf.append(self._line(CM, y - 10, RM, y - 10))
 
-        y -= 14
+        y -= 30
         row_h = 18
 
         earnings = kw["earnings"]        # list of (label, amount, bold)
