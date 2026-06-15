@@ -13,9 +13,8 @@ const NAV_ITEMS = {
   admin: [
     { to: '/admin', icon: Shield, label: 'Dashboard' },
     { to: '/admin/attendance', icon: Clock, label: 'Attendance' },
-    { to: '/admin/managers', icon: UserCog, label: 'Managers' },
+    { to: '/admin/staff', icon: Users, label: 'Staff Management' },
     { to: '/admin/pending', icon: UserPlus, label: 'Pending Approvals' },
-    { to: '/admin/agents', icon: Users, label: 'Agents' },
     { to: '/admin/analytics', icon: BarChart3, label: 'Analytics' },
     { to: '/admin/activity', icon: Activity, label: 'Activity Feed' },
     { to: '/admin/payroll', icon: DollarSign, label: 'Payroll' },

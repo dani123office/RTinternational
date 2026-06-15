@@ -32,8 +32,7 @@ import ManagerSales from '@/pages/manager/ManagerSales'
 import ManagerNotifications from '@/pages/manager/ManagerNotifications'
 import ManagerAgentsList from '@/pages/manager/ManagerAgentsList'
 import AdminDashboard from '@/pages/admin/AdminDashboard'
-import ManagersPage from '@/pages/admin/ManagersPage'
-import AgentsPage from '@/pages/admin/AgentsPage'
+import StaffManagement from '@/pages/admin/StaffManagement'
 import PendingUsers from '@/pages/admin/PendingUsers'
 import AdminAgentDetail from '@/pages/admin/AdminAgentDetail'
 import AdminManagerDetail from '@/pages/admin/AdminManagerDetail'
@@ -114,10 +113,11 @@ export default function App() {
         <Route index element={<AdminDashboard />} />
         <Route path="attendance" element={<ManagerAttendance />} />
         <Route path="attendance/:id" element={<AttendanceDetail />} />
-        <Route path="managers" element={<ManagersPage />} />
+        <Route path="staff" element={<StaffManagement />} />
+        <Route path="managers" element={<Navigate to="/admin/staff" replace />} />
         <Route path="managers/:id" element={<AdminManagerDetail />} />
         <Route path="pending" element={<PendingUsers />} />
-        <Route path="agents" element={<AgentsPage />} />
+        <Route path="agents" element={<Navigate to="/admin/staff" replace />} />
         <Route path="agents/:id" element={<AdminAgentDetail />} />
         <Route path="callbacks" element={<AdminCallbacks />} />
         <Route path="callbacks/:id" element={<AdminCallbackDetail />} />
