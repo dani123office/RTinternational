@@ -1647,3 +1647,28 @@ class LeaveRequestOut(BaseModel):
     updatedAt: datetime
 
     model_config = {"from_attributes": True}
+
+
+class LoanCreate(BaseModel):
+    amount: float = Field(..., gt=0, description="Loan amount")
+    reason: Optional[str] = Field(None, max_length=1000)
+
+
+class LoanReview(BaseModel):
+    status: str = Field(..., pattern="^(approved|rejected)$")
+    admin_notes: Optional[str] = Field(None, max_length=500)
+
+
+class LoanOut(BaseModel):
+    id: int
+    userId: int
+    userName: Optional[str] = None
+    amount: float
+    reason: Optional[str] = None
+    status: str
+    adminId: Optional[int] = None
+    adminNotes: Optional[str] = None
+    createdAt: datetime
+    updatedAt: datetime
+
+    model_config = {"from_attributes": True}

@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import { useAdminStore } from '@/store/adminStore'
 import api, { endpoints } from '@/lib/api'
-import { UserPlus, CheckCircle, XCircle, Loader2, UserRoundCog, CalendarCheck, Check, X } from 'lucide-react'
+import { UserPlus, CheckCircle, XCircle, Loader2, UserRoundCog, CalendarCheck, Check, X, Wallet } from 'lucide-react'
 import { APP_STYLES } from '@/lib/styles'
 import DataTable from '@/components/shared/DataTable'
 import LoadingSpinner from '@/components/shared/LoadingSpinner'
@@ -16,17 +16,21 @@ export default function PendingUsers() {
   const [leavesLoading, setLeavesLoading] = useState(false)
   const [reviewProcessing, setReviewProcessing] = useState(null)
 
-  const loadPendingLeaves = async () => {
-    setLeavesLoading(true)
-    try {
-      const res = await api.get(endpoints.leaves.pending)
-      setPendingLeaves(res.data || [])
-    } catch {} finally { setLeavesLoading(false) }
-  }
+  const [pendingLoans, setPendingLoans] = useState([])
+  const [loansLoading, setLoansLoading] = useState(false)
+  const [loanReviewProcessing, setLoanReviewProcessing] = useState(null)
+
+  useEffect(() => {
+    api.get(endpoints.leaves.pending)
+      .then(res => { setLeavesLoading(false); setPendingLeaves(res.data || []) })
+      .catch(() => setLeavesLoading(false))
+    api.get(endpoints.loans.pending)
+      .then(res => { setLoansLoading(false); setPendingLoans(res.data || []) })
+      .catch(() => setLoansLoading(false))
+  }, [])
 
   useEffect(() => {
     Promise.all([loadPendingUsers(), loadManagers()]).then(() => setLoading(false))
-    loadPendingLeaves()
   }, [loadPendingUsers, loadManagers])
 
   const handleReview = async (leaveId, status) => {
@@ -37,6 +41,16 @@ export default function PendingUsers() {
     } catch (err) {
       alert(err?.response?.data?.detail || 'Failed to review leave')
     } finally { setReviewProcessing(null) }
+  }
+
+  const handleLoanReview = async (loanId, status) => {
+    setLoanReviewProcessing(loanId)
+    try {
+      await api.put(endpoints.loans.review(loanId), { status })
+      setPendingLoans((prev) => prev.filter((l) => l.id !== loanId))
+    } catch (err) {
+      alert(err?.response?.data?.detail || 'Failed to review loan')
+    } finally { setLoanReviewProcessing(null) }
   }
 
   const handleApprove = async (user) => {
@@ -219,7 +233,75 @@ export default function PendingUsers() {
             </div>
           </div>
 
-          <div className="rt-fade rt-card" style={{ marginTop: '28px' }}>
+          {/* Pending Loan Requests */}
+          <div className="rt-fade rt-card" style={{ marginTop: '24px' }}>
+            <div className="rt-card-header">
+              <div className="flex items-center gap-2.5">
+                <div className="rt-card-icon" style={{ background: '#ecfdf5' }}>
+                  <Wallet size={16} color="#16a34a" />
+                </div>
+                <h2 className="rt-card-title">Loan Requests ({pendingLoans.length})</h2>
+              </div>
+            </div>
+            <div className="rt-card-body">
+              {loansLoading ? (
+                <p className="text-sm text-slate-400 text-center py-6">Loading...</p>
+              ) : pendingLoans.length === 0 ? (
+                <div className="flex flex-col items-center justify-center py-6">
+                  <Wallet size={28} color="#94a3b8" />
+                  <p className="text-sm font-semibold text-slate-500 mt-3">No pending loan requests</p>
+                  <p className="text-xs text-slate-400 mt-1">All caught up!</p>
+                </div>
+              ) : (
+                <div className="overflow-x-auto">
+                  <table className="w-full text-sm">
+                    <thead>
+                      <tr style={{ borderBottom: '1px solid #f1f5f9' }}>
+                        <th className="text-left py-2.5 px-2 font-semibold text-slate-500 text-xs uppercase">Agent</th>
+                        <th className="text-left py-2.5 px-2 font-semibold text-slate-500 text-xs uppercase">Amount</th>
+                        <th className="text-left py-2.5 px-2 font-semibold text-slate-500 text-xs uppercase">Reason</th>
+                        <th className="text-left py-2.5 px-2 font-semibold text-slate-500 text-xs uppercase">Date</th>
+                        <th className="text-left py-2.5 px-2 font-semibold text-slate-500 text-xs uppercase">Action</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {pendingLoans.map((l) => (
+                        <tr key={l.id} className="hover:bg-slate-50 transition-colors" style={{ borderBottom: '1px solid #f8fafc' }}>
+                          <td className="py-2.5 px-2 font-semibold text-slate-800 text-xs">{l.userName || `User #${l.userId}`}</td>
+                          <td className="py-2.5 px-2 font-bold text-slate-900 text-sm">Rs. {Number(l.amount).toLocaleString()}</td>
+                          <td className="py-2.5 px-2 text-slate-500 text-xs max-w-[160px] truncate">{l.reason || '-'}</td>
+                          <td className="py-2.5 px-2 text-slate-600 text-xs">{new Date(l.createdAt).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })}</td>
+                          <td className="py-2.5 px-2">
+                            <div className="flex items-center gap-2">
+                              <button
+                                onClick={() => handleLoanReview(l.id, 'approved')}
+                                disabled={loanReviewProcessing === l.id}
+                                className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-semibold cursor-pointer border-0 text-white disabled:opacity-50 transition-all"
+                                style={{ background: 'linear-gradient(135deg, #22c55e, #16a34a)' }}
+                              >
+                                {loanReviewProcessing === l.id ? <Loader2 size={12} className="animate-spin" /> : <Check size={12} />}
+                                Sanction
+                              </button>
+                              <button
+                                onClick={() => handleLoanReview(l.id, 'rejected')}
+                                disabled={loanReviewProcessing === l.id}
+                                className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-semibold cursor-pointer border-0 text-white disabled:opacity-50 transition-all"
+                                style={{ background: 'linear-gradient(135deg, #ef4444, #dc2626)' }}
+                              >
+                                <X size={12} /> Reject
+                              </button>
+                            </div>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+            </div>
+          </div>
+
+          <div className="rt-fade rt-card" style={{ marginTop: '24px' }}>
             <div className="rt-card-header">
               <div className="flex items-center gap-2.5">
                 <div className="rt-card-icon" style={{ background: '#eef2ff' }}>

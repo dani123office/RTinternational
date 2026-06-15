@@ -151,6 +151,12 @@ export const endpoints = {
     review: (id) => `/api/leaves/${id}/review`,
     agent: (id) => `/api/leaves/agent/${id}`,
   },
+  loans: {
+    create: '/api/loans',
+    my: '/api/loans/my',
+    pending: '/api/loans/pending',
+    review: (id) => `/api/loans/${id}/review`,
+  },
   salary: {
     slip: '/api/salary/slip',
     adminSlip: (userId) => `/api/admin/salary/slip/${userId}`,

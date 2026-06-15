@@ -287,3 +287,20 @@ class LeaveRequest(Base):
 
     user = relationship("User", foreign_keys=[user_id], backref="leave_requests")
     admin = relationship("User", foreign_keys=[admin_id])
+
+
+class LoanRequest(Base):
+    __tablename__ = "loan_requests"
+
+    id = Column(Integer, primary_key=True, index=True)
+    user_id = Column(Integer, ForeignKey("users.id", ondelete="CASCADE"), nullable=False, index=True)
+    amount = Column(Float, nullable=False)
+    reason = Column(Text, nullable=True)
+    status = Column(String(20), nullable=False, default="pending")  # pending, approved, rejected
+    admin_id = Column(Integer, ForeignKey("users.id", ondelete="SET NULL"), nullable=True)
+    admin_notes = Column(Text, nullable=True)
+    created_at = Column(DateTime, default=datetime.now)
+    updated_at = Column(DateTime, default=datetime.now, onupdate=datetime.now)
+
+    user = relationship("User", foreign_keys=[user_id], backref="loan_requests")
+    admin = relationship("User", foreign_keys=[admin_id])
