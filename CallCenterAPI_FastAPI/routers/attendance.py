@@ -10,6 +10,8 @@ from ..models import User, Attendance
 from .auth import get_current_user
 from pydantic import BaseModel
 from ..schemas import AttendanceCheckIn, AttendanceCheckOut, AttendanceOut, AttendanceSummary, UserAttendanceToday
+import openpyxl
+from openpyxl.styles import Font, PatternFill, Alignment, Border, Side
 
 
 class AttendanceRecordOut(BaseModel):
@@ -425,9 +427,6 @@ def attendance_export(
         query = query.filter(Attendance.user_id == employee_id)
 
     rows = query.order_by(Attendance.date.desc(), User.name.asc()).all()
-
-    import openpyxl
-    from openpyxl.styles import Font, PatternFill, Alignment, Border, Side
 
     wb = openpyxl.Workbook()
     ws = wb.active
