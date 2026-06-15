@@ -729,40 +729,49 @@ def admin_salary_slip(
     working_days, present_days, absent_days = _attendance_summary(db, agent.id, m, y)
     base = agent.monthly_salary or 0
 
-    basic = round(base * 0.50, 0)
-    hra = round(base * 0.15, 0)
-    utility = round(base * 0.30, 0)
-    conveyance = round(base * 0.05, 0)
-    total = int(basic + hra + utility + conveyance)
+    basic      = int(round(base * 0.50))
+    hra        = int(round(base * 0.15))
+    utility    = int(round(base * 0.30))
+    conveyance = int(round(base * 0.05))
+    comm       = int(commission)
+    gross      = basic + hra + utility + conveyance + comm
 
-    daily_rate = total / working_days if working_days > 0 else 0
-    absent_deduction = round(daily_rate * absent_days, 0)
-    net_salary = int(total - absent_deduction + commission)
+    daily_rate        = gross / working_days if working_days > 0 else 0
+    absent_deduction  = int(round(daily_rate * absent_days))
+    total_deductions  = absent_deduction
+    net_salary        = gross - total_deductions
 
-    components = [
-        ("Basic Salary", _fmt(int(basic)), "50%"),
-        ("House Rent Allowance", _fmt(int(hra)), "15%"),
-        ("Utility Allowance", _fmt(int(utility)), "30%"),
-        ("Conveyance Allowance", _fmt(int(conveyance)), "5%"),
+    earnings_rows = [
+        ("Basic Salary",           _fmt(basic),      False),
+        ("House Rent Allowance",   _fmt(hra),        False),
+        ("Utility Allowance",      _fmt(utility),    False),
+        ("Conveyance Allowance",   _fmt(conveyance), False),
     ]
-    components.append(("Commission", _fmt(int(commission)), ""))
-    components.append(("Total", _fmt(total), ""))
+    if comm:
+        earnings_rows.append(("Commission", _fmt(comm), False))
+    earnings_rows.append(("Gross Salary", _fmt(gross), True))
+
+    deductions_rows = [
+        ("Absent Days Deduction", _fmt(absent_deduction), False),
+        ("Total Deductions",      _fmt(total_deductions), True),
+    ]
 
     pdf = _SalaryPDF()
     pdf.build_slip(
-        period=f"for the month of {_month_name(m)} {y}",
-        employee_name=agent.name,
-        employee_id=_employee_id(agent),
-        designation=agent.designation or "-",
-        department=agent.department or "-",
-        cnic=agent.cnic or "-",
-        doj=agent.date_of_joining.strftime("%d/%m/%Y") if agent.date_of_joining else "-",
-        working_days=str(working_days),
-        present_days=str(present_days),
-        absent_days=str(absent_days),
-        salary_components=components,
-        net_salary=net_salary,
-        generated_at=datetime.now().strftime("%B %d, %Y at %I:%M %p"),
+        period        = f"for the month of {_month_name(m)} {y}",
+        employee_name = agent.name,
+        employee_id   = _employee_id(agent),
+        designation   = agent.designation   or "—",
+        department    = agent.department    or "—",
+        cnic          = agent.cnic          or "—",
+        doj           = agent.date_of_joining.strftime("%d/%m/%Y") if agent.date_of_joining else "—",
+        working_days  = str(working_days),
+        present_days  = str(present_days),
+        absent_days   = str(absent_days),
+        earnings      = earnings_rows,
+        deductions    = deductions_rows,
+        net_salary    = net_salary,
+        generated_at  = datetime.now().strftime("%B %d, %Y at %I:%M %p"),
     )
 
     return Response(
