@@ -1,6 +1,7 @@
+import io
 from calendar import monthrange
 from datetime import datetime, date, timedelta
-from fastapi import APIRouter, Depends, HTTPException, Query, Request
+from fastapi import APIRouter, Depends, HTTPException, Query, Request, Response
 from sqlalchemy.orm import Session
 from sqlalchemy import func
 from typing import Optional
@@ -15,6 +16,19 @@ class AttendanceRecordOut(BaseModel):
     record: AttendanceOut
     agentName: str
     agentEmail: str
+
+
+class AttendanceFeedItem(BaseModel):
+    id: int
+    userId: int
+    userName: str
+    userEmail: str
+    date: date
+    checkIn: Optional[datetime] = None
+    checkOut: Optional[datetime] = None
+    status: str
+    checkin_reason: Optional[str] = None
+    checkout_reason: Optional[str] = None
 from ..utils.logger import log_activity, get_client_ip
 
 router = APIRouter(prefix="/api/attendance", tags=["attendance"])
@@ -333,4 +347,141 @@ def attendance_record(
         record=_attendance_to_out(record),
         agentName=agent.name,
         agentEmail=agent.email,
+    )
+
+
+@router.get("/feed")
+def attendance_feed(
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+    from_date: date = Query(..., description="Start date (YYYY-MM-DD)"),
+    to_date: date = Query(..., description="End date (YYYY-MM-DD)"),
+    employee_id: Optional[int] = Query(None, description="Filter by employee"),
+    page: int = Query(1, ge=1),
+    per_page: int = Query(20, ge=1, le=100),
+):
+    if current_user.role not in ("manager", "admin"):
+        raise HTTPException(status_code=403, detail="Only managers and admins can view attendance feed")
+
+    query = db.query(Attendance, User).join(User, Attendance.user_id == User.id)
+
+    if current_user.role == "manager":
+        query = query.filter(User.manager_id == current_user.id, User.role == "agent")
+
+    query = query.filter(Attendance.date >= from_date, Attendance.date <= to_date)
+
+    if employee_id:
+        query = query.filter(Attendance.user_id == employee_id)
+
+    total = query.with_entities(func.count()).scalar()
+    rows = query.order_by(Attendance.date.desc(), User.name.asc()).offset(
+        (page - 1) * per_page
+    ).limit(per_page).all()
+
+    items = [
+        AttendanceFeedItem(
+            id=a.id,
+            userId=a.user_id,
+            userName=u.name,
+            userEmail=u.email,
+            date=a.date,
+            checkIn=a.check_in,
+            checkOut=a.check_out,
+            status=a.status,
+            checkin_reason=a.checkin_reason,
+            checkout_reason=a.checkout_reason,
+        )
+        for a, u in rows
+    ]
+
+    return {
+        "items": items,
+        "total": total,
+        "page": page,
+        "perPage": per_page,
+        "totalPages": (total + per_page - 1) // per_page if total else 0,
+    }
+
+
+@router.get("/export")
+def attendance_export(
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+    from_date: date = Query(..., description="Start date (YYYY-MM-DD)"),
+    to_date: date = Query(..., description="End date (YYYY-MM-DD)"),
+    employee_id: Optional[int] = Query(None, description="Filter by employee"),
+):
+    if current_user.role not in ("manager", "admin"):
+        raise HTTPException(status_code=403, detail="Only managers and admins can export attendance")
+
+    query = db.query(Attendance, User).join(User, Attendance.user_id == User.id)
+
+    if current_user.role == "manager":
+        query = query.filter(User.manager_id == current_user.id, User.role == "agent")
+
+    query = query.filter(Attendance.date >= from_date, Attendance.date <= to_date)
+
+    if employee_id:
+        query = query.filter(Attendance.user_id == employee_id)
+
+    rows = query.order_by(Attendance.date.desc(), User.name.asc()).all()
+
+    import openpyxl
+    from openpyxl.styles import Font, PatternFill, Alignment, Border, Side
+
+    wb = openpyxl.Workbook()
+    ws = wb.active
+    ws.title = "Attendance Feed"
+
+    headers = ["Date", "Employee Name", "Email", "Status", "Check In", "Check Out", "Check-in Reason", "Check-out Reason"]
+    header_font = Font(bold=True, color="FFFFFF", size=11)
+    header_fill = PatternFill(start_color="4F46E5", end_color="4F46E5", fill_type="solid")
+    thin_border = Border(
+        left=Side(style="thin", color="E2E8F0"),
+        right=Side(style="thin", color="E2E8F0"),
+        top=Side(style="thin", color="E2E8F0"),
+        bottom=Side(style="thin", color="E2E8F0"),
+    )
+
+    for col_idx, h in enumerate(headers, 1):
+        cell = ws.cell(row=1, column=col_idx, value=h)
+        cell.font = header_font
+        cell.fill = header_fill
+        cell.alignment = Alignment(horizontal="center", vertical="center")
+        cell.border = thin_border
+
+    for row_idx, (a, u) in enumerate(rows, 2):
+        values = [
+            a.date.isoformat() if a.date else "",
+            u.name or "",
+            u.email or "",
+            a.status.capitalize() if a.status else "",
+            a.check_in.strftime("%H:%M") if a.check_in else "",
+            a.check_out.strftime("%H:%M") if a.check_out else "",
+            a.checkin_reason or "",
+            a.checkout_reason or "",
+        ]
+        for col_idx, val in enumerate(values, 1):
+            cell = ws.cell(row=row_idx, column=col_idx, value=val)
+            cell.border = thin_border
+            cell.alignment = Alignment(vertical="center")
+
+    ws.column_dimensions["A"].width = 14
+    ws.column_dimensions["B"].width = 24
+    ws.column_dimensions["C"].width = 30
+    ws.column_dimensions["D"].width = 12
+    ws.column_dimensions["E"].width = 10
+    ws.column_dimensions["F"].width = 10
+    ws.column_dimensions["G"].width = 28
+    ws.column_dimensions["H"].width = 28
+
+    output = io.BytesIO()
+    wb.save(output)
+    output.seek(0)
+
+    filename = f"attendance_{from_date.isoformat()}_{to_date.isoformat()}.xlsx"
+    return Response(
+        content=output.getvalue(),
+        media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        headers={"Content-Disposition": f'attachment; filename="{filename}"'},
     )

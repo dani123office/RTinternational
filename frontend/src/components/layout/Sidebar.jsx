@@ -5,14 +5,15 @@ import {
   LayoutDashboard, PhoneCall, ArrowLeftRight,
   PoundSterling, Users, ChevronLeft, ChevronRight,
   UsersRound, BarChart3, Bell, Shield,
-  UserCog, Activity, Settings, UserPlus, Clock,
-  DollarSign,
+  Activity, Settings, UserPlus, Clock,
+  DollarSign, CalendarDays,
 } from 'lucide-react'
 
 const NAV_ITEMS = {
   admin: [
     { to: '/admin', icon: Shield, label: 'Dashboard' },
     { to: '/admin/attendance', icon: Clock, label: 'Attendance' },
+    { to: '/admin/attendance-feed', icon: CalendarDays, label: 'Attendance Feed' },
     { to: '/admin/staff', icon: Users, label: 'Staff Management' },
     { to: '/admin/pending', icon: UserPlus, label: 'Pending Approvals' },
     { to: '/admin/analytics', icon: BarChart3, label: 'Analytics' },
@@ -23,6 +24,7 @@ const NAV_ITEMS = {
   manager: [
     { to: '/manager', icon: LayoutDashboard, label: 'Team Dashboard' },
     { to: '/manager/attendance', icon: Clock, label: 'Attendance' },
+    { to: '/manager/attendance-feed', icon: CalendarDays, label: 'Attendance Feed' },
     { to: '/manager/agents', icon: UsersRound, label: 'Agents' },
     { to: '/manager/callbacks', icon: PhoneCall, label: 'Callbacks' },
     { to: '/manager/transfers', icon: ArrowLeftRight, label: 'Transfers' },

@@ -22,6 +22,7 @@ import CustomerDetail from '@/pages/CustomerDetail'
 import ProfileSettings from '@/pages/ProfileSettings'
 import TeamDashboard from '@/pages/manager/TeamDashboard'
 import ManagerAttendance from '@/pages/manager/ManagerAttendance'
+import AttendanceFeed from '@/pages/manager/AttendanceFeed'
 import AttendanceDetail from '@/pages/AttendanceDetail'
 import AgentDetail from '@/pages/manager/AgentDetail'
 import ManagerCallbacks from '@/pages/manager/ManagerCallbacks'
@@ -98,6 +99,7 @@ export default function App() {
       <Route path="/manager" element={<RoleRoute allowedRoles={['manager']}><AppLayout /></RoleRoute>}>
         <Route index element={<TeamDashboard />} />
         <Route path="attendance" element={<ManagerAttendance />} />
+        <Route path="attendance-feed" element={<AttendanceFeed />} />
         <Route path="attendance/:id" element={<AttendanceDetail />} />
         <Route path="agents" element={<ManagerAgentsList />} />
         <Route path="agents/:id" element={<AgentDetail />} />
@@ -112,6 +114,7 @@ export default function App() {
       <Route path="/admin" element={<RoleRoute allowedRoles={['admin']}><AppLayout /></RoleRoute>}>
         <Route index element={<AdminDashboard />} />
         <Route path="attendance" element={<ManagerAttendance />} />
+        <Route path="attendance-feed" element={<AttendanceFeed />} />
         <Route path="attendance/:id" element={<AttendanceDetail />} />
         <Route path="staff" element={<StaffManagement />} />
         <Route path="managers" element={<Navigate to="/admin/staff" replace />} />

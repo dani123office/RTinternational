@@ -141,6 +141,8 @@ export const endpoints = {
     teamToday: '/api/attendance/team-today',
     agentHistory: (id) => `/api/attendance/agent-history/${id}`,
     record: (id) => `/api/attendance/record/${id}`,
+    feed: '/api/attendance/feed',
+    export: '/api/attendance/export',
   },
   leaves: {
     create: '/api/leaves',
