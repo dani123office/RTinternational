@@ -228,7 +228,7 @@ class _SalaryPDF:
             if bold:  # draw divider ABOVE the bold row, before rendering text
                 buf.append(self._sg(*self.C_DIV))
                 buf.append(self._lw(0.4))
-                buf.append(self._line(LM, ey + 12, left_col_right, ey + 12))
+                buf.append(self._line(LM, ey + row_h - 2, left_col_right, ey + row_h - 2))
             buf.append(self._fg(*self.C_DARK))
             buf.append(self._t(LM, ey, lbl, "Helvetica-Bold" if bold else "Helvetica", 8.5))
             buf.append(self._tr(left_col_right, ey, amt, "Helvetica-Bold" if bold else "Helvetica", 8.5))
@@ -240,7 +240,7 @@ class _SalaryPDF:
             if bold:  # draw divider ABOVE the bold row, before rendering text
                 buf.append(self._sg(*self.C_DIV))
                 buf.append(self._lw(0.4))
-                buf.append(self._line(CM, dy + 12, right_col_right, dy + 12))
+                buf.append(self._line(CM, dy + row_h - 2, right_col_right, dy + row_h - 2))
             buf.append(self._fg(*self.C_DARK))
             buf.append(self._t(CM, dy, lbl, "Helvetica-Bold" if bold else "Helvetica", 8.5))
             buf.append(self._tr(right_col_right, dy, amt, "Helvetica-Bold" if bold else "Helvetica", 8.5))
