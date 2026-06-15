@@ -134,15 +134,42 @@ class _SalaryPDF:
         ry = col_items(right, CX, y)
         y = min(ly, ry) - 25
 
-        # Section 2: Earnings + Deductions
-        y = section_caption("Earnings & Deductions", y)
-        left2 = [(lbl, _fmt(val)) for lbl, val in kw["earnings"]]
-        left2.append(("Gross Salary", _fmt(kw["gross"])))
-        right2 = [(lbl, _fmt(val)) for lbl, val in kw["deductions"]]
-        right2.append(("Total Deductions", _fmt(kw["total_deductions"])))
+        # Section 2: Salary Component Table (3-column format)
+        y = section_caption("Salary Breakdown", y)
 
-        col_items(left2, LM, y)
-        col_items(right2, CX, y)
+        col1 = LM + 10
+        col2 = LM + 260
+        col2_right = col2 + 115
+        col3 = col2_right + 12
+
+        # Table header — line only under col1 & col2 (col3 unbordered)
+        self._buf.append(self._text(col1, y, "Salary Component", "Helvetica-Bold", 8))
+        self._buf.append(self._text_right(col2_right, y, "Amount / Value", "Helvetica-Bold", 8))
+        self._buf.append(self._text(col3, y, "Percentage Notes", "Helvetica-Bold", 8))
+        y -= 4
+        self._buf.append(self._dcolor(200, 200, 200))
+        self._buf.append(self._line(LM, y, col2_right, y))
+        y -= 1
+        self._buf.append(self._line(LM, y, col2_right, y))
+        y -= 12
+
+        # Data rows
+        for name, amount, pct in kw["salary_components"]:
+            is_bold = name == "Total"
+            font = "Helvetica-Bold" if is_bold else "Helvetica"
+            sz = 10 if is_bold else 9
+            self._buf.append(self._color(0, 0, 0))
+            self._buf.append(self._text(col1, y, name, font, sz))
+            self._buf.append(self._text_right(col2_right, y, amount, font, sz))
+            self._buf.append(self._text(col3, y, pct, "Helvetica", 8))
+            if name == "Total":
+                y -= 2
+                self._buf.append(self._dcolor(200, 200, 200))
+                self._buf.append(self._line(LM, y, col2_right, y))
+                y -= 16
+                self._buf.append(self._dcolor(100, 100, 100))
+            else:
+                y -= 14
 
         # Net Salary card — fixed position near bottom
         box_x = LM
@@ -228,17 +255,26 @@ def download_salary_slip(
     y = year or now.year
 
     working_days, present_days, absent_days = _attendance_summary(db, current_user.id, m, y)
-    gross = current_user.monthly_salary or 0
+    base = current_user.monthly_salary or 0
 
-    basic = round(gross * 0.50, 0)
-    hra = round(gross * 0.15, 0)
-    utility = round(gross * 0.30, 0)
-    conveyance = round(gross * 0.05, 0)
+    basic = round(base * 0.50, 0)
+    hra = round(base * 0.15, 0)
+    utility = round(base * 0.30, 0)
+    conveyance = round(base * 0.05, 0)
+    total = int(basic + hra + utility + conveyance)
 
-    daily_rate = gross / working_days if working_days > 0 else 0
+    daily_rate = total / working_days if working_days > 0 else 0
     absent_deduction = round(daily_rate * absent_days, 0)
-    total_deductions = absent_deduction
-    net_salary = int(gross - total_deductions)
+    net_salary = int(total - absent_deduction)
+
+    components = [
+        ("Basic Salary", _fmt(int(basic)), "50%"),
+        ("House Rent Allowance", _fmt(int(hra)), "15%"),
+        ("Utility Allowance", _fmt(int(utility)), "30%"),
+        ("Conveyance Allowance", _fmt(int(conveyance)), "5%"),
+        ("Commission", "If any", ""),
+        ("Total", _fmt(total), ""),
+    ]
 
     pdf = _SalaryPDF()
     pdf.build_slip(
@@ -252,17 +288,7 @@ def download_salary_slip(
         working_days=str(working_days),
         present_days=str(present_days),
         absent_days=str(absent_days),
-        earnings=[
-            ("Basic Salary", int(basic)),
-            ("House Rent Allowance", int(hra)),
-            ("Utility Allowance", int(utility)),
-            ("Conveyance Allowance", int(conveyance)),
-        ],
-        deductions=[
-            ("Absent Days Deduction", int(absent_deduction)),
-        ],
-        gross=int(gross),
-        total_deductions=int(total_deductions),
+        salary_components=components,
         net_salary=net_salary,
         generated_at=datetime.now().strftime("%B %d, %Y at %I:%M %p"),
     )

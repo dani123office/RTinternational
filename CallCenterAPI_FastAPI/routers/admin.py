@@ -727,17 +727,29 @@ def admin_salary_slip(
     y = year or now.year
 
     working_days, present_days, absent_days = _attendance_summary(db, agent.id, m, y)
-    gross = (agent.monthly_salary or 0) + commission
+    base = agent.monthly_salary or 0
 
-    basic = round(gross * 0.50, 0)
-    hra = round(gross * 0.15, 0)
-    utility = round(gross * 0.30, 0)
-    conveyance = round(gross * 0.05, 0)
+    basic = round(base * 0.50, 0)
+    hra = round(base * 0.15, 0)
+    utility = round(base * 0.30, 0)
+    conveyance = round(base * 0.05, 0)
+    total = int(basic + hra + utility + conveyance)
 
-    daily_rate = gross / working_days if working_days > 0 else 0
+    daily_rate = total / working_days if working_days > 0 else 0
     absent_deduction = round(daily_rate * absent_days, 0)
-    total_deductions = absent_deduction
-    net_salary = int(gross - total_deductions)
+    net_salary = int(total - absent_deduction + commission)
+
+    components = [
+        ("Basic Salary", _fmt(int(basic)), "50%"),
+        ("House Rent Allowance", _fmt(int(hra)), "15%"),
+        ("Utility Allowance", _fmt(int(utility)), "30%"),
+        ("Conveyance Allowance", _fmt(int(conveyance)), "5%"),
+    ]
+    if commission > 0:
+        components.append(("Commission", _fmt(int(commission)), ""))
+    else:
+        components.append(("Commission", "If any", ""))
+    components.append(("Total", _fmt(total), ""))
 
     pdf = _SalaryPDF()
     pdf.build_slip(
@@ -751,17 +763,7 @@ def admin_salary_slip(
         working_days=str(working_days),
         present_days=str(present_days),
         absent_days=str(absent_days),
-        earnings=[
-            ("Basic Salary", int(basic)),
-            ("House Rent Allowance", int(hra)),
-            ("Utility Allowance", int(utility)),
-            ("Conveyance Allowance", int(conveyance)),
-        ],
-        deductions=[
-            ("Absent Days Deduction", int(absent_deduction)),
-        ],
-        gross=int(gross),
-        total_deductions=int(total_deductions),
+        salary_components=components,
         net_salary=net_salary,
         generated_at=datetime.now().strftime("%B %d, %Y at %I:%M %p"),
     )
