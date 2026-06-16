@@ -655,8 +655,10 @@ def admin_callbacks_export(
     to_date: date = Query(..., description="End date (YYYY-MM-DD)"),
     employee_id: int | None = Query(None, description="Filter by employee"),
 ):
-    q = db.query(CallBack).join(User, CallBack.employee_id == User.id).outerjoin(Customer, CallBack.customer_id == Customer.id)
-    q = q.filter(CallBack.scheduled_datetime >= from_date, CallBack.scheduled_datetime <= to_date)
+    from_dt = datetime.combine(from_date, datetime.min.time())
+    to_dt = datetime.combine(to_date, datetime.max.time())
+    q = db.query(CallBack)
+    q = q.filter(CallBack.scheduled_datetime >= from_dt, CallBack.scheduled_datetime <= to_dt)
     if employee_id:
         q = q.filter(CallBack.employee_id == employee_id)
     rows = q.order_by(CallBack.scheduled_datetime.desc()).all()
@@ -704,12 +706,12 @@ def admin_callbacks_export(
             cb.id,
             cb.employee.name if cb.employee else "",
             cb.employee.email if cb.employee else "",
-            c.businessName if c else "",
-            c.ownerName if c else "",
-            c.businessPhone if c else "",
-            c.ownerPhone if c else "",
+            c.business_name if c else "",
+            c.owner_name if c else "",
+            c.business_phone if c else "",
+            c.owner_phone if c else "",
             c.email if c else "",
-            c.businessAddress if c else "",
+            c.business_address if c else "",
             c.postcode if c else "",
             cb.scheduled_datetime.strftime("%Y-%m-%d %H:%M") if cb.scheduled_datetime else "",
             cb.scheduled_datetime.strftime("%A") if cb.scheduled_datetime else "",
