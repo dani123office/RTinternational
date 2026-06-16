@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { useParams, useLocation, useNavigate, Link } from 'react-router-dom'
+import { useParams, useNavigate, Link } from 'react-router-dom'
 import { ArrowLeft, Calendar, Clock, Mail, Phone, MapPin, FileText, Tag } from 'lucide-react'
 import api, { endpoints } from '@/lib/api'
 import { APP_STYLES } from '@/lib/styles'
@@ -20,9 +20,7 @@ function Field({ label, children }) {
 
 export default function AdminTransferDetail() {
   const { id } = useParams()
-  const location = useLocation()
   const navigate = useNavigate()
-  const agentId = location.state?.agentId
   const [data, setData] = useState(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
@@ -32,8 +30,6 @@ export default function AdminTransferDetail() {
       .then(res => { setData(res.data); setLoading(false) })
       .catch(err => { setError(err.response?.data?.detail || 'Failed to load transfer'); setLoading(false) })
   }, [id])
-
-  const backAgentId = agentId || data?.employeeId
 
   if (loading) return (
     <>
@@ -48,7 +44,7 @@ export default function AdminTransferDetail() {
       <div className="rt-page">
         <div className="rt-card p-10 text-center">
           <p className="text-slate-400 text-sm">{error}</p>
-          <Link to={agentId ? `/admin/agents/${agentId}` : "/admin/agents"} className="mt-4 text-indigo-600 text-sm font-medium inline-block">← Back to Agent</Link>
+          <Link to="/admin/transfers" className="mt-4 text-indigo-600 text-sm font-medium inline-block">← Back to Transfers</Link>
         </div>
       </div>
     </>
@@ -62,8 +58,8 @@ export default function AdminTransferDetail() {
       <style>{APP_STYLES}</style>
       <div className="rt-page">
         <div style={{ maxWidth: '800px', margin: '0 auto' }}>
-          <div onClick={() => navigate(backAgentId ? `/admin/agents/${backAgentId}` : "/admin/agents", { replace: true })} className="flex items-center gap-1.5 text-sm text-slate-500 no-underline mb-4 hover:text-slate-800 transition-colors" style={{ cursor: 'pointer' }}>
-            <ArrowLeft size={16} /> Back to Agent
+          <div onClick={() => navigate('/admin/transfers', { replace: true })} className="flex items-center gap-1.5 text-sm text-slate-500 no-underline mb-4 hover:text-slate-800 transition-colors" style={{ cursor: 'pointer' }}>
+            <ArrowLeft size={16} /> Back to Transfers
           </div>
 
           <div className="bg-gradient-to-r from-indigo-600 to-blue-600 text-white p-6 rounded-xl flex items-center justify-between">

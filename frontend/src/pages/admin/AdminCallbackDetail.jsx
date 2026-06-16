@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { useParams, useLocation, useNavigate } from 'react-router-dom'
+import { useParams, useNavigate } from 'react-router-dom'
 import { ArrowLeft, Calendar, Clock, Mail, Phone, MapPin, FileText, PhoneCall } from 'lucide-react'
 import api, { endpoints } from '@/lib/api'
 import { APP_STYLES } from '@/lib/styles'
@@ -20,9 +20,7 @@ function Field({ label, children }) {
 
 export default function AdminCallbackDetail() {
   const { id } = useParams()
-  const location = useLocation()
   const navigate = useNavigate()
-  const agentId = location.state?.agentId
   const [data, setData] = useState(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
@@ -60,7 +58,7 @@ export default function AdminCallbackDetail() {
       <div className="rt-page">
         <div className="rt-card p-10 text-center">
           <p className="text-slate-400 text-sm">{error}</p>
-          <a href={agentId ? `/admin/agents/${agentId}` : "/admin/agents"} className="mt-4 text-indigo-600 text-sm font-medium inline-block">← Back to Agent</a>
+          <a href="/admin/callbacks" className="mt-4 text-indigo-600 text-sm font-medium inline-block">← Back to Callbacks</a>
         </div>
       </div>
     </>
@@ -77,8 +75,8 @@ export default function AdminCallbackDetail() {
       <style>{APP_STYLES}</style>
       <div className="rt-page">
         <div style={{ maxWidth: '800px', margin: '0 auto' }}>
-          <div onClick={() => navigate(agentId ? `/admin/agents/${agentId}` : "/admin/agents", { replace: true })} className="flex items-center gap-1.5 text-sm text-slate-500 no-underline mb-4 hover:text-slate-800 transition-colors" style={{ cursor: 'pointer' }}>
-            <ArrowLeft size={16} /> Back to Agent
+          <div onClick={() => navigate('/admin/callbacks', { replace: true })} className="flex items-center gap-1.5 text-sm text-slate-500 no-underline mb-4 hover:text-slate-800 transition-colors" style={{ cursor: 'pointer' }}>
+            <ArrowLeft size={16} /> Back to Callbacks
           </div>
 
           <div className="bg-gradient-to-r from-teal-600 to-emerald-500 text-white p-6 rounded-xl flex items-center justify-between">
