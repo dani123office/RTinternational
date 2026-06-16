@@ -782,6 +782,125 @@ def admin_transfers(
     return {"items": items, "total": total, "skip": skip, "limit": limit}
 
 
+@router.get("/transfers/export")
+def admin_transfers_export(
+    admin: User = Depends(require_admin),
+    db: Session = Depends(get_db),
+    from_date: date = Query(..., description="Start date (YYYY-MM-DD)"),
+    to_date: date = Query(..., description="End date (YYYY-MM-DD)"),
+    employee_id: int | None = Query(None, description="Filter by employee"),
+):
+    from_dt = datetime.combine(from_date, datetime.min.time())
+    to_dt = datetime.combine(to_date, datetime.max.time())
+    q = db.query(Transfer)
+    q = q.filter(Transfer.created_at >= from_dt, Transfer.created_at <= to_dt)
+    if employee_id:
+        q = q.filter(Transfer.employee_id == employee_id)
+    rows = q.order_by(Transfer.created_at.desc()).all()
+
+    wb = openpyxl.Workbook()
+    ws = wb.active
+    ws.title = "Transfers Export"
+
+    headers = [
+        "ID", "Agent", "Agent Email", "Business Name", "Owner Name",
+        "Business Phone", "Owner Phone", "Email", "Business Address", "Postcode",
+        "Utility Type", "Status", "Outcome", "Scheduled Date",
+        "Account Number", "MPAN", "MPRN", "MSN",
+        "Notes", "Not Interested Reason",
+        "Electric Supplier", "Elec Contract Length", "Elec Meter Type",
+        "Elec Commission Type", "Elec Day Rate", "Elec Night Rate",
+        "Elec Evening Rate", "Elec Standing Rate",
+        "Elec Non-Com Day", "Elec Non-Com Night", "Elec Non-Com Evening", "Elec Non-Com Standing",
+        "Elec Broker Charge",
+        "Gas Supplier", "Gas Contract Length",
+        "Gas Unit Rate", "Gas Standing Rate",
+        "Gas Non-Com Unit Rate", "Gas Non-Com Standing",
+        "Gas Broker Charge",
+        "Created At",
+    ]
+    header_font = Font(bold=True, color="FFFFFF", size=11)
+    header_fill = PatternFill(start_color="4F46E5", end_color="4F46E5", fill_type="solid")
+    thin_border = Border(
+        left=Side(style="thin", color="E2E8F0"),
+        right=Side(style="thin", color="E2E8F0"),
+        top=Side(style="thin", color="E2E8F0"),
+        bottom=Side(style="thin", color="E2E8F0"),
+    )
+
+    for col_idx, h in enumerate(headers, 1):
+        cell = ws.cell(row=1, column=col_idx, value=h)
+        cell.font = header_font
+        cell.fill = header_fill
+        cell.alignment = Alignment(horizontal="center", vertical="center")
+        cell.border = thin_border
+
+    for row_idx, t in enumerate(rows, 2):
+        c = t.customer
+        values = [
+            t.id,
+            t.employee.name if t.employee else "",
+            t.employee.email if t.employee else "",
+            c.business_name if c else "",
+            c.owner_name if c else "",
+            c.business_phone if c else "",
+            c.owner_phone if c else "",
+            c.email if c else "",
+            c.business_address if c else "",
+            c.postcode if c else "",
+            t.utility_type or "",
+            t.status or "",
+            t.outcome or "",
+            t.scheduled_datetime.strftime("%Y-%m-%d %H:%M") if t.scheduled_datetime else "",
+            t.account_number or "",
+            t.mpan or "",
+            t.mprn or "",
+            t.msn or "",
+            t.notes or "",
+            t.not_interested_reason or "",
+            t.elec_offer_supplier or "",
+            t.elec_offer_contract_length or "",
+            t.elec_offer_meter_type or "",
+            t.elec_offer_commission_type or "",
+            t.elec_commission_day_rate or "",
+            t.elec_commission_night_rate or "",
+            t.elec_commission_evening_rate or "",
+            t.elec_commission_standing or "",
+            t.elec_noncom_day_rate or "",
+            t.elec_noncom_night_rate or "",
+            t.elec_noncom_evening_rate or "",
+            t.elec_noncom_standing or "",
+            t.elec_broker_charge or "",
+            t.gas_offer_supplier or "",
+            t.gas_offer_contract_length or "",
+            t.gas_commission_unit_rate or "",
+            t.gas_commission_standing or "",
+            t.gas_noncom_unit_rate or "",
+            t.gas_noncom_standing or "",
+            t.gas_broker_charge or "",
+            t.created_at.strftime("%Y-%m-%d %H:%M") if t.created_at else "",
+        ]
+        for col_idx, val in enumerate(values, 1):
+            cell = ws.cell(row=row_idx, column=col_idx, value=val)
+            cell.border = thin_border
+            cell.alignment = Alignment(vertical="center")
+
+    col_widths = [6, 20, 28, 22, 18, 16, 16, 28, 28, 12, 14, 12, 14, 18, 16, 16, 16, 16, 30, 22, 18, 18, 14, 18, 12, 12, 14, 14, 14, 14, 16, 14, 14, 18, 18, 14, 14, 16, 16, 16, 18]
+    for i, w in enumerate(col_widths, 1):
+        ws.column_dimensions[get_column_letter(i)].width = w
+
+    output = io.BytesIO()
+    wb.save(output)
+    output.seek(0)
+
+    filename = f"transfers_{from_date.isoformat()}_{to_date.isoformat()}.xlsx"
+    return Response(
+        content=output.getvalue(),
+        media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        headers={"Content-Disposition": f'attachment; filename="{filename}"'},
+    )
+
+
 @router.get("/sales")
 def admin_sales(
     status: str | None = Query(None),
@@ -796,6 +915,104 @@ def admin_sales(
     total = q.count()
     items = [_sale_out(s, s.customer) for s in q.order_by(Sale.created_at.desc()).offset(skip).limit(limit).all()]
     return {"items": items, "total": total, "skip": skip, "limit": limit}
+
+
+@router.get("/sales/export")
+def admin_sales_export(
+    admin: User = Depends(require_admin),
+    db: Session = Depends(get_db),
+    from_date: date = Query(..., description="Start date (YYYY-MM-DD)"),
+    to_date: date = Query(..., description="End date (YYYY-MM-DD)"),
+    employee_id: int | None = Query(None, description="Filter by employee"),
+):
+    from_dt = datetime.combine(from_date, datetime.min.time())
+    to_dt = datetime.combine(to_date, datetime.max.time())
+    q = db.query(Sale)
+    q = q.filter(Sale.created_at >= from_dt, Sale.created_at <= to_dt)
+    if employee_id:
+        q = q.filter(Sale.employee_id == employee_id)
+    rows = q.order_by(Sale.created_at.desc()).all()
+
+    wb = openpyxl.Workbook()
+    ws = wb.active
+    ws.title = "Sales Export"
+
+    headers = [
+        "ID", "Agent", "Agent Email", "Business Name", "Owner Name",
+        "Business Phone", "Owner Phone", "Email", "Business Address", "Postcode",
+        "Owner Full Name", "Home Address", "Date of Birth", "Business Type",
+        "Bill Frequency", "Payment Method", "Bank Name", "Account Type",
+        "Account Title", "Sort Code", "Bank Account Number",
+        "COT Status", "COT Date", "COT Notes", "Commission Amount",
+        "Notes",
+        "Created At",
+    ]
+    header_font = Font(bold=True, color="FFFFFF", size=11)
+    header_fill = PatternFill(start_color="4F46E5", end_color="4F46E5", fill_type="solid")
+    thin_border = Border(
+        left=Side(style="thin", color="E2E8F0"),
+        right=Side(style="thin", color="E2E8F0"),
+        top=Side(style="thin", color="E2E8F0"),
+        bottom=Side(style="thin", color="E2E8F0"),
+    )
+
+    for col_idx, h in enumerate(headers, 1):
+        cell = ws.cell(row=1, column=col_idx, value=h)
+        cell.font = header_font
+        cell.fill = header_fill
+        cell.alignment = Alignment(horizontal="center", vertical="center")
+        cell.border = thin_border
+
+    for row_idx, s in enumerate(rows, 2):
+        c = s.customer
+        values = [
+            s.id,
+            s.employee.name if s.employee else "",
+            s.employee.email if s.employee else "",
+            c.business_name if c else "",
+            c.owner_name if c else "",
+            c.business_phone if c else "",
+            c.owner_phone if c else "",
+            c.email if c else "",
+            c.business_address if c else "",
+            c.postcode if c else "",
+            s.owner_full_name or "",
+            s.home_address or "",
+            s.date_of_birth.isoformat() if s.date_of_birth else "",
+            s.business_type or "",
+            s.bill_frequency or "",
+            s.payment_method or "",
+            s.bank_name or "",
+            s.account_type or "",
+            s.account_title or "",
+            s.sort_code or "",
+            s.bank_account_number or "",
+            s.cot_status or "",
+            s.cot_date.isoformat() if s.cot_date else "",
+            s.cot_notes or "",
+            s.commission_amount or 0,
+            s.notes or "",
+            s.created_at.strftime("%Y-%m-%d %H:%M") if s.created_at else "",
+        ]
+        for col_idx, val in enumerate(values, 1):
+            cell = ws.cell(row=row_idx, column=col_idx, value=val)
+            cell.border = thin_border
+            cell.alignment = Alignment(vertical="center")
+
+    col_widths = [6, 20, 28, 22, 18, 16, 16, 28, 28, 12, 22, 28, 14, 14, 14, 16, 18, 14, 22, 14, 20, 14, 14, 24, 16, 30, 18]
+    for i, w in enumerate(col_widths, 1):
+        ws.column_dimensions[get_column_letter(i)].width = w
+
+    output = io.BytesIO()
+    wb.save(output)
+    output.seek(0)
+
+    filename = f"sales_{from_date.isoformat()}_{to_date.isoformat()}.xlsx"
+    return Response(
+        content=output.getvalue(),
+        media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        headers={"Content-Disposition": f'attachment; filename="{filename}"'},
+    )
 
 
 @router.get("/sales/{sale_id}")
