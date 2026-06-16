@@ -184,6 +184,7 @@ export const endpoints = {
     resetUserPassword: (id) => `/api/admin/reset-user-password/${id}`,
     callbacks: '/api/admin/callbacks',
     callbackDetail: (id) => `/api/admin/callbacks/${id}`,
+    callbacksExport: '/api/admin/callbacks/export',
     transfers: '/api/admin/transfers',
     sales: '/api/admin/sales',
     overallStats: '/api/admin/overall-stats',

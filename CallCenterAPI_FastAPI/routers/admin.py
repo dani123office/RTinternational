@@ -1,5 +1,6 @@
 import bcrypt
-from datetime import datetime
+import io
+from datetime import datetime, date
 from fastapi import APIRouter, Depends, HTTPException, Query, Request
 from fastapi.responses import Response
 from sqlalchemy.orm import Session
@@ -18,6 +19,9 @@ from .callbacks import _build_callback_out
 from .transfers import _transfer_out
 from .sales import _sale_out
 from .salary import _SalaryPDF, _employee_id, _month_name, _attendance_summary, _fmt
+import openpyxl
+from openpyxl.styles import Font, PatternFill, Alignment, Border, Side
+from openpyxl.utils import get_column_letter
 
 router = APIRouter(prefix="/api/admin", tags=["admin"])
 
@@ -641,6 +645,123 @@ def admin_callbacks(
     total = q.count()
     items = [_build_callback_out(c, c.customer) for c in q.order_by(CallBack.created_at.desc()).offset(skip).limit(limit).all()]
     return {"items": items, "total": total, "skip": skip, "limit": limit}
+
+
+@router.get("/callbacks/export")
+def admin_callbacks_export(
+    admin: User = Depends(require_admin),
+    db: Session = Depends(get_db),
+    from_date: date = Query(..., description="Start date (YYYY-MM-DD)"),
+    to_date: date = Query(..., description="End date (YYYY-MM-DD)"),
+    employee_id: int | None = Query(None, description="Filter by employee"),
+):
+    q = db.query(CallBack).join(User, CallBack.employee_id == User.id).outerjoin(Customer, CallBack.customer_id == Customer.id)
+    q = q.filter(CallBack.scheduled_datetime >= from_date, CallBack.scheduled_datetime <= to_date)
+    if employee_id:
+        q = q.filter(CallBack.employee_id == employee_id)
+    rows = q.order_by(CallBack.scheduled_datetime.desc()).all()
+
+    wb = openpyxl.Workbook()
+    ws = wb.active
+    ws.title = "Callbacks Export"
+
+    headers = [
+        "ID", "Agent", "Agent Email", "Business Name", "Owner Name",
+        "Business Phone", "Owner Phone", "Email", "Business Address", "Postcode",
+        "Scheduled Date", "Day of Week", "Status", "Outcome",
+        "Account Number", "MPAN", "MPRN", "MSN",
+        "Notes", "Not Interested Reason",
+        "Electric Supplier", "Elec Contract Length", "Elec Meter Type",
+        "Elec Commission Type", "Elec Day Rate", "Elec Night Rate",
+        "Elec Evening Rate", "Elec Standing Rate",
+        "Elec Non-Com Day", "Elec Non-Com Night", "Elec Non-Com Evening", "Elec Non-Com Standing",
+        "Elec Broker Charge",
+        "Gas Supplier", "Gas Contract Length",
+        "Gas Unit Rate", "Gas Standing Rate",
+        "Gas Non-Com Unit Rate", "Gas Non-Com Standing",
+        "Gas Broker Charge",
+        "Created At",
+    ]
+    header_font = Font(bold=True, color="FFFFFF", size=11)
+    header_fill = PatternFill(start_color="4F46E5", end_color="4F46E5", fill_type="solid")
+    thin_border = Border(
+        left=Side(style="thin", color="E2E8F0"),
+        right=Side(style="thin", color="E2E8F0"),
+        top=Side(style="thin", color="E2E8F0"),
+        bottom=Side(style="thin", color="E2E8F0"),
+    )
+
+    for col_idx, h in enumerate(headers, 1):
+        cell = ws.cell(row=1, column=col_idx, value=h)
+        cell.font = header_font
+        cell.fill = header_fill
+        cell.alignment = Alignment(horizontal="center", vertical="center")
+        cell.border = thin_border
+
+    for row_idx, cb in enumerate(rows, 2):
+        c = cb.customer
+        values = [
+            cb.id,
+            cb.employee.name if cb.employee else "",
+            cb.employee.email if cb.employee else "",
+            c.businessName if c else "",
+            c.ownerName if c else "",
+            c.businessPhone if c else "",
+            c.ownerPhone if c else "",
+            c.email if c else "",
+            c.businessAddress if c else "",
+            c.postcode if c else "",
+            cb.scheduled_datetime.strftime("%Y-%m-%d %H:%M") if cb.scheduled_datetime else "",
+            cb.scheduled_datetime.strftime("%A") if cb.scheduled_datetime else "",
+            cb.status or "",
+            cb.outcome or "",
+            cb.account_number or "",
+            cb.mpan or "",
+            cb.mprn or "",
+            cb.msn or "",
+            cb.notes or "",
+            cb.not_interested_reason or "",
+            cb.elec_offer_supplier or "",
+            cb.elec_offer_contract_length or "",
+            cb.elec_offer_meter_type or "",
+            cb.elec_offer_commission_type or "",
+            cb.elec_commission_day_rate or "",
+            cb.elec_commission_night_rate or "",
+            cb.elec_commission_evening_rate or "",
+            cb.elec_commission_standing or "",
+            cb.elec_noncom_day_rate or "",
+            cb.elec_noncom_night_rate or "",
+            cb.elec_noncom_evening_rate or "",
+            cb.elec_noncom_standing or "",
+            cb.elec_broker_charge or "",
+            cb.gas_offer_supplier or "",
+            cb.gas_offer_contract_length or "",
+            cb.gas_commission_unit_rate or "",
+            cb.gas_commission_standing or "",
+            cb.gas_noncom_unit_rate or "",
+            cb.gas_noncom_standing or "",
+            cb.gas_broker_charge or "",
+            cb.created_at.strftime("%Y-%m-%d %H:%M") if cb.created_at else "",
+        ]
+        for col_idx, val in enumerate(values, 1):
+            cell = ws.cell(row=row_idx, column=col_idx, value=val)
+            cell.border = thin_border
+            cell.alignment = Alignment(vertical="center")
+
+    col_widths = [6, 20, 28, 22, 18, 16, 16, 28, 28, 12, 18, 14, 12, 14, 16, 16, 16, 16, 30, 22, 18, 18, 14, 18, 12, 12, 14, 14, 14, 14, 16, 14, 14, 18, 18, 14, 14, 16, 16, 16, 18]
+    for i, w in enumerate(col_widths, 1):
+        ws.column_dimensions[get_column_letter(i)].width = w
+
+    output = io.BytesIO()
+    wb.save(output)
+    output.seek(0)
+
+    filename = f"callbacks_{from_date.isoformat()}_{to_date.isoformat()}.xlsx"
+    return Response(
+        content=output.getvalue(),
+        media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        headers={"Content-Disposition": f'attachment; filename="{filename}"'},
+    )
 
 
 @router.get("/transfers")
