@@ -122,7 +122,7 @@ export default function AdminDashboard() {
 
         {/* Stats Grid */}
         <div className="rt-fade rt-d1 grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3 sm:gap-4 mb-6">
-          <StatCard icon={Users} label="Agents" value={stats?.totalAgents || 0} accent="linear-gradient(135deg, #6366f1, #4f46e5)" onClick={() => navigate('/admin/agents')} />
+          <StatCard icon={Users} label="Staff" value={stats?.totalAgents || 0} accent="linear-gradient(135deg, #6366f1, #4f46e5)" onClick={() => navigate('/admin/agents')} />
           <StatCard icon={UserCog} label="Managers" value={stats?.totalManagers || 0} accent="linear-gradient(135deg, #8b5cf6, #7c3aed)" onClick={() => navigate('/admin/managers')} />
           <StatCard icon={PhoneCall} label="Callbacks" value={stats?.totalCallbacks || 0} accent="linear-gradient(135deg, #3b82f6, #2563eb)" onClick={() => navigate('/admin/callbacks')} />
           <StatCard icon={ArrowLeftRight} label="Transfers" value={stats?.totalTransfers || 0} accent="linear-gradient(135deg, #22c55e, #16a34a)" onClick={() => navigate('/admin/transfers')} />

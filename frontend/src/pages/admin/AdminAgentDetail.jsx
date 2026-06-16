@@ -165,7 +165,7 @@ export default function AdminAgentDetail() {
         <div className="rt-page">
           <div className="rt-card p-10 text-center">
             <p className="text-slate-400 text-sm">{error || 'Agent not found.'}</p>
-            <Link to="/admin/agents" className="mt-4 text-indigo-600 text-sm font-medium inline-block">← Back to Agents</Link>
+            <Link to="/admin/agents" className="mt-4 text-indigo-600 text-sm font-medium inline-block">← Back to Staff</Link>
           </div>
         </div>
       </>
@@ -226,7 +226,7 @@ export default function AdminAgentDetail() {
 
           <div className="rt-page-header">
             <Link to="/admin/agents" className="flex items-center gap-1.5 text-sm text-slate-500 no-underline hover:text-slate-800 transition-colors">
-              <ArrowLeft size={16} /> Back to Agents
+              <ArrowLeft size={16} /> Back to Staff
             </Link>
           </div>
 

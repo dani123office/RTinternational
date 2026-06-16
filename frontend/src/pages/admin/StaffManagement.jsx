@@ -220,9 +220,9 @@ export default function StaffManagement() {
                     background: noManagers ? '#e2e8f0' : 'linear-gradient(135deg, #6366f1, #7c3aed)',
                     boxShadow: noManagers ? 'none' : '0 4px 18px rgba(99,102,241,0.35)',
                   }}
-                  title={noManagers ? 'Create a manager first' : 'Create Agent'}
+                  title={noManagers ? 'Create a manager first' : 'Create Staff'}
                 >
-                  <Plus size={15} /> Agent
+                  <Plus size={15} /> Staff
                 </button>
               </div>
             </div>
@@ -242,7 +242,7 @@ export default function StaffManagement() {
                   <UserCog size={15} /> Managers ({managers.length})
                 </TabsTrigger>
                 <TabsTrigger value="agents" className="flex items-center gap-1.5">
-                  <Users size={15} /> Agents ({agents.length})
+                  <Users size={15} /> Staff ({agents.length})
                 </TabsTrigger>
               </TabsList>
               <button

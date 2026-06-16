@@ -129,7 +129,7 @@ export default function AgentsPage() {
                   <Users size={20} color="#6366f1" />
                 </div>
                 <div>
-                  <h1 className="text-2xl font-extrabold text-slate-900 tracking-tight">Agents</h1>
+                  <h1 className="text-2xl font-extrabold text-slate-900 tracking-tight">Staff</h1>
                   <p className="text-sm text-slate-400 mt-0.5">{agents.length} total</p>
                 </div>
               </div>
