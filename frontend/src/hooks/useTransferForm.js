@@ -62,7 +62,6 @@ export function useTransferForm(locationState, navigate) {
       email: prefill.email || prefill.customer?.email || '',
       utilityType: prefill.utilityType || prefill.customer?.utilityType || 'electricity',
       // Preserve account/meter details from prefill (callback may supply these)
-      accountNumber: prefill.accountNumber || prefill.customer?.accountNumber || '',
       mpan: prefill.mpan || prefill.customer?.mpan || '',
       mprn: prefill.mprn || prefill.customer?.mprn || '',
       msn: prefill.msn || prefill.customer?.msn || '',
@@ -155,7 +154,6 @@ export function useTransferForm(locationState, navigate) {
         if (first.mpan && !next.mpan) next.mpan = first.mpan
         if (!next.mpan && first.supplyNumber) next.mpan = first.supplyNumber
         if (first.msn && !next.msn) next.msn = first.msn
-        if (first.accountNumber && !next.accountNumber) next.accountNumber = first.accountNumber
       }
 
       if (data.gasMeters?.length) {
@@ -170,7 +168,6 @@ export function useTransferForm(locationState, navigate) {
         const first = data.gasMeters[0]
         if (first.mprn && !next.mprn) next.mprn = first.mprn
         if (first.msn && !next.msn) next.msn = first.msn
-        if (first.accountNumber && !next.accountNumber) next.accountNumber = first.accountNumber
       }
 
       const oe = data.offeredRates?.electricity
@@ -285,7 +282,6 @@ export function useTransferForm(locationState, navigate) {
       const firstGasMprn = form.gasMeters?.[0]?.mprn || form.mprn || null
       const transfer = await createTransfer({
         customerId,
-        accountNumber: form.accountNumber || null,
         mpan: firstElectricitySupply || null,
         mprn: firstGasMprn,
         msn: form.msn || null,
@@ -319,7 +315,6 @@ export function useTransferForm(locationState, navigate) {
           customerId,
           scheduledDateTime: `${form.scheduledDate}T${form.scheduledTime || '10:00'}:00`,
           notes: form.notes || null,
-          accountNumber: form.accountNumber || null,
           mpan: callbackMpan || null,
           mprn: firstGasMprn,
           msn: form.msn || null,

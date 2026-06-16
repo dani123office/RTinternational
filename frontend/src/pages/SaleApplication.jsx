@@ -14,9 +14,9 @@ import GasMeterSection from '@/components/GasMeterSection'
 import CommissionRateCard from '@/components/CommissionRateCard'
 import NonCommissionRateCard from '@/components/NonCommissionRateCard'
 import AiFormFiller from '@/components/AiFormFiller'
-import { DEFAULT_ELEC_METER, DEFAULT_GAS_METER, BUSINESS_TYPES, BILL_FREQUENCIES, PAYMENT_METHODS } from '@/lib/constants'
+import { DEFAULT_ELEC_METER, DEFAULT_GAS_METER, BUSINESS_TYPES, BILL_FREQUENCIES } from '@/lib/constants'
 import {
-  ArrowLeft, Save, Loader2, User, CreditCard, FileText,
+  ArrowLeft, Save, Loader2, User, FileText,
   Building2, Zap, ChevronRight, Calendar as CalendarIcon, Clock, Mail, Phone, MapPin
 } from 'lucide-react'
 
@@ -182,12 +182,6 @@ export default function SaleApplication() {
           dateOfBirth: s.dateOfBirth ? s.dateOfBirth.substring(0, 10) : '',
           businessType: s.businessType || 'soleTrader',
           billFrequency: s.billFrequency || 'monthly',
-          paymentMethod: s.paymentMethod || 'bankTransfer',
-          bankName: s.bankName || '',
-          accountType: s.accountType || '',
-          accountTitle: s.accountTitle || '',
-          sortCode: s.sortCode || '',
-          bankAccountNumber: s.bankAccountNumber || '',
           notes: s.notes || '',
         })
         
@@ -289,12 +283,6 @@ export default function SaleApplication() {
       dateOfBirth: '',
       businessType: 'soleTrader',
       billFrequency: 'monthly',
-      paymentMethod: 'bankTransfer',
-      bankName: '',
-      accountType: '',
-      accountTitle: '',
-      sortCode: '',
-      bankAccountNumber: '',
       notes: '', // sales notes
     }
     return initialForm
@@ -439,7 +427,6 @@ export default function SaleApplication() {
     if (!form.ownerFullName.trim()) { toast('Owner Full Name is required', 'error'); return false }
     if (!form.dateOfBirth) { toast('Date of Birth is required', 'error'); return false }
     if (!form.homeAddress.trim()) { toast('Home Address is required', 'error'); return false }
-    if (!form.paymentMethod) { toast('Payment Method is required', 'error'); return false }
 
     return true
   }
@@ -533,12 +520,6 @@ export default function SaleApplication() {
         dateOfBirth: form.dateOfBirth ? new Date(form.dateOfBirth).toISOString().split('T')[0] : null,
         businessType: form.businessType,
         billFrequency: form.billFrequency,
-        paymentMethod: form.paymentMethod,
-        bankName: form.bankName || null,
-        accountType: form.accountType || null,
-        accountTitle: form.accountTitle || null,
-        sortCode: form.sortCode || null,
-        bankAccountNumber: form.bankAccountNumber || null,
         notes: form.notes || null,
       }
 
@@ -857,45 +838,7 @@ export default function SaleApplication() {
               </div>
             </Card>
 
-            {/* 7. Payment Method Card */}
-            <Card icon={CreditCard} iconColor="#f97316" iconBg="rgba(249,115,22,0.15)" title="Payment Method" delay="rt-d6">
-              <div className="rt-grid2">
-                <div className="rt-span2">
-                  <Field label="Payment Method" required>
-                    <Select value={form.paymentMethod} onChange={(e) => upd('paymentMethod', e.target.value)} className="rt-input">
-                      {PAYMENT_METHODS.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
-                    </Select>
-                  </Field>
-                </div>
-                <div>
-                  <Field label="Bank Name">
-                    <input className="rt-input" value={form.bankName} onChange={(e) => upd('bankName', e.target.value)} />
-                  </Field>
-                </div>
-                <div>
-                  <Field label="Account Type">
-                    <input className="rt-input" value={form.accountType} onChange={(e) => upd('accountType', e.target.value)} />
-                  </Field>
-                </div>
-                <div>
-                  <Field label="Account Title">
-                    <input className="rt-input" value={form.accountTitle} onChange={(e) => upd('accountTitle', e.target.value)} />
-                  </Field>
-                </div>
-                <div>
-                  <Field label="Sort Code">
-                    <input className="rt-input" placeholder="e.g. 12-34-56" value={form.sortCode} onChange={(e) => upd('sortCode', e.target.value)} />
-                  </Field>
-                </div>
-                <div className="rt-span2">
-                  <Field label="Bank Account Number">
-                    <input className="rt-input" placeholder="6-10 digits" value={form.bankAccountNumber} onChange={(e) => upd('bankAccountNumber', e.target.value)} />
-                  </Field>
-                </div>
-              </div>
-            </Card>
-
-            {/* 8. Notes Card */}
+            {/* 7. Notes Card */}
             <Card icon={FileText} iconColor="#6366f1" iconBg="rgba(99,102,241,0.15)" title="Sales Notes" delay="rt-d6">
               <Field label="Notes">
                 <textarea className="rt-textarea" rows={3} value={form.notes} onChange={(e) => upd('notes', e.target.value)} placeholder="Add sales notes..." />

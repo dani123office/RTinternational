@@ -140,11 +140,6 @@ export default function AddTransfer() {
                     </div>
                   </>
                 )}
-                <div>
-                  <Field label="Account Number">
-                    <input className="rt-input" placeholder="e.g. AC12345678" value={form.accountNumber} onChange={(e) => setField('accountNumber', e.target.value)} />
-                  </Field>
-                </div>
               </div>
             </Card>
 

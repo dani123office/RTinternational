@@ -112,7 +112,6 @@ export default function EditTransfer() {
     mpan: '',
     mprn: '',
     msn: '',
-    accountNumber: '',
     supplier: '',
     status: '',
     notes: '',
@@ -177,7 +176,6 @@ export default function EditTransfer() {
       mpan: t.mpan || '',
       mprn: t.mprn || '',
       msn: t.msn || '',
-      accountNumber: t.accountNumber || '',
       supplier: t.supplier || '',
       status: t.status || '',
       notes: t.notes || '',
@@ -335,7 +333,6 @@ export default function EditTransfer() {
         utilityType: form.utilityType || undefined,
         supplier: form.supplier || undefined,
         status: form.status || undefined,
-        accountNumber: form.accountNumber || undefined,
         mpan: transferMpan || undefined,
         mprn: transferMprn || undefined,
         msn: form.msn || undefined,
@@ -543,11 +540,6 @@ export default function EditTransfer() {
                     </div>
                   </>
                 )}
-                <div>
-                  <Field label="Account Number">
-                    <input className="rt-input" placeholder="e.g. AC12345678" value={form.accountNumber} onChange={(e) => setField('accountNumber', e.target.value)} />
-                  </Field>
-                </div>
               </div>
             </Card>
 

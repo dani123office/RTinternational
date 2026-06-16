@@ -128,17 +128,6 @@ export default function AdminSaleDetail() {
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
-            <div className="rt-card rt-fade">
-              <div className="rt-card-header"><div className="rt-card-header-left"><div className="rt-card-icon"><Banknote size={15} /></div><span className="rt-card-title">Bank Details</span></div></div>
-              <div className="rt-card-body">
-                <Field label="Bank">{s.bankName}</Field>
-                <Field label="Account Type">{s.accountType}</Field>
-                <Field label="Account Title">{s.accountTitle}</Field>
-                <Field label="Sort Code">{s.sortCode}</Field>
-                <Field label="Account No.">{s.bankAccountNumber}</Field>
-              </div>
-            </div>
-
             {s.notes && (
               <div className="rt-card rt-fade">
                 <div className="rt-card-header"><div className="rt-card-header-left"><div className="rt-card-icon"><FileText size={15} /></div><span className="rt-card-title">Notes</span></div></div>
