@@ -1,8 +1,8 @@
 import { useEffect, useState, useCallback } from 'react'
 import { useNavigate, useParams, useLocation } from 'react-router-dom'
 import {
-  ArrowLeft, ArrowLeftRight, Loader2, Save,
-  Building2, Clock, Zap, ChevronRight, User, Phone, Mail, MapPin, FileText, Calendar
+  ArrowLeft, Loader2, Save,
+  Building2, Clock, Zap, User, Phone, Mail, MapPin, FileText, Calendar
 } from 'lucide-react'
 
 // Global Stores & Configurations
@@ -14,21 +14,14 @@ import api from '@/lib/api'
 import { useToast } from '@/components/ui/toastContext'
 
 // Form Elements & Cards UI Layers
-import { Switch } from '@/components/ui/switch'
 import UtilityTypeSelector from '@/components/UtilityTypeSelector'
 import ElectricityMeterSection from '@/components/ElectricityMeterSection'
 import GasMeterSection from '@/components/GasMeterSection'
-import CommissionRateCard from '@/components/CommissionRateCard'
-import NonCommissionRateCard from '@/components/NonCommissionRateCard'
 import AiFormFiller from '@/components/AiFormFiller'
 
 // ─── Data Initialization Models ─────────────────────────────────────────────
 const DEFAULT_ELEC_METER = { currentSupplier:'',supplyNumber:'',dayUnitRate:'',nightUnitRate:'',eveningUnitRate:'',standingRate:'',monthlyBill:'',contractEndDate:'' }
 const DEFAULT_GAS_METER  = { currentSupplier:'',mprn:'',unitRate:'',standingRate:'',monthlyBill:'',contractEndDate:'' }
-const DEFAULT_COMMISSION     = { dayUnitRate:'',nightUnitRate:'',eveningUnitRate:'',standingRate:'' }
-const DEFAULT_NON_COMMISSION = { dayUnitRate:'',nightUnitRate:'',eveningUnitRate:'',standingRate:'',brokerServiceCharge:'' }
-const GAS_COMMISSION         = { dayUnitRate:'',standingRate:'' }
-const GAS_NON_COMMISSION     = { dayUnitRate:'',standingRate:'',brokerServiceCharge:'' }
 
 const getTomorrow = () => { const d=new Date(); d.setDate(d.getDate()+1); return d.toISOString().split('T')[0] }
 const normalizeContractEnd = (v) => {
@@ -63,16 +56,11 @@ const mapGasMeter = (m, i) => ({
 })
 
 const initState = () => ({
-  utilityType:'electricity', showOfferRates:false,
+  utilityType:'electricity',
   businessName:'',addressLine1:'',city:'',businessPhone:'',ownerName:'',ownerPhone:'',email:'',postcode:'',notes:'',
   accountNumber:'', mpan:'', mprn:'', msn:'',
   dayOfWeek:'', scheduledDate:getTomorrow(), scheduledTime:'10:00',
   elecMeters:[{...DEFAULT_ELEC_METER}], gasMeters:[{...DEFAULT_GAS_METER}],
-  elecCommission:{...DEFAULT_COMMISSION}, elecNonCommission:{...DEFAULT_NON_COMMISSION},
-  gasCommission:{...GAS_COMMISSION}, gasNonCommission:{...GAS_NON_COMMISSION},
-  elecContractLength:'1 Year', gasContractLength:'1 Year',
-  elecMeterType:'Standard', elecCommissionType:'Commission',
-  elecSupplier:'', gasSupplier:'',
 })
 
 // ─── Inline Styled UI Wrappers ───────────────────────────────────────────────
@@ -233,10 +221,6 @@ export default function AddCallback() {
   useEffect(() => {
     if (!callbackData) return
     const c = callbackData.customer || {}
-    const elecOffer = callbackData.offeredElectricityRates?.[0] || null
-    const gasOffer = callbackData.offeredGasRates?.[0] || null
-    const hasElecOffer = !!elecOffer
-    const hasGasOffer = !!gasOffer
     // eslint-disable-next-line react-hooks/set-state-in-effect
     setForm((p) => ({
       ...p,
@@ -252,7 +236,6 @@ export default function AddCallback() {
       dayOfWeek: callbackData.dayOfWeek || '',
       scheduledDate: callbackData.scheduledDateTime?.substring(0,10) || getTomorrow(),
       scheduledTime: callbackData.scheduledDateTime?.substring(11,16) || '10:00',
-      showOfferRates: hasElecOffer || hasGasOffer,
       elecMeters: c.electricityMeters?.length ? c.electricityMeters.map((m, i) => ({
         meterNumber: m.meterNumber || i + 1,
         currentSupplier:m.currentSupplier||'', supplyNumber:m.supplyNumber||'',
@@ -266,34 +249,6 @@ export default function AddCallback() {
         standingRate:m.standingRate?.toString()||'', monthlyBill:m.monthlyBill?.toString()||'',
         contractEndDate:normDate(m.contractEndDate)||'',
       })) : [{...DEFAULT_GAS_METER}],
-      elecContractLength: elecOffer?.contractLength || p.elecContractLength,
-      elecSupplier: elecOffer?.supplier || p.elecSupplier,
-      elecMeterType: elecOffer?.meterType || p.elecMeterType,
-      elecCommissionType: elecOffer?.commissionType || p.elecCommissionType,
-      elecCommission: {
-        dayUnitRate: elecOffer?.dayUnitRate?.toString() || '',
-        nightUnitRate: elecOffer?.nightUnitRate?.toString() || '',
-        eveningUnitRate: elecOffer?.eveningUnitRate?.toString() || '',
-        standingRate: elecOffer?.standingRate?.toString() || '',
-      },
-      elecNonCommission: {
-        dayUnitRate: elecOffer?.nonCommissionDayRate?.toString() || '',
-        nightUnitRate: elecOffer?.nonCommissionNightRate?.toString() || '',
-        eveningUnitRate: elecOffer?.nonCommissionEveningRate?.toString() || '',
-        standingRate: elecOffer?.nonCommissionStandingRate?.toString() || '',
-        brokerServiceCharge: elecOffer?.brokerServiceCharge?.toString() || '',
-      },
-      gasContractLength: gasOffer?.contractLength || p.gasContractLength,
-      gasSupplier: gasOffer?.supplier || p.gasSupplier,
-      gasCommission: {
-        dayUnitRate: gasOffer?.unitRate?.toString() || '',
-        standingRate: gasOffer?.standingRate?.toString() || '',
-      },
-      gasNonCommission: {
-        dayUnitRate: gasOffer?.nonCommissionUnitRate?.toString() || '',
-        standingRate: gasOffer?.nonCommissionStandingRate?.toString() || '',
-        brokerServiceCharge: gasOffer?.brokerServiceCharge?.toString() || '',
-      },
     }))
   }, [callbackData])
 
@@ -341,55 +296,6 @@ export default function AddCallback() {
       if (data.mprn) next.mprn = data.mprn
       if (data.msn) next.msn = data.msn
 
-      const oe = data.offeredRates?.electricity
-      const og = data.offeredRates?.gas
-      const hasOffered = oe || og
-
-      if (hasOffered) {
-        next.showOfferRates = true
-      }
-
-      if (oe) {
-        if (oe.commission) {
-          next.elecCommission = {
-            dayUnitRate: oe.commission.dayUnitRate?.toString() || '',
-            nightUnitRate: oe.commission.nightUnitRate?.toString() || '',
-            eveningUnitRate: oe.commission.eveningUnitRate?.toString() || '',
-            standingRate: oe.commission.standingRate?.toString() || '',
-          }
-        }
-        if (oe.nonCommission) {
-          next.elecNonCommission = {
-            dayUnitRate: oe.nonCommission.dayUnitRate?.toString() || '',
-            nightUnitRate: oe.nonCommission.nightUnitRate?.toString() || '',
-            eveningUnitRate: oe.nonCommission.eveningUnitRate?.toString() || '',
-            standingRate: oe.nonCommission.standingRate?.toString() || '',
-            brokerServiceCharge: data.brokerServiceCharge?.toString() || '',
-          }
-        }
-        if (oe.contractLength) next.elecContractLength = oe.contractLength
-        if (oe.supplier) next.elecSupplier = oe.supplier
-        if (oe.meterType) next.elecMeterType = oe.meterType
-      }
-
-      if (og) {
-        if (og.commission) {
-          next.gasCommission = {
-            dayUnitRate: og.commission.dayUnitRate?.toString() || '',
-            standingRate: og.commission.standingRate?.toString() || '',
-          }
-        }
-        if (og.nonCommission) {
-          next.gasNonCommission = {
-            dayUnitRate: og.nonCommission.dayUnitRate?.toString() || '',
-            standingRate: og.nonCommission.standingRate?.toString() || '',
-            brokerServiceCharge: data.brokerServiceCharge?.toString() || '',
-          }
-        }
-        if (og.contractLength) next.gasContractLength = og.contractLength
-        if (og.supplier) next.gasSupplier = og.supplier
-      }
-
       return next
     })
   }
@@ -400,19 +306,6 @@ export default function AddCallback() {
     if (!form.businessName.trim() || !form.addressLine1.trim() || !form.city.trim() || !form.postcode.trim() || !form.businessPhone.trim()) {
       toast('Please populate all fields marked with an asterisk (*).', 'error')
       return
-    }
-
-    if (form.showOfferRates && form.utilityType !== 'gas') {
-      const c = form.elecCommission, nc = form.elecNonCommission
-      if (toNum(nc.dayUnitRate) > toNum(c.dayUnitRate)) { toast('Electricity non-commission Day Rate cannot exceed commission Day Rate', 'error'); return }
-      if (toNum(nc.nightUnitRate) > toNum(c.nightUnitRate)) { toast('Electricity non-commission Night Rate cannot exceed commission Night Rate', 'error'); return }
-      if (toNum(nc.eveningUnitRate) > toNum(c.eveningUnitRate)) { toast('Electricity non-commission Evening Rate cannot exceed commission Evening Rate', 'error'); return }
-      if (toNum(nc.standingRate) > toNum(c.standingRate)) { toast('Electricity non-commission Standing Charge cannot exceed commission Standing Charge', 'error'); return }
-    }
-    if (form.showOfferRates && form.utilityType !== 'electricity') {
-      const c = form.gasCommission, nc = form.gasNonCommission
-      if (toNum(nc.dayUnitRate) > toNum(c.dayUnitRate)) { toast('Gas non-commission Unit Rate cannot exceed commission Unit Rate', 'error'); return }
-      if (toNum(nc.standingRate) > toNum(c.standingRate)) { toast('Gas non-commission Standing Charge cannot exceed commission Standing Charge', 'error'); return }
     }
 
     setLoading(true)
@@ -449,21 +342,6 @@ export default function AddCallback() {
         mpan:              firstElectricitySupply,
         mprn:              form.gasMeters?.[0]?.mprn || form.mprn || null,
         msn:               form.msn || null,
-        offeredElectricityRates: form.showOfferRates && form.utilityType !== 'gas' ? [{
-          contractLength:form.elecContractLength, supplier:form.elecSupplier||null,
-          meterType:form.elecMeterType, commissionType:form.elecCommissionType,
-          dayUnitRate:toNum(form.elecCommission.dayUnitRate), nightUnitRate:toNum(form.elecCommission.nightUnitRate),
-          eveningUnitRate:toNum(form.elecCommission.eveningUnitRate), standingRate:toNum(form.elecCommission.standingRate),
-          nonCommissionDayRate:toNum(form.elecNonCommission.dayUnitRate), nonCommissionNightRate:toNum(form.elecNonCommission.nightUnitRate),
-          nonCommissionEveningRate:toNum(form.elecNonCommission.eveningUnitRate), nonCommissionStandingRate:toNum(form.elecNonCommission.standingRate),
-          brokerServiceCharge:toNum(form.elecNonCommission.brokerServiceCharge),
-        }] : [],
-        offeredGasRates: form.showOfferRates && form.utilityType !== 'electricity' ? [{
-          contractLength:form.gasContractLength, supplier:form.gasSupplier||null,
-          unitRate:toNum(form.gasCommission.dayUnitRate), standingRate:toNum(form.gasCommission.standingRate),
-          nonCommissionUnitRate:toNum(form.gasNonCommission.dayUnitRate), nonCommissionStandingRate:toNum(form.gasNonCommission.standingRate),
-          brokerServiceCharge:toNum(form.gasNonCommission.brokerServiceCharge),
-        }] : [],
       }
 
       if (isEdit) {
@@ -592,113 +470,7 @@ export default function AddCallback() {
               </div>
             </DashboardCard>
 
-            {/* Offer Rates Segment */}
-            <DashboardCard
-              icon={ChevronRight}
-              iconColor="#7c3aed"
-              iconBg="#f5f3ff"
-              title="Pipeline Offer Rates Matrix"
-              delay="rt-d4"
-              headerRight={
-                <div style={{display:'flex', alignItems:'center', gap:'8px'}}>
-                  <span style={{fontSize:'12px', fontWeight:600, color:'#64748b'}}>Include Rates Matrix</span>
-                  <Switch checked={form.showOfferRates} onCheckedChange={(v)=>upd('showOfferRates',v)}/>
-                </div>
-              }
-            >
-              {form.showOfferRates ? (
-                <div style={{display:'flex', flexDirection:'column', gap:'16px'}}>
-                  {(form.utilityType==='electricity'||form.utilityType==='both') && (
-                    <>
-                      <div className="rt-grid2">
-                        <div className="rt-span2">
-                          <InputField label="Offered Supplier (Electricity)">
-                            <input className="rt-input" value={form.elecSupplier} onChange={(e)=>upd('elecSupplier',e.target.value)} placeholder="e.g. British Gas"/>
-                          </InputField>
-                        </div>
-                      </div>
-                      <div className="rt-grid2">
-                        <div>
-                          <InputField label="Contract Length">
-                            <select className="rt-input" value={form.elecContractLength} onChange={(e)=>upd('elecContractLength',e.target.value)}>
-                              <option value="1 Year">1 Year</option>
-                              <option value="2 Years">2 Years</option>
-                              <option value="3 Years">3 Years</option>
-                              <option value="4 Years">4 Years</option>
-                              <option value="5 Years">5 Years</option>
-                            </select>
-                          </InputField>
-                        </div>
-                        <div>
-                          <InputField label="Meter Type">
-                            <select className="rt-input" value={form.elecMeterType} onChange={(e)=>upd('elecMeterType',e.target.value)}>
-                              <option value="Standard">Standard</option>
-                              <option value="Day/Night">Day/Night</option>
-                              <option value="Half Hourly">Half Hourly</option>
-                            </select>
-                          </InputField>
-                        </div>
-                      </div>
-                      <div className="rt-grid2">
-                        <div>
-                          <InputField label="Commission Type">
-                            <select className="rt-input" value={form.elecCommissionType} onChange={(e)=>upd('elecCommissionType',e.target.value)}>
-                              <option value="Commission">Commission</option>
-                              <option value="Non-Commission">Non-Commission</option>
-                            </select>
-                          </InputField>
-                        </div>
-                      </div>
-                      <CommissionRateCard    title="Electricity Commission Rates"     rates={form.elecCommission}    onUpdate={(v)=>upd('elecCommission',v)}    type="electricity"/>
-                      <NonCommissionRateCard title="Electricity Non-Commission Rates" rates={form.elecNonCommission} onUpdate={(v)=>upd('elecNonCommission',v)} type="electricity"/>
-                    </>
-                  )}
-                  {(form.utilityType==='gas'||form.utilityType==='both') && (
-                    <>
-                      <div className="rt-grid2">
-                        <div className="rt-span2">
-                          <InputField label="Offered Supplier (Gas)">
-                            <input className="rt-input" value={form.gasSupplier} onChange={(e)=>upd('gasSupplier',e.target.value)} placeholder="e.g. British Gas"/>
-                          </InputField>
-                        </div>
-                      </div>
-                      <div className="rt-grid2">
-                        <div>
-                          <InputField label="Contract Length">
-                            <select className="rt-input" value={form.gasContractLength} onChange={(e)=>upd('gasContractLength',e.target.value)}>
-                              <option value="1 Year">1 Year</option>
-                              <option value="2 Years">2 Years</option>
-                              <option value="3 Years">3 Years</option>
-                              <option value="4 Years">4 Years</option>
-                              <option value="5 Years">5 Years</option>
-                            </select>
-                          </InputField>
-                        </div>
-                      </div>
-                      <CommissionRateCard    title="Gas Commission Rates"     rates={form.gasCommission}    onUpdate={(v)=>upd('gasCommission',v)}    type="gas"/>
-                      <NonCommissionRateCard title="Gas Non-Commission Rates" rates={form.gasNonCommission} onUpdate={(v)=>upd('gasNonCommission',v)} type="gas"/>
-                    </>
-                  )}
-                </div>
-              ) : (
-                <p style={{color:'#94a3b8', fontSize:'13px', margin:0, fontStyle:'italic'}}>
-                  Toggle options above if you wish to initialize current broker contract conversion parameters.
-                </p>
-              )}
-            </DashboardCard>
-
-            {/* Submission Controls Control Deck */}
-            <div style={{display:'flex', itemsCenter:'center', justifyContent:'flex-end', gap:'12px', pt:'12px', borderTop:'1px solid #e2e8f0', marginTop:'12px'}}>
-              {form.showOfferRates && (
-                <button
-                  type="button"
-                  onClick={() => navigate('/transfers/add', { state:{ fromCallback:true, prefillData:{...form} } })}
-                  style={{padding:'10px 16px', background:'#ffffff', border:'1px solid #cbd5e1', color:'#334155', borderRadius:'12px', fontWeight:600, fontSize:'14px', cursor:'pointer', display:'flex', alignItems:'center', gap:'6px'}}
-                >
-                  <ArrowLeftRight size={15}/>
-                  Transfer Direct
-                </button>
-              )}
+            <div style={{display:'flex', justifyContent:'flex-end', gap:'12px', paddingTop:'12px', borderTop:'1px solid #e2e8f0', marginTop:'12px'}}>
               <button
                 type="submit"
                 disabled={loading}

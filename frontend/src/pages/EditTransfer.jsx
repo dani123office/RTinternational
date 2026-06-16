@@ -1,15 +1,13 @@
 import { useState, useEffect } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { APP_STYLES } from '@/lib/styles'
-import { ArrowLeft, Building2, Zap, ChevronRight, FileText, Loader2, Save, Calendar, Clock } from 'lucide-react'
+import { ArrowLeft, Building2, Zap, FileText, Loader2, Save, Calendar, Clock } from 'lucide-react'
 import { useDataStore } from '@/store/dataStore'
 import { useToast } from '@/components/ui/toastContext'
 import { Switch } from '@/components/ui/switch'
 import UtilityTypeSelector from '@/components/UtilityTypeSelector'
 import ElectricityMeterSection from '@/components/ElectricityMeterSection'
 import GasMeterSection from '@/components/GasMeterSection'
-import CommissionRateCard from '@/components/CommissionRateCard'
-import NonCommissionRateCard from '@/components/NonCommissionRateCard'
 import { DEFAULT_ELEC_METER, DEFAULT_GAS_METER } from '@/lib/constants'
 import { useAuthStore } from '@/store/authStore'
 import api from '@/lib/api'
@@ -43,15 +41,6 @@ function Field({ label, required, icon: Icon, children }) {
         )}
         {children}
       </div>
-    </div>
-  )
-}
-
-function SupplierField({ value, onChange, label }) {
-  return (
-    <div className="rt-span2" style={{ marginBottom: '4px' }}>
-      <label className="rt-label">{label}</label>
-      <input className="rt-input" value={value} onChange={onChange} placeholder="e.g. British Gas" />
     </div>
   )
 }
@@ -115,17 +104,6 @@ export default function EditTransfer() {
     supplier: '',
     status: '',
     notes: '',
-    showOfferRates: false,
-    elecSupplier: '',
-    elecContractLength: '1 Year',
-    elecMeterType: 'Standard',
-    elecCommissionType: 'Commission',
-    elecCommission: { dayUnitRate: '', nightUnitRate: '', eveningUnitRate: '', standingRate: '' },
-    elecNonCommission: { dayUnitRate: '', nightUnitRate: '', eveningUnitRate: '', standingRate: '', brokerServiceCharge: '' },
-    gasSupplier: '',
-    gasContractLength: '1 Year',
-    gasCommission: { dayUnitRate: '', standingRate: '' },
-    gasNonCommission: { dayUnitRate: '', standingRate: '', brokerServiceCharge: '' },
     date: '',
     time: '',
     day: '',
@@ -145,10 +123,6 @@ export default function EditTransfer() {
     const gasMeters = (cust.gasMeters || []).length
       ? cust.gasMeters.map(m => ({ ...gasMeterToEditForm(m), currentSupplier: capitalize(m.currentSupplier) }))
       : [{ ...DEFAULT_GAS_METER }]
-
-    const eRates = t.offeredElectricityRates
-    const gRates = t.offeredGasRates
-    const hasRates = (eRates?.length > 0) || (gRates?.length > 0)
 
     const rawAddress = cust.businessAddress || ''
     const rawPostcode = cust.postcode || ''
@@ -179,35 +153,6 @@ export default function EditTransfer() {
       supplier: t.supplier || '',
       status: t.status || '',
       notes: t.notes || '',
-      showOfferRates: hasRates,
-      elecSupplier: eRates?.[0]?.supplier || '',
-      elecContractLength: eRates?.[0]?.contractLength || '1 Year',
-      elecMeterType: eRates?.[0]?.meterType || 'Standard',
-      elecCommissionType: eRates?.[0]?.commissionType || 'Commission',
-      elecCommission: {
-        dayUnitRate: eRates?.[0]?.dayUnitRate?.toString() || '',
-        nightUnitRate: eRates?.[0]?.nightUnitRate?.toString() || '',
-        eveningUnitRate: eRates?.[0]?.eveningUnitRate?.toString() || '',
-        standingRate: eRates?.[0]?.standingRate?.toString() || '',
-      },
-      elecNonCommission: {
-        dayUnitRate: eRates?.[0]?.nonCommissionDayRate?.toString() || '',
-        nightUnitRate: eRates?.[0]?.nonCommissionNightRate?.toString() || '',
-        eveningUnitRate: eRates?.[0]?.nonCommissionEveningRate?.toString() || '',
-        standingRate: eRates?.[0]?.nonCommissionStandingRate?.toString() || '',
-        brokerServiceCharge: eRates?.[0]?.brokerServiceCharge?.toString() || '',
-      },
-      gasSupplier: gRates?.[0]?.supplier || '',
-      gasContractLength: gRates?.[0]?.contractLength || '1 Year',
-      gasCommission: {
-        dayUnitRate: gRates?.[0]?.unitRate?.toString() || '',
-        standingRate: gRates?.[0]?.standingRate?.toString() || '',
-      },
-      gasNonCommission: {
-        dayUnitRate: gRates?.[0]?.nonCommissionUnitRate?.toString() || '',
-        standingRate: gRates?.[0]?.nonCommissionStandingRate?.toString() || '',
-        brokerServiceCharge: gRates?.[0]?.brokerServiceCharge?.toString() || '',
-      },
       date: t.scheduledDateTime?.substring(0, 10) || '',
       time: t.scheduledDateTime?.substring(11, 16) || '',
       day: '',
@@ -263,18 +208,6 @@ export default function EditTransfer() {
     if (!form.addressLine1.trim()) { toast('Address line 1 is required', 'error'); return false }
     if (!form.city.trim()) { toast('City is required', 'error'); return false }
     if (!form.postcode.trim()) { toast('Postcode is required', 'error'); return false }
-    if (form.showOfferRates && form.utilityType !== 'gas') {
-      const c = form.elecCommission, nc = form.elecNonCommission
-      if (toNum(nc.dayUnitRate) > toNum(c.dayUnitRate)) { toast('Electricity non-commission Day Rate cannot exceed commission Day Rate', 'error'); return false }
-      if (toNum(nc.nightUnitRate) > toNum(c.nightUnitRate)) { toast('Electricity non-commission Night Rate cannot exceed commission Night Rate', 'error'); return false }
-      if (toNum(nc.eveningUnitRate) > toNum(c.eveningUnitRate)) { toast('Electricity non-commission Evening Rate cannot exceed commission Evening Rate', 'error'); return false }
-      if (toNum(nc.standingRate) > toNum(c.standingRate)) { toast('Electricity non-commission Standing Charge cannot exceed commission Standing Charge', 'error'); return false }
-    }
-    if (form.showOfferRates && form.utilityType !== 'electricity') {
-      const c = form.gasCommission, nc = form.gasNonCommission
-      if (toNum(nc.dayUnitRate) > toNum(c.dayUnitRate)) { toast('Gas non-commission Unit Rate cannot exceed commission Unit Rate', 'error'); return false }
-      if (toNum(nc.standingRate) > toNum(c.standingRate)) { toast('Gas non-commission Standing Charge cannot exceed commission Standing Charge', 'error'); return false }
-    }
     return true
   }
 
@@ -341,37 +274,6 @@ export default function EditTransfer() {
 
       if (form.day) transferPayload.dayOfWeek = form.day
 
-      if (form.showOfferRates) {
-        if (form.utilityType !== 'gas') {
-          transferPayload.offeredElectricityRates = [{
-            contractLength: form.elecContractLength,
-            supplier: form.elecSupplier || null,
-            meterType: form.elecMeterType,
-            commissionType: form.elecCommissionType,
-            dayUnitRate: toNum(form.elecCommission.dayUnitRate),
-            nightUnitRate: toNum(form.elecCommission.nightUnitRate),
-            eveningUnitRate: toNum(form.elecCommission.eveningUnitRate),
-            standingRate: toNum(form.elecCommission.standingRate),
-            nonCommissionDayRate: toNum(form.elecNonCommission.dayUnitRate),
-            nonCommissionNightRate: toNum(form.elecNonCommission.nightUnitRate),
-            nonCommissionEveningRate: toNum(form.elecNonCommission.eveningUnitRate),
-            nonCommissionStandingRate: toNum(form.elecNonCommission.standingRate),
-            brokerServiceCharge: toNum(form.elecNonCommission.brokerServiceCharge),
-          }]
-        }
-        if (form.utilityType !== 'electricity') {
-          transferPayload.offeredGasRates = [{
-            contractLength: form.gasContractLength,
-            supplier: form.gasSupplier || null,
-            unitRate: toNum(form.gasCommission.dayUnitRate),
-            standingRate: toNum(form.gasCommission.standingRate),
-            nonCommissionUnitRate: toNum(form.gasNonCommission.dayUnitRate),
-            nonCommissionStandingRate: toNum(form.gasNonCommission.standingRate),
-            brokerServiceCharge: toNum(form.gasNonCommission.brokerServiceCharge),
-          }]
-        }
-      }
-
       await updateTransfer(transferId, transferPayload)
 
       if (form.scheduleAsCallback && form.date && form.time) {
@@ -379,30 +281,6 @@ export default function EditTransfer() {
           customerId: customer.id,
           scheduledDateTime: `${form.date}T${form.time}:00`,
           notes: form.notes || null,
-          offeredElectricityRates: form.showOfferRates && form.utilityType !== 'gas' ? [{
-            contractLength: form.elecContractLength,
-            supplier: form.elecSupplier || null,
-            meterType: form.elecMeterType,
-            commissionType: form.elecCommissionType,
-            dayUnitRate: toNum(form.elecCommission.dayUnitRate),
-            nightUnitRate: toNum(form.elecCommission.nightUnitRate),
-            eveningUnitRate: toNum(form.elecCommission.eveningUnitRate),
-            standingRate: toNum(form.elecCommission.standingRate),
-            nonCommissionDayRate: toNum(form.elecNonCommission.dayUnitRate),
-            nonCommissionNightRate: toNum(form.elecNonCommission.nightUnitRate),
-            nonCommissionEveningRate: toNum(form.elecNonCommission.eveningUnitRate),
-            nonCommissionStandingRate: toNum(form.elecNonCommission.standingRate),
-            brokerServiceCharge: toNum(form.elecNonCommission.brokerServiceCharge),
-          }] : [],
-          offeredGasRates: form.showOfferRates && form.utilityType !== 'electricity' ? [{
-            contractLength: form.gasContractLength,
-            supplier: form.gasSupplier || null,
-            unitRate: toNum(form.gasCommission.dayUnitRate),
-            standingRate: toNum(form.gasCommission.standingRate),
-            nonCommissionUnitRate: toNum(form.gasNonCommission.dayUnitRate),
-            nonCommissionStandingRate: toNum(form.gasNonCommission.standingRate),
-            brokerServiceCharge: toNum(form.gasNonCommission.brokerServiceCharge),
-          }] : [],
         })
       }
 
@@ -541,84 +419,6 @@ export default function EditTransfer() {
                   </>
                 )}
               </div>
-            </Card>
-
-            <Card
-              icon={ChevronRight}
-              iconColor="#a78bfa"
-              iconBg="rgba(167,139,250,0.15)"
-              title="Offer Rates"
-              delay="rt-d4"
-              headerRight={
-                <div className="rt-toggle-row">
-                  <span className="rt-toggle-label">Enable</span>
-                  <Switch checked={form.showOfferRates} onCheckedChange={(v) => setField('showOfferRates', v)} />
-                </div>
-              }
-            >
-              {form.showOfferRates ? (
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-                  {(form.utilityType === 'electricity' || form.utilityType === 'both') && (
-                    <>
-                      <SupplierField label="Offered Supplier (Electricity)" value={form.elecSupplier} onChange={(e) => setField('elecSupplier', e.target.value)} />
-                      <div className="rt-grid2">
-                        <div>
-                          <label className="rt-label">Contract Length</label>
-                          <select className="rt-input" value={form.elecContractLength} onChange={(e) => setField('elecContractLength', e.target.value)}>
-                            <option value="1 Year">1 Year</option>
-                            <option value="2 Years">2 Years</option>
-                            <option value="3 Years">3 Years</option>
-                            <option value="4 Years">4 Years</option>
-                            <option value="5 Years">5 Years</option>
-                          </select>
-                        </div>
-                        <div>
-                          <label className="rt-label">Meter Type</label>
-                          <select className="rt-input" value={form.elecMeterType} onChange={(e) => setField('elecMeterType', e.target.value)}>
-                            <option value="Standard">Standard</option>
-                            <option value="Day/Night">Day/Night</option>
-                            <option value="Half Hourly">Half Hourly</option>
-                          </select>
-                        </div>
-                      </div>
-                      <div className="rt-grid2">
-                        <div>
-                          <label className="rt-label">Commission Type</label>
-                          <select className="rt-input" value={form.elecCommissionType} onChange={(e) => setField('elecCommissionType', e.target.value)}>
-                            <option value="Commission">Commission</option>
-                            <option value="Non-Commission">Non-Commission</option>
-                          </select>
-                        </div>
-                      </div>
-                      <CommissionRateCard title="Electricity Commission Rates" rates={form.elecCommission} onUpdate={(v) => setField('elecCommission', v)} type="electricity" />
-                      <NonCommissionRateCard title="Electricity Non-Commission Rates" rates={form.elecNonCommission} onUpdate={(v) => setField('elecNonCommission', v)} type="electricity" />
-                    </>
-                  )}
-                  {(form.utilityType === 'gas' || form.utilityType === 'both') && (
-                    <>
-                      <SupplierField label="Offered Supplier (Gas)" value={form.gasSupplier} onChange={(e) => setField('gasSupplier', e.target.value)} />
-                      <div className="rt-grid2">
-                        <div>
-                          <label className="rt-label">Contract Length</label>
-                          <select className="rt-input" value={form.gasContractLength} onChange={(e) => setField('gasContractLength', e.target.value)}>
-                            <option value="1 Year">1 Year</option>
-                            <option value="2 Years">2 Years</option>
-                            <option value="3 Years">3 Years</option>
-                            <option value="4 Years">4 Years</option>
-                            <option value="5 Years">5 Years</option>
-                          </select>
-                        </div>
-                      </div>
-                      <CommissionRateCard title="Gas Commission Rates" rates={form.gasCommission} onUpdate={(v) => setField('gasCommission', v)} type="gas" />
-                      <NonCommissionRateCard title="Gas Non-Commission Rates" rates={form.gasNonCommission} onUpdate={(v) => setField('gasNonCommission', v)} type="gas" />
-                    </>
-                  )}
-                </div>
-              ) : (
-                <p style={{ color: '#94a3b8', fontSize: '13.5px', margin: 0, fontStyle: 'italic' }}>
-                  Enable to add commission and non-commission rates for this transfer.
-                </p>
-              )}
             </Card>
 
             <Card icon={Calendar} iconColor="#f59e0b" iconBg="rgba(245,158,11,0.15)" title="Schedule as Call Back" delay="rt-d5"

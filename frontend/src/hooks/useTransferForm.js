@@ -39,7 +39,6 @@ export function useTransferForm(locationState, navigate) {
   const existingCustomerId = locationState?.prefillData?.id || null
   const [form, setForm] = useState(() => {
     const prefill = locationState?.prefillData || locationState || {}
-    const or = locationState?.prefillData?.offeredRates || locationState?.offeredRates
 
     // Handle businessAddress coming in two formats:
     //  1) straight string from customer (businessAddress)
@@ -83,46 +82,9 @@ export function useTransferForm(locationState, navigate) {
             contractEndDate: normDate(m.contractEndDate) || '',
           }))
         : [{ ...DEFAULT_GAS_METER }],
-      offeredRates: undefined,
     }
 
-    if (!or) return initialForm
-
-    const next = { ...initialForm, showOfferRates: true }
-    const oe = or.electricity
-    const og = or.gas
-
-    if (oe?.length) {
-      const r = oe[0]
-      if (r.supplier) next.elecSupplier = r.supplier
-      if (r.contractLength) next.elecContractLength = r.contractLength
-      if (r.meterType) next.elecMeterType = r.meterType
-      if (r.commissionType) next.elecCommissionType = r.commissionType
-      next.elecCommission = {
-        dayUnitRate: r.dayUnitRate?.toString() || '', nightUnitRate: r.nightUnitRate?.toString() || '',
-        eveningUnitRate: r.eveningUnitRate?.toString() || '', standingRate: r.standingRate?.toString() || '',
-      }
-      next.elecNonCommission = {
-        dayUnitRate: r.nonCommissionDayRate?.toString() || '', nightUnitRate: r.nonCommissionNightRate?.toString() || '',
-        eveningUnitRate: r.nonCommissionEveningRate?.toString() || '', standingRate: r.nonCommissionStandingRate?.toString() || '',
-        brokerServiceCharge: r.brokerServiceCharge?.toString() || '',
-      }
-    }
-
-    if (og?.length) {
-      const r = og[0]
-      if (r.supplier) next.gasSupplier = r.supplier
-      if (r.contractLength) next.gasContractLength = r.contractLength
-      next.gasCommission = {
-        dayUnitRate: r.unitRate?.toString() || '', standingRate: r.standingRate?.toString() || '',
-      }
-      next.gasNonCommission = {
-        dayUnitRate: r.nonCommissionDayUnitRate?.toString() || '', standingRate: r.nonCommissionStandingRate?.toString() || '',
-        brokerServiceCharge: r.nonCommissionBrokerServiceCharge?.toString() || '',
-      }
-    }
-
-    return next
+    return initialForm
   })
 
 
@@ -170,61 +132,6 @@ export function useTransferForm(locationState, navigate) {
         if (first.msn && !next.msn) next.msn = first.msn
       }
 
-      const oe = data.offeredRates?.electricity
-      if (oe) {
-        next.showOfferRates = true
-        if (oe.commission) {
-          next.elecCommission = {
-            dayUnitRate: oe.commission.dayUnitRate?.toString() || p.elecCommission.dayUnitRate,
-            nightUnitRate: oe.commission.nightUnitRate?.toString() || p.elecCommission.nightUnitRate,
-            eveningUnitRate: oe.commission.eveningUnitRate?.toString() || p.elecCommission.eveningUnitRate,
-            standingRate: oe.commission.standingRate?.toString() || p.elecCommission.standingRate,
-          }
-        }
-        if (oe.nonCommission) {
-          next.elecNonCommission = {
-            dayUnitRate: oe.nonCommission.dayUnitRate?.toString() || p.elecNonCommission.dayUnitRate,
-            nightUnitRate: oe.nonCommission.nightUnitRate?.toString() || p.elecNonCommission.nightUnitRate,
-            eveningUnitRate: oe.nonCommission.eveningUnitRate?.toString() || p.elecNonCommission.eveningUnitRate,
-            standingRate: oe.nonCommission.standingRate?.toString() || p.elecNonCommission.standingRate,
-            brokerServiceCharge: oe.nonCommission.brokerServiceCharge?.toString() || p.elecNonCommission.brokerServiceCharge,
-          }
-        }
-        if (oe.brokerServiceCharge != null && !oe.nonCommission?.brokerServiceCharge) {
-          next.elecNonCommission.brokerServiceCharge = oe.brokerServiceCharge.toString()
-        }
-        if (oe.supplier)      next.elecSupplier      = oe.supplier
-        if (oe.contractLength) next.elecContractLength = oe.contractLength
-        if (oe.meterType)     next.elecMeterType     = oe.meterType
-      }
-
-      const og = data.offeredRates?.gas
-      if (og) {
-        next.showOfferRates = true
-        if (og.commission) {
-          next.gasCommission = {
-            dayUnitRate: (og.commission.dayUnitRate || og.commission.unitRate)?.toString() || p.gasCommission.dayUnitRate,
-            standingRate: og.commission.standingRate?.toString() || p.gasCommission.standingRate,
-          }
-        }
-        if (og.nonCommission) {
-          next.gasNonCommission = {
-            dayUnitRate: (og.nonCommission.dayUnitRate || og.nonCommission.unitRate)?.toString() || p.gasNonCommission.dayUnitRate,
-            standingRate: og.nonCommission.standingRate?.toString() || p.gasNonCommission.standingRate,
-            brokerServiceCharge: og.nonCommission.brokerServiceCharge?.toString() || p.gasNonCommission.brokerServiceCharge,
-          }
-        }
-        if (og.brokerServiceCharge != null && !og.nonCommission?.brokerServiceCharge) {
-          next.gasNonCommission.brokerServiceCharge = og.brokerServiceCharge.toString()
-        }
-        if (og.supplier)       next.gasSupplier       = og.supplier
-        if (og.contractLength) next.gasContractLength = og.contractLength
-      }
-
-      if (data.brokerServiceCharge != null) {
-        next.elecNonCommission.brokerServiceCharge = data.brokerServiceCharge.toString()
-      }
-
       return next
     })
   }, [])
@@ -239,18 +146,6 @@ export function useTransferForm(locationState, navigate) {
     if (!form.businessPhone.trim()) { toast('Business phone is required', 'error'); return false }
     if (!form.businessAddress.trim()) { toast('Business address is required', 'error'); return false }
     if (!form.postcode.trim()) { toast('Postcode is required', 'error'); return false }
-    if (form.showOfferRates && form.utilityType !== 'gas') {
-      const c = form.elecCommission, nc = form.elecNonCommission
-      if (toNum(nc.dayUnitRate) > toNum(c.dayUnitRate)) { toast('Electricity non-commission Day Rate cannot exceed commission Day Rate', 'error'); return false }
-      if (toNum(nc.nightUnitRate) > toNum(c.nightUnitRate)) { toast('Electricity non-commission Night Rate cannot exceed commission Night Rate', 'error'); return false }
-      if (toNum(nc.eveningUnitRate) > toNum(c.eveningUnitRate)) { toast('Electricity non-commission Evening Rate cannot exceed commission Evening Rate', 'error'); return false }
-      if (toNum(nc.standingRate) > toNum(c.standingRate)) { toast('Electricity non-commission Standing Charge cannot exceed commission Standing Charge', 'error'); return false }
-    }
-    if (form.showOfferRates && form.utilityType !== 'electricity') {
-      const c = form.gasCommission, nc = form.gasNonCommission
-      if (toNum(nc.dayUnitRate) > toNum(c.dayUnitRate)) { toast('Gas non-commission Unit Rate cannot exceed commission Unit Rate', 'error'); return false }
-      if (toNum(nc.standingRate) > toNum(c.standingRate)) { toast('Gas non-commission Standing Charge cannot exceed commission Standing Charge', 'error'); return false }
-    }
     return true
   }
 
@@ -289,24 +184,6 @@ export function useTransferForm(locationState, navigate) {
         employeeId: uid,
         scheduledDateTime: null,
         callBackId: form.callbackId || form.callBackId || null,
-        offeredElectricityRates: form.showOfferRates && form.utilityType !== 'gas' ? [{
-          contractLength: form.elecContractLength, supplier: form.elecSupplier || null,
-          meterType: form.elecMeterType, commissionType: form.elecCommissionType,
-          dayUnitRate: toNum(form.elecCommission.dayUnitRate), nightUnitRate: toNum(form.elecCommission.nightUnitRate),
-          eveningUnitRate: toNum(form.elecCommission.eveningUnitRate), standingRate: toNum(form.elecCommission.standingRate),
-          nonCommissionDayRate: toNum(form.elecNonCommission.dayUnitRate),
-          nonCommissionNightRate: toNum(form.elecNonCommission.nightUnitRate),
-          nonCommissionEveningRate: toNum(form.elecNonCommission.eveningUnitRate),
-          nonCommissionStandingRate: toNum(form.elecNonCommission.standingRate),
-          brokerServiceCharge: toNum(form.elecNonCommission.brokerServiceCharge),
-        }] : [],
-        offeredGasRates: form.showOfferRates && form.utilityType !== 'electricity' ? [{
-          contractLength: form.gasContractLength, supplier: form.gasSupplier || null,
-          unitRate: toNum(form.gasCommission.dayUnitRate), standingRate: toNum(form.gasCommission.standingRate),
-          nonCommissionUnitRate: toNum(form.gasNonCommission.dayUnitRate),
-          nonCommissionStandingRate: toNum(form.gasNonCommission.standingRate),
-          brokerServiceCharge: toNum(form.gasNonCommission.brokerServiceCharge),
-        }] : [],
       })
 
       if (form.scheduleAsCallback && form.scheduledDate) {
@@ -318,24 +195,6 @@ export function useTransferForm(locationState, navigate) {
           mpan: callbackMpan || null,
           mprn: firstGasMprn,
           msn: form.msn || null,
-          offeredElectricityRates: form.showOfferRates && form.utilityType !== 'gas' ? [{
-            contractLength: form.elecContractLength, supplier: form.elecSupplier || null,
-            meterType: form.elecMeterType, commissionType: form.elecCommissionType,
-            dayUnitRate: toNum(form.elecCommission.dayUnitRate), nightUnitRate: toNum(form.elecCommission.nightUnitRate),
-            eveningUnitRate: toNum(form.elecCommission.eveningUnitRate), standingRate: toNum(form.elecCommission.standingRate),
-            nonCommissionDayRate: toNum(form.elecNonCommission.dayUnitRate),
-            nonCommissionNightRate: toNum(form.elecNonCommission.nightUnitRate),
-            nonCommissionEveningRate: toNum(form.elecNonCommission.eveningUnitRate),
-            nonCommissionStandingRate: toNum(form.elecNonCommission.standingRate),
-            brokerServiceCharge: toNum(form.elecNonCommission.brokerServiceCharge),
-          }] : [],
-          offeredGasRates: form.showOfferRates && form.utilityType !== 'electricity' ? [{
-            contractLength: form.gasContractLength, supplier: form.gasSupplier || null,
-            unitRate: toNum(form.gasCommission.dayUnitRate), standingRate: toNum(form.gasCommission.standingRate),
-            nonCommissionUnitRate: toNum(form.gasNonCommission.dayUnitRate),
-            nonCommissionStandingRate: toNum(form.gasNonCommission.standingRate),
-            brokerServiceCharge: toNum(form.gasNonCommission.brokerServiceCharge),
-          }] : [],
         })
       }
 

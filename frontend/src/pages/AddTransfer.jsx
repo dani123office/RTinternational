@@ -1,13 +1,11 @@
 import { APP_STYLES } from '@/lib/styles'
 import { useNavigate, useLocation } from 'react-router-dom'
-import { ArrowLeft, Building2, Zap, ChevronRight, FileText, Loader2, Save, Calendar as CalendarIcon, Clock } from 'lucide-react'
+import { ArrowLeft, Building2, Zap, FileText, Loader2, Save, Calendar as CalendarIcon, Clock } from 'lucide-react'
 import { useTransferForm } from '@/hooks/useTransferForm'
 import { Switch } from '@/components/ui/switch'
 import UtilityTypeSelector from '@/components/UtilityTypeSelector'
 import ElectricityMeterSection from '@/components/ElectricityMeterSection'
 import GasMeterSection from '@/components/GasMeterSection'
-import CommissionRateCard from '@/components/CommissionRateCard'
-import NonCommissionRateCard from '@/components/NonCommissionRateCard'
 import AiFormFiller from '@/components/AiFormFiller'
 
 function Card({ icon: Icon, title, headerRight, children, delay }) {
@@ -39,15 +37,6 @@ function Field({ label, required, icon: Icon, children }) {
         )}
         {children}
       </div>
-    </div>
-  )
-}
-
-function SupplierField({ value, onChange, label }) {
-  return (
-    <div className="rt-span2" style={{ marginBottom: '4px' }}>
-      <label className="rt-label">{label}</label>
-      <input className="rt-input" value={value} onChange={onChange} placeholder="e.g. British Gas" />
     </div>
   )
 }
@@ -167,84 +156,6 @@ export default function AddTransfer() {
               ) : (
                 <p style={{ color: '#94a3b8', fontSize: '13.5px', margin: 0, fontStyle: 'italic' }}>
                   Enable to schedule a callback for this transfer.
-                </p>
-              )}
-            </Card>
-
-            <Card
-              icon={ChevronRight}
-              iconColor="#a78bfa"
-              iconBg="rgba(167,139,250,0.15)"
-              title="Offer Rates"
-              delay="rt-d4"
-              headerRight={
-                <div className="rt-toggle-row">
-                  <span className="rt-toggle-label">Enable</span>
-                  <Switch checked={form.showOfferRates} onCheckedChange={(v) => setField('showOfferRates', v)} />
-                </div>
-              }
-            >
-              {form.showOfferRates ? (
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-                  {(form.utilityType === 'electricity' || form.utilityType === 'both') && (
-                    <>
-                      <SupplierField label="Offered Supplier (Electricity)" value={form.elecSupplier} onChange={(e) => setField('elecSupplier', e.target.value)} />
-                      <div className="rt-grid2">
-                        <div>
-                          <label className="rt-label">Contract Length</label>
-                          <select className="rt-input" value={form.elecContractLength} onChange={(e) => setField('elecContractLength', e.target.value)}>
-                            <option value="1 Year">1 Year</option>
-                            <option value="2 Years">2 Years</option>
-                            <option value="3 Years">3 Years</option>
-                            <option value="4 Years">4 Years</option>
-                            <option value="5 Years">5 Years</option>
-                          </select>
-                        </div>
-                        <div>
-                          <label className="rt-label">Meter Type</label>
-                          <select className="rt-input" value={form.elecMeterType} onChange={(e) => setField('elecMeterType', e.target.value)}>
-                            <option value="Standard">Standard</option>
-                            <option value="Day/Night">Day/Night</option>
-                            <option value="Half Hourly">Half Hourly</option>
-                          </select>
-                        </div>
-                      </div>
-                      <div className="rt-grid2">
-                        <div>
-                          <label className="rt-label">Commission Type</label>
-                          <select className="rt-input" value={form.elecCommissionType} onChange={(e) => setField('elecCommissionType', e.target.value)}>
-                            <option value="Commission">Commission</option>
-                            <option value="Non-Commission">Non-Commission</option>
-                          </select>
-                        </div>
-                      </div>
-                      <CommissionRateCard title="Electricity Commission Rates" rates={form.elecCommission} onUpdate={(v) => setField('elecCommission', v)} type="electricity" />
-                      <NonCommissionRateCard title="Electricity Non-Commission Rates" rates={form.elecNonCommission} onUpdate={(v) => setField('elecNonCommission', v)} type="electricity" />
-                    </>
-                  )}
-                  {(form.utilityType === 'gas' || form.utilityType === 'both') && (
-                    <>
-                      <SupplierField label="Offered Supplier (Gas)" value={form.gasSupplier} onChange={(e) => setField('gasSupplier', e.target.value)} />
-                      <div className="rt-grid2">
-                        <div>
-                          <label className="rt-label">Contract Length</label>
-                          <select className="rt-input" value={form.gasContractLength} onChange={(e) => setField('gasContractLength', e.target.value)}>
-                            <option value="1 Year">1 Year</option>
-                            <option value="2 Years">2 Years</option>
-                            <option value="3 Years">3 Years</option>
-                            <option value="4 Years">4 Years</option>
-                            <option value="5 Years">5 Years</option>
-                          </select>
-                        </div>
-                      </div>
-                      <CommissionRateCard title="Gas Commission Rates" rates={form.gasCommission} onUpdate={(v) => setField('gasCommission', v)} type="gas" />
-                      <NonCommissionRateCard title="Gas Non-Commission Rates" rates={form.gasNonCommission} onUpdate={(v) => setField('gasNonCommission', v)} type="gas" />
-                    </>
-                  )}
-                </div>
-              ) : (
-                <p style={{ color: '#94a3b8', fontSize: '13.5px', margin: 0, fontStyle: 'italic' }}>
-                  Enable to add commission and non-commission rates for this transfer.
                 </p>
               )}
             </Card>
