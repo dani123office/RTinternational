@@ -52,7 +52,7 @@ export default function AdminSales() {
               {sales.map((s) => (
                 <div
                   key={s.id}
-                  onClick={() => navigate(`/admin/sales/${s.id}`, { state: { agentId: s.agentId } })}
+                  onClick={() => navigate(`/admin/sales/${s.id}`, { state: { agentId: s.employeeId } })}
                   className="rt-card-flat"
                   style={{ cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '12px' }}
                 >

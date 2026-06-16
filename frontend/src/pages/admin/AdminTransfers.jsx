@@ -52,7 +52,7 @@ export default function AdminTransfers() {
               {transfers.map((t) => (
                 <div
                   key={t.id}
-                  onClick={() => navigate(`/admin/transfers/${t.id}`, { state: { agentId: t.agentId } })}
+                  onClick={() => navigate(`/admin/transfers/${t.id}`, { state: { agentId: t.employeeId } })}
                   className="rt-card-flat"
                   style={{ cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '12px' }}
                 >

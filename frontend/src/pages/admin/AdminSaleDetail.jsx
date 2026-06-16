@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { useParams, useLocation, useNavigate } from 'react-router-dom'
+import { useParams, useLocation, useNavigate, Link } from 'react-router-dom'
 import { ArrowLeft, Mail, Phone, MapPin, FileText, Banknote, Calendar } from 'lucide-react'
 import api, { endpoints } from '@/lib/api'
 import { APP_STYLES } from '@/lib/styles'

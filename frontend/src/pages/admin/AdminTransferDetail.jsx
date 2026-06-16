@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { useParams, useLocation, useNavigate } from 'react-router-dom'
+import { useParams, useLocation, useNavigate, Link } from 'react-router-dom'
 import { ArrowLeft, Calendar, Clock, Mail, Phone, MapPin, FileText, Tag } from 'lucide-react'
 import api, { endpoints } from '@/lib/api'
 import { APP_STYLES } from '@/lib/styles'
@@ -33,6 +33,8 @@ export default function AdminTransferDetail() {
       .catch(err => { setError(err.response?.data?.detail || 'Failed to load transfer'); setLoading(false) })
   }, [id])
 
+  const backAgentId = agentId || data?.employeeId
+
   if (loading) return (
     <>
       <style>{APP_STYLES}</style>
@@ -60,7 +62,7 @@ export default function AdminTransferDetail() {
       <style>{APP_STYLES}</style>
       <div className="rt-page">
         <div style={{ maxWidth: '800px', margin: '0 auto' }}>
-          <div onClick={() => navigate(agentId ? `/admin/agents/${agentId}` : "/admin/agents", { replace: true })} className="flex items-center gap-1.5 text-sm text-slate-500 no-underline mb-4 hover:text-slate-800 transition-colors" style={{ cursor: 'pointer' }}>
+          <div onClick={() => navigate(backAgentId ? `/admin/agents/${backAgentId}` : "/admin/agents", { replace: true })} className="flex items-center gap-1.5 text-sm text-slate-500 no-underline mb-4 hover:text-slate-800 transition-colors" style={{ cursor: 'pointer' }}>
             <ArrowLeft size={16} /> Back to Agent
           </div>
 
