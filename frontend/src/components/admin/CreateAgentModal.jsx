@@ -1,5 +1,6 @@
 import { useState } from 'react'
-import { X, User, Mail, Lock, Briefcase, DollarSign, CreditCard, Phone, Building2, BadgePercent, Calendar, Heart, Users } from 'lucide-react'
+import { X, User, Mail, Lock, Briefcase, DollarSign, CreditCard, Phone, Building2, BadgePercent, Calendar, Heart, Users, Send, CheckCircle2, Loader2 } from 'lucide-react'
+import api from '@/lib/api'
 
 const formatCNIC = (value) => {
   if (!value) return value;
@@ -22,12 +23,40 @@ export default function CreateAgentModal({ isOpen, onClose, onSave, managers }) 
   })
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
+  const [otpState, setOtpState] = useState('idle') // idle | sending | sent | verifying | verified
+  const [otpCode, setOtpCode] = useState('')
+  const [otpError, setOtpError] = useState('')
 
   if (!isOpen) return null
+
+  const handleSendOtp = async () => {
+    if (!form.email) { setOtpError('Please enter an email first'); return }
+    setOtpError(''); setOtpState('sending')
+    try {
+      await api.post('/api/admin/send-otp', { email: form.email })
+      setOtpState('sent')
+    } catch (e) {
+      setOtpError(e.response?.data?.detail || 'Failed to send OTP')
+      setOtpState('idle')
+    }
+  }
+
+  const handleVerifyOtp = async () => {
+    if (!otpCode || otpCode.length !== 6) { setOtpError('Enter 6-digit verification code'); return }
+    setOtpError(''); setOtpState('verifying')
+    try {
+      await api.post('/api/admin/verify-otp', { email: form.email, otp: otpCode })
+      setOtpState('verified')
+    } catch (e) {
+      setOtpError(e.response?.data?.detail || 'Invalid OTP')
+      setOtpState('sent')
+    }
+  }
 
   const handleSave = async () => {
     if (!form.name || !form.email || !form.password) { setError('Name, email and password required'); return }
     if (!form.managerId) { setError('Please assign a manager'); return }
+    if (otpState !== 'verified') { setError('Please verify the email first'); return }
     setLoading(true); setError('')
     try {
       await onSave({
@@ -41,6 +70,7 @@ export default function CreateAgentModal({ isOpen, onClose, onSave, managers }) 
         department: '', designation: '', dateOfBirth: '', dateOfJoining: '',
         emergContactName: '', emergContactNumber: '',
       })
+      setOtpState('idle'); setOtpCode('')
       onClose()
     } catch (e) {
       setError(e.response?.data?.detail || 'Failed to create agent')
@@ -51,6 +81,9 @@ export default function CreateAgentModal({ isOpen, onClose, onSave, managers }) 
     let val = e.target.value
     if (key === 'cnic') {
       val = formatCNIC(val)
+    }
+    if (key === 'email' && otpState !== 'idle') {
+      setOtpState('idle'); setOtpCode(''); setOtpError('')
     }
     setForm({ ...form, [key]: val })
   }
@@ -87,7 +120,29 @@ export default function CreateAgentModal({ isOpen, onClose, onSave, managers }) 
           <div className="rt-grid2">
             <div>
               <label className="rt-label flex items-center gap-1.5"><Mail size={13} /> Email *</label>
-              <input type="email" value={form.email} onChange={set('email')} placeholder="Enter email" className="rt-input" />
+              <div className="flex gap-2">
+                <input type="email" value={form.email} onChange={set('email')} placeholder="Enter email" className="rt-input flex-1" />
+                {otpState === 'idle' && (
+                  <button
+                    onClick={handleSendOtp}
+                    disabled={!form.email}
+                    className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-semibold text-white cursor-pointer border-0 transition-all shrink-0"
+                    style={{ background: !form.email ? '#94a3b8' : '#4F46E5' }}
+                  >
+                    <Send size={13} /> Send Code
+                  </button>
+                )}
+                {otpState === 'sending' && (
+                  <button disabled className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-semibold text-white border-0 shrink-0" style={{ background: '#94a3b8' }}>
+                    <Loader2 size={13} className="animate-spin" /> Sending...
+                  </button>
+                )}
+                {otpState === 'verified' && (
+                  <span className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-semibold text-green-700 bg-green-50 shrink-0">
+                    <CheckCircle2 size={13} /> Verified
+                  </span>
+                )}
+              </div>
             </div>
             <div>
               <label className="rt-label flex items-center gap-1.5"><Briefcase size={13} /> Role *</label>
@@ -96,6 +151,37 @@ export default function CreateAgentModal({ isOpen, onClose, onSave, managers }) 
               </select>
             </div>
           </div>
+
+          {(otpState === 'sent' || otpState === 'verifying') && (
+            <div className="p-3 rounded-xl bg-indigo-50 border border-indigo-100">
+              <label className="rt-label flex items-center gap-1.5 mb-2"><Mail size={13} /> Enter Verification Code</label>
+              <div className="flex gap-2">
+                <input
+                  type="text"
+                  maxLength={6}
+                  value={otpCode}
+                  onChange={(e) => setOtpCode(e.target.value.replace(/\D/g, '').slice(0, 6))}
+                  placeholder="Enter 6-digit code"
+                  className="rt-input flex-1 text-center text-lg tracking-[0.3em] font-bold"
+                />
+                <button
+                  onClick={handleVerifyOtp}
+                  disabled={otpState === 'verifying'}
+                  className="flex items-center gap-1.5 px-4 py-2 rounded-xl text-sm font-semibold text-white cursor-pointer border-0 transition-all shrink-0"
+                  style={{ background: '#4F46E5' }}
+                >
+                  {otpState === 'verifying' ? <Loader2 size={14} className="animate-spin" /> : 'Verify'}
+                </button>
+              </div>
+              {otpError && <p className="text-xs text-red-500 mt-1">{otpError}</p>}
+              <button
+                onClick={handleSendOtp}
+                className="text-xs text-indigo-600 mt-1 bg-transparent border-0 cursor-pointer hover:underline p-0"
+              >
+                Resend code
+              </button>
+            </div>
+          )}
 
           <div className="rt-grid2">
             <div>
@@ -169,7 +255,7 @@ export default function CreateAgentModal({ isOpen, onClose, onSave, managers }) 
         </div>
         <div className="flex items-center justify-end gap-2 px-6 py-4 border-t border-slate-100">
           <button onClick={onClose} className="rt-btn-outline text-sm">Cancel</button>
-          <button onClick={handleSave} disabled={loading || noManagers} className="rt-btn-primary text-sm">
+          <button onClick={handleSave} disabled={loading || noManagers || otpState !== 'verified'} className="rt-btn-primary text-sm">
             {loading ? 'Creating...' : 'Add Staff Member'}
           </button>
         </div>

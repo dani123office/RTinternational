@@ -7,14 +7,15 @@ from fastapi.responses import Response
 from sqlalchemy.orm import Session
 from sqlalchemy import func
 from ..database import get_db
-from ..models import User, Customer, CallBack, Transfer, Sale, ActivityLog, Attendance, LeaveRequest, LoanRequest, Notification, EmailVerification
+from ..models import User, Customer, CallBack, Transfer, Sale, ActivityLog, Attendance, LeaveRequest, LoanRequest, Notification, EmailVerification, StaffOTP
 from .auth import require_admin
 from ..utils.logger import log_activity, get_client_ip
+from ..utils.email import generate_otp, send_otp_email
 from ..schemas import (
     CreateManagerRequest, CreateAgentRequest, AssignAgentRequest,
     UpdateUserRequest, UpdateAgentStaffRequest, ApproveUserRequest, ResetUserPasswordRequest,
     OverallStats, ManagerKpi, AgentKpi, AgentDetail, AgentStats, AgentOut,
-    AdminPerformanceOverview, BusinessFeedItem,
+    AdminPerformanceOverview, BusinessFeedItem, SendOTPRequest, VerifyOTPRequest,
 )
 from .callbacks import _build_callback_out
 from .transfers import _transfer_out
@@ -1180,3 +1181,42 @@ def admin_salary_slip(
         media_type="application/pdf",
         headers={"Content-Disposition": f'attachment; filename="Salary_Slip_{_month_name(m)}_{y}_{agent.name}.pdf"'},
     )
+
+
+@router.post("/send-otp")
+def admin_send_otp(request: SendOTPRequest, admin: User = Depends(require_admin), db: Session = Depends(get_db)):
+    email = request.email.strip().lower()
+    otp = generate_otp()
+    expiry = datetime.utcnow() + timedelta(minutes=5)
+
+    existing = db.query(StaffOTP).filter(StaffOTP.email == email).first()
+    if existing:
+        existing.otp_code = otp
+        existing.otp_expiry = expiry
+        existing.is_verified = False
+    else:
+        db.add(StaffOTP(email=email, otp_code=otp, otp_expiry=expiry))
+
+    db.commit()
+
+    sent = send_otp_email(email, otp)
+    return {"message": "If this email exists, an OTP has been sent.", "sent": sent}
+
+
+@router.post("/verify-otp")
+def admin_verify_otp(request: VerifyOTPRequest, admin: User = Depends(require_admin), db: Session = Depends(get_db)):
+    email = request.email.strip().lower()
+    record = db.query(StaffOTP).filter(StaffOTP.email == email, StaffOTP.is_verified == False).first()
+    if not record:
+        raise HTTPException(status_code=400, detail="No OTP requested. Please request a new OTP.")
+    if record.otp_expiry < datetime.utcnow():
+        raise HTTPException(status_code=400, detail="OTP has expired. Please request a new OTP.")
+    if record.otp_code != request.otp:
+        raise HTTPException(status_code=400, detail="Invalid OTP. Please try again.")
+
+    record.is_verified = True
+    record.otp_code = None
+    record.otp_expiry = None
+    db.commit()
+
+    return {"message": "Email verified successfully", "verified": True}
