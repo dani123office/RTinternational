@@ -500,6 +500,16 @@ def get_pending_users(admin: User = Depends(require_admin), db: Session = Depend
         {
             "id": u.id, "name": u.name, "email": u.email,
             "role": u.role, "createdAt": u.created_at.isoformat() if u.created_at else None,
+            "phone": u.phone,
+            "fatherName": u.father_name,
+            "monthlySalary": u.monthly_salary,
+            "cnic": u.cnic,
+            "department": u.department,
+            "designation": u.designation,
+            "dateOfBirth": u.date_of_birth.isoformat() if u.date_of_birth else None,
+            "dateOfJoining": u.date_of_joining.isoformat() if u.date_of_joining else None,
+            "emergContactName": u.emerg_contact_name,
+            "emergContactNumber": u.emerg_contact_number,
         }
         for u in users
     ]
@@ -522,6 +532,31 @@ def approve_user(
     ).first()
     if not manager:
         raise HTTPException(status_code=400, detail="Manager not found or inactive")
+
+    if data.name is not None:
+        user.name = data.name
+    if data.email is not None:
+        user.email = data.email.strip().lower()
+    if data.phone is not None:
+        user.phone = data.phone
+    if data.fatherName is not None:
+        user.father_name = data.fatherName
+    if data.monthlySalary is not None:
+        user.monthly_salary = data.monthlySalary
+    if data.cnic is not None:
+        user.cnic = data.cnic
+    if data.department is not None:
+        user.department = data.department
+    if data.designation is not None:
+        user.designation = data.designation
+    if data.dateOfBirth is not None:
+        user.date_of_birth = data.dateOfBirth
+    if data.dateOfJoining is not None:
+        user.date_of_joining = data.dateOfJoining
+    if data.emergContactName is not None:
+        user.emerg_contact_name = data.emergContactName
+    if data.emergContactNumber is not None:
+        user.emerg_contact_number = data.emergContactNumber
 
     user.manager_id = data.managerId
     user.is_active = True

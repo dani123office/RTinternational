@@ -346,6 +346,23 @@ class AgentDetail(BaseModel):
 
 class ApproveUserRequest(BaseModel):
     managerId: int = Field(..., description="Manager ID to assign to this user")
+    name: Optional[str] = None
+    email: Optional[str] = None
+    phone: Optional[str] = None
+    fatherName: Optional[str] = None
+    monthlySalary: Optional[int] = 0
+    cnic: Optional[str] = None
+    department: Optional[str] = None
+    designation: Optional[str] = None
+    dateOfBirth: Optional[date] = None
+    dateOfJoining: Optional[date] = None
+    emergContactName: Optional[str] = None
+    emergContactNumber: Optional[str] = None
+
+    @field_validator('cnic')
+    @classmethod
+    def validate_cnic(cls, v):
+        return check_cnic(v)
 
 
 class ResetUserPasswordRequest(BaseModel):

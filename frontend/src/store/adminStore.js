@@ -114,8 +114,8 @@ export const useAdminStore = create((set, get) => ({
     }
   },
 
-  approveUser: async (userId, managerId) => {
-    const res = await api.post(endpoints.admin.approveUser(userId), { managerId })
+  approveUser: async (userId, managerId, profileData = {}) => {
+    const res = await api.post(endpoints.admin.approveUser(userId), { managerId, ...profileData })
     await get().loadPendingUsers()
     await get().loadManagers()
     await get().loadAgents(true)

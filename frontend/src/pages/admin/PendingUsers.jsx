@@ -1,7 +1,7 @@
 import { useEffect, useState, useCallback } from 'react'
 import { useAdminStore } from '@/store/adminStore'
 import api, { endpoints } from '@/lib/api'
-import { UserPlus, CheckCircle, XCircle, Loader2, UserRoundCog, CalendarCheck, Check, X, Wallet, ChevronLeft, ChevronRight, Clock } from 'lucide-react'
+import { UserPlus, CheckCircle, XCircle, Loader2, UserRoundCog, CalendarCheck, Check, X, Wallet, ChevronLeft, ChevronRight, Clock, Eye, Pencil, Save } from 'lucide-react'
 import { APP_STYLES } from '@/lib/styles'
 import DataTable from '@/components/shared/DataTable'
 import LoadingSpinner from '@/components/shared/LoadingSpinner'
@@ -24,6 +24,10 @@ export default function PendingUsers() {
   const [leaveHistory, setLeaveHistory] = useState({ items: [], total: 0, page: 1, totalPages: 0 })
   const [leaveHistoryLoading, setLeaveHistoryLoading] = useState(false)
   const [deleteProcessing, setDeleteProcessing] = useState(null)
+
+  const [selectedUser, setSelectedUser] = useState(null)
+  const [editForm, setEditForm] = useState({})
+  const [savingEdit, setSavingEdit] = useState(false)
 
   useEffect(() => {
     api.get(endpoints.leaves.pending)
@@ -100,19 +104,64 @@ export default function PendingUsers() {
     } finally { setLoanReviewProcessing(null) }
   }
 
-  const handleApprove = async (user) => {
-    if (!user._selectedManagerId) {
-      setError(`Select a manager for ${user.name} first`)
+  const openEditModal = (user) => {
+    setEditForm({
+      name: user.name || '',
+      email: user.email || '',
+      phone: user.phone || '',
+      fatherName: user.fatherName || '',
+      monthlySalary: user.monthlySalary != null ? user.monthlySalary : 0,
+      cnic: user.cnic || '',
+      department: user.department || '',
+      designation: user.designation || '',
+      dateOfBirth: user.dateOfBirth || '',
+      dateOfJoining: user.dateOfJoining || '',
+      emergContactName: user.emergContactName || '',
+      emergContactNumber: user.emergContactNumber || '',
+      managerId: user._selectedManagerId || '',
+    })
+    setSelectedUser(user)
+    setError('')
+  }
+
+  const closeModal = () => {
+    setSelectedUser(null)
+    setEditForm({})
+    setError('')
+  }
+
+  const handleFieldChange = (field, value) => {
+    setEditForm((prev) => ({ ...prev, [field]: value }))
+  }
+
+  const handleApproveWithEdit = async () => {
+    if (!editForm.managerId) {
+      setError('Select a manager first')
       return
     }
+    setSavingEdit(true)
     setError('')
-    setProcessing(user.id)
     try {
-      await approveUser(user.id, user._selectedManagerId)
+      const profileData = {}
+      if (editForm.name) profileData.name = editForm.name
+      if (editForm.email) profileData.email = editForm.email
+      if (editForm.phone) profileData.phone = editForm.phone
+      if (editForm.fatherName) profileData.fatherName = editForm.fatherName
+      if (editForm.monthlySalary != null) profileData.monthlySalary = Number(editForm.monthlySalary)
+      if (editForm.cnic) profileData.cnic = editForm.cnic
+      if (editForm.department) profileData.department = editForm.department
+      if (editForm.designation) profileData.designation = editForm.designation
+      if (editForm.dateOfBirth) profileData.dateOfBirth = editForm.dateOfBirth
+      if (editForm.dateOfJoining) profileData.dateOfJoining = editForm.dateOfJoining
+      if (editForm.emergContactName) profileData.emergContactName = editForm.emergContactName
+      if (editForm.emergContactNumber) profileData.emergContactNumber = editForm.emergContactNumber
+
+      await approveUser(selectedUser.id, Number(editForm.managerId), profileData)
+      closeModal()
     } catch (err) {
       setError(err.response?.data?.detail || 'Failed to approve user')
     } finally {
-      setProcessing(null)
+      setSavingEdit(false)
     }
   }
 
@@ -142,6 +191,7 @@ export default function PendingUsers() {
       cell: (row) => (
         <select
           value={row._selectedManagerId || ''}
+          onClick={(e) => e.stopPropagation()}
           onChange={(e) => { row._selectedManagerId = Number(e.target.value); setError('') }}
           style={{
             padding: '6px 10px', borderRadius: '8px', border: '1px solid #e2e8f0',
@@ -159,18 +209,27 @@ export default function PendingUsers() {
     {
       header: 'Action',
       cell: (row) => (
-        <button
-          onClick={() => handleApprove(row)}
-          disabled={processing === row.id}
-          className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold cursor-pointer transition-all duration-200 border-none text-white disabled:opacity-50"
-          style={{ background: 'linear-gradient(135deg, #22c55e, #16a34a)' }}
-        >
-          {processing === row.id ? <Loader2 size={14} className="animate-spin" /> : <CheckCircle size={14} />}
-          {processing === row.id ? 'Approving...' : 'Approve'}
-        </button>
+        <div className="flex items-center gap-2" onClick={(e) => e.stopPropagation()}>
+          <button
+            onClick={() => openEditModal(row)}
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold cursor-pointer transition-all duration-200 border-none text-white"
+            style={{ background: 'linear-gradient(135deg, #6366f1, #4f46e5)' }}
+          >
+            <Eye size={14} />
+            View
+          </button>
+        </div>
       ),
     },
   ]
+
+  const inputStyle = {
+    width: '100%', padding: '8px 10px', borderRadius: '8px', border: '1px solid #e2e8f0',
+    fontSize: '13px', fontFamily: 'inherit', background: '#fff', outline: 'none',
+    boxSizing: 'border-box',
+  }
+
+  const labelStyle = { fontSize: '0.72rem', fontWeight: 600, color: '#64748b', marginBottom: '4px', display: 'block' }
 
   if (loading) return (
     <>
@@ -197,7 +256,7 @@ export default function PendingUsers() {
             </div>
           </div>
 
-          {error && (
+          {error && !selectedUser && (
             <div className="rt-fade flex items-center gap-2 p-3 rounded-xl mb-5" style={{ background: '#fef2f2', border: '1px solid #fecaca', color: '#dc2626', fontSize: '0.82rem' }}>
               <XCircle size={16} /> {error}
             </div>
@@ -365,7 +424,7 @@ export default function PendingUsers() {
                   <p className="text-xs text-slate-400 mt-1">No pending approvals</p>
                 </div>
               ) : (
-                <DataTable columns={columns} data={pendingUsers} pageSize={10} />
+                <DataTable columns={columns} data={pendingUsers} pageSize={10} onRowClick={(row) => openEditModal(row)} />
               )}
             </div>
           </div>
@@ -527,6 +586,127 @@ export default function PendingUsers() {
           </div>
         </div>
       </div>
+
+      {/* Edit Profile Modal */}
+      {selectedUser && (
+        <div
+          onClick={closeModal}
+          style={{
+            position: 'fixed', inset: 0, zIndex: 9999,
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            background: 'rgba(0,0,0,0.4)', backdropFilter: 'blur(4px)',
+          }}
+        >
+          <div
+            onClick={(e) => e.stopPropagation()}
+            style={{
+              background: '#fff', borderRadius: '16px', width: '90%', maxWidth: '640px',
+              maxHeight: '90vh', overflowY: 'auto', boxShadow: '0 25px 50px -12px rgba(0,0,0,0.25)',
+              padding: '28px',
+            }}
+          >
+            <div className="flex items-center justify-between mb-5">
+              <div className="flex items-center gap-2.5">
+                <div className="w-9 h-9 rounded-xl flex items-center justify-center" style={{ background: '#eef2ff' }}>
+                  <UserPlus size={18} color="#6366f1" />
+                </div>
+                <div>
+                  <h3 className="text-lg font-bold text-slate-900">Edit Staff Profile</h3>
+                  <p className="text-xs text-slate-400">{selectedUser.name} &middot; <span style={{ textTransform: 'capitalize' }}>{selectedUser.role}</span></p>
+                </div>
+              </div>
+              <button onClick={closeModal} className="flex items-center justify-center w-8 h-8 rounded-lg border-0 bg-transparent cursor-pointer hover:bg-slate-100 transition-colors" style={{ color: '#94a3b8' }}>
+                <X size={18} />
+              </button>
+            </div>
+
+            {error && (
+              <div className="flex items-center gap-2 p-3 rounded-xl mb-4" style={{ background: '#fef2f2', border: '1px solid #fecaca', color: '#dc2626', fontSize: '0.82rem' }}>
+                <XCircle size={16} /> {error}
+              </div>
+            )}
+
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
+              <div>
+                <label style={labelStyle}>Full Name</label>
+                <input style={inputStyle} value={editForm.name} onChange={(e) => handleFieldChange('name', e.target.value)} />
+              </div>
+              <div>
+                <label style={labelStyle}>Email</label>
+                <input style={inputStyle} value={editForm.email} onChange={(e) => handleFieldChange('email', e.target.value)} />
+              </div>
+              <div>
+                <label style={labelStyle}>Phone</label>
+                <input style={inputStyle} value={editForm.phone} onChange={(e) => handleFieldChange('phone', e.target.value)} />
+              </div>
+              <div>
+                <label style={labelStyle}>Father's Name</label>
+                <input style={inputStyle} value={editForm.fatherName} onChange={(e) => handleFieldChange('fatherName', e.target.value)} />
+              </div>
+              <div>
+                <label style={labelStyle}>CNIC</label>
+                <input style={inputStyle} value={editForm.cnic} onChange={(e) => handleFieldChange('cnic', e.target.value)} placeholder="xxxxx-xxxxxxx-x" />
+              </div>
+              <div>
+                <label style={labelStyle}>Monthly Salary (Rs.)</label>
+                <input style={inputStyle} type="number" value={editForm.monthlySalary} onChange={(e) => handleFieldChange('monthlySalary', e.target.value)} />
+              </div>
+              <div>
+                <label style={labelStyle}>Department</label>
+                <input style={inputStyle} value={editForm.department} onChange={(e) => handleFieldChange('department', e.target.value)} />
+              </div>
+              <div>
+                <label style={labelStyle}>Designation</label>
+                <input style={inputStyle} value={editForm.designation} onChange={(e) => handleFieldChange('designation', e.target.value)} />
+              </div>
+              <div>
+                <label style={labelStyle}>Date of Birth</label>
+                <input style={inputStyle} type="date" value={editForm.dateOfBirth} onChange={(e) => handleFieldChange('dateOfBirth', e.target.value)} />
+              </div>
+              <div>
+                <label style={labelStyle}>Date of Joining</label>
+                <input style={inputStyle} type="date" value={editForm.dateOfJoining} onChange={(e) => handleFieldChange('dateOfJoining', e.target.value)} />
+              </div>
+              <div>
+                <label style={labelStyle}>Emergency Contact Name</label>
+                <input style={inputStyle} value={editForm.emergContactName} onChange={(e) => handleFieldChange('emergContactName', e.target.value)} />
+              </div>
+              <div>
+                <label style={labelStyle}>Emergency Contact Number</label>
+                <input style={inputStyle} value={editForm.emergContactNumber} onChange={(e) => handleFieldChange('emergContactNumber', e.target.value)} />
+              </div>
+              <div style={{ gridColumn: '1 / -1' }}>
+                <label style={labelStyle}>Assign Manager</label>
+                <select
+                  value={editForm.managerId}
+                  onChange={(e) => handleFieldChange('managerId', e.target.value)}
+                  style={inputStyle}
+                >
+                  <option value="">Select manager...</option>
+                  {managers.map((m) => (
+                    <option key={m.id} value={m.id}>{m.name}</option>
+                  ))}
+                </select>
+              </div>
+            </div>
+
+            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px', marginTop: '24px', paddingTop: '16px', borderTop: '1px solid #f1f5f9' }}>
+              <button onClick={closeModal} className="flex items-center gap-1.5 px-4 py-2 rounded-lg text-sm font-semibold cursor-pointer border" style={{ background: '#fff', borderColor: '#e2e8f0', color: '#64748b' }}>
+                Cancel
+              </button>
+              <button
+                onClick={handleApproveWithEdit}
+                disabled={savingEdit || !editForm.managerId}
+                className="flex items-center gap-1.5 px-4 py-2 rounded-lg text-sm font-semibold cursor-pointer border-none text-white disabled:opacity-50 transition-all"
+                style={{ background: 'linear-gradient(135deg, #22c55e, #16a34a)' }}
+              >
+                {savingEdit ? <Loader2 size={16} className="animate-spin" /> : <CheckCircle size={16} />}
+                {savingEdit ? 'Approving...' : 'Approve & Save'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </>
   )
 }
