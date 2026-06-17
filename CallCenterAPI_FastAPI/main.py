@@ -259,18 +259,20 @@ def on_startup():
 
     try:
         Base.metadata.create_all(bind=engine)
-        from sqlalchemy import text, func, inspect as sa_inspect
+        from sqlalchemy import text, inspect as sa_inspect
         inspector = sa_inspect(engine)
         for table_name, table in Base.metadata.tables.items():
             existing_columns = {c["name"] for c in inspector.get_columns(table_name)}
             for col in table.columns:
                 if col.name not in existing_columns:
-                    col_type = col.type.compile(engine.dialect)
-                    nullable = "NULL" if col.nullable else "NOT NULL"
-                    with engine.connect() as conn:
-                        conn.execute(text(f"ALTER TABLE {table_name} ADD COLUMN {col.name} {col_type} {nullable}"))
-                        conn.commit()
-                    print(f"Added missing column '{col.name}' to '{table_name}'")
+                    try:
+                        col_type = col.type.compile(engine.dialect)
+                        with engine.connect() as conn:
+                            conn.execute(text(f"ALTER TABLE {table_name} ADD COLUMN {col.name} {col_type}"))
+                            conn.commit()
+                        print(f"Added column '{col.name}' to '{table_name}'")
+                    except Exception as e2:
+                        print(f"Note: could not add column '{col.name}' to '{table_name}': {e2}")
     except Exception as e:
         print(f"Warning: Failed to ensure database schema: {e}")
 
