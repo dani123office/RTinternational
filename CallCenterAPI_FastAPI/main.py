@@ -257,10 +257,6 @@ def on_startup():
         print("Ensure DATABASE_URL or POSTGRES_URL environment variable is properly set.")
         return
 
-    if os.environ.get("VERCEL"):
-        print("Running on Vercel — skipping heavy startup DB operations (tables already exist).")
-        return
-
     try:
         Base.metadata.create_all(bind=engine)
         from sqlalchemy import text, func, inspect as sa_inspect
@@ -276,7 +272,7 @@ def on_startup():
                         conn.commit()
                     print(f"Added missing column '{col.name}' to '{table_name}'")
     except Exception as e:
-        print(f"Warning: Failed to create database tables: {e}")
+        print(f"Warning: Failed to ensure database schema: {e}")
 
     db = SessionLocal()
     try:
