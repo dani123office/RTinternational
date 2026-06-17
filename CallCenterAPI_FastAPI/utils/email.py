@@ -15,9 +15,10 @@ def generate_otp(length: int = 6) -> str:
     return str(random.randint(10 ** (length - 1), 10**length - 1))
 
 
-def send_otp_email(to_email: str, otp: str) -> None:
+def send_otp_email(to_email: str, otp: str) -> bool:
     if not SENDER_EMAIL or not SENDER_PASSWORD:
-        return
+        print("[EMAIL] SMTP credentials not configured — OTP", otp, "for", to_email)
+        return False
 
     msg = MIMEMultipart()
     msg["From"] = SENDER_EMAIL
@@ -39,7 +40,14 @@ def send_otp_email(to_email: str, otp: str) -> None:
     msg.attach(MIMEText(body, "html"))
 
     ctx = ssl.create_default_context()
-    with smtplib.SMTP(SMTP_SERVER, SMTP_PORT) as server:
-        server.starttls(context=ctx)
-        server.login(SENDER_EMAIL, SENDER_PASSWORD)
-        server.sendmail(SENDER_EMAIL, to_email, msg.as_string())
+    try:
+        with smtplib.SMTP(SMTP_SERVER, SMTP_PORT) as server:
+            server.starttls(context=ctx)
+            server.login(SENDER_EMAIL, SENDER_PASSWORD)
+            server.sendmail(SENDER_EMAIL, to_email, msg.as_string())
+        print("[EMAIL] OTP sent to", to_email)
+        return True
+    except Exception as e:
+        print("[EMAIL] Failed to send OTP to", to_email, ":", e)
+        print("[EMAIL] Fallback — OTP for", to_email, "is:", otp)
+        return False

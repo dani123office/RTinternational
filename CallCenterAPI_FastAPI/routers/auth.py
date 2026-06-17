@@ -208,7 +208,7 @@ def send_otp(request: SendOTPRequest, db: Session = Depends(get_db)):
     email = request.email.strip().lower()
     user = db.query(User).filter(func.lower(User.email) == email).first()
     if not user:
-        return {"message": "If this email exists, an OTP has been sent."}
+        return {"message": "If this email exists, an OTP has been sent.", "sent": False}
 
     ev = db.query(EmailVerification).filter(EmailVerification.user_id == user.id).first()
     if not ev:
@@ -221,12 +221,9 @@ def send_otp(request: SendOTPRequest, db: Session = Depends(get_db)):
     ev.is_verified = False
     db.commit()
 
-    try:
-        send_otp_email(email, otp)
-    except Exception:
-        pass
+    sent = send_otp_email(email, otp)
 
-    return {"message": "If this email exists, an OTP has been sent."}
+    return {"message": "If this email exists, an OTP has been sent.", "sent": sent}
 
 
 @router.post("/verify-otp", response_model=VerifyOTPResponse)

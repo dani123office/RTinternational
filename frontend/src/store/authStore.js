@@ -74,10 +74,10 @@ export const useAuthStore = create((set, get) => ({
 
   sendOtp: async (email) => {
     try {
-      await api.post(endpoints.auth.sendOtp, { email })
-      return true
+      const res = await api.post(endpoints.auth.sendOtp, { email })
+      return { ok: true, sent: res.data?.sent === true }
     } catch {
-      return false
+      return { ok: false, sent: false }
     }
   },
 

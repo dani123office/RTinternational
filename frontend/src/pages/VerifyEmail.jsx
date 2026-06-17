@@ -13,6 +13,7 @@ export default function VerifyEmail() {
   const [loading, setLoading] = useState(false)
   const [sending, setSending] = useState(false)
   const [sent, setSent] = useState(false)
+  const [emailSent, setEmailSent] = useState(true)
   const [error, setError] = useState('')
   const [verified, setVerified] = useState(false)
   const [cooldown, setCooldown] = useState(0)
@@ -32,14 +33,16 @@ export default function VerifyEmail() {
   const handleSendOtp = async () => {
     setSending(true)
     setError('')
-    const ok = await sendOtp(email)
-    if (ok) {
-      setSent(true)
-      setCooldown(60)
-      inputsRef.current[0]?.focus()
-    } else {
-      setError('Failed to send OTP. Please try again.')
+    const res = await sendOtp(email)
+    if (!res.ok) {
+      setError('Failed to request OTP. Please try again.')
+      setSending(false)
+      return
     }
+    setSent(true)
+    setEmailSent(res.sent)
+    setCooldown(60)
+    inputsRef.current[0]?.focus()
     setSending(false)
   }
 
@@ -98,6 +101,19 @@ export default function VerifyEmail() {
         </div>
 
         <div style={{ display: 'flex', flexDirection: 'column', gap: 24 }}>
+          {sent && !emailSent && (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 6, padding: '12px 14px', borderRadius: 12, background: '#fffbeb', border: '1px solid #fde68a', color: '#92400e', fontSize: 13 }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontWeight: 600 }}>
+                <AlertCircle size={16} color="#d97706" />
+                Email delivery issue
+              </div>
+              <p style={{ margin: 0, lineHeight: 1.4 }}>
+                The OTP email could not be sent. The SMTP credentials may need to be updated.{' '}
+                <strong>Check spam folder</strong> or ask the admin to verify the email configuration.
+              </p>
+            </div>
+          )}
+
           {!sent ? (
             <button
               onClick={handleSendOtp}
