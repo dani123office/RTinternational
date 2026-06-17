@@ -259,7 +259,7 @@ def on_startup():
 
     try:
         Base.metadata.create_all(bind=engine)
-        from sqlalchemy import text, inspect as sa_inspect
+        from sqlalchemy import text, func, inspect as sa_inspect
         inspector = sa_inspect(engine)
         for table_name, table in Base.metadata.tables.items():
             existing_columns = {c["name"] for c in inspector.get_columns(table_name)}
@@ -276,26 +276,32 @@ def on_startup():
     except Exception as e:
         print(f"Warning: Failed to ensure database schema: {e}")
 
-    db = SessionLocal()
     try:
-        def _hash(pw: str = "password"):
-            return bcrypt.hashpw(pw.encode("utf-8"), bcrypt.gensalt()).decode("utf-8")
+        db = SessionLocal()
+        try:
+            def _hash(pw: str = "password"):
+                return bcrypt.hashpw(pw.encode("utf-8"), bcrypt.gensalt()).decode("utf-8")
 
-        def _ensure_user(email, defaults):
-            existing = db.query(User).filter(func.lower(User.email) == email.lower()).first()
-            if not existing:
-                u = User(email=email, **defaults)
-                db.add(u)
-                db.flush()
-                return u
-            return existing
+            def _ensure_user(email, defaults):
+                existing = db.query(User).filter(func.lower(User.email) == email.lower()).first()
+                if not existing:
+                    u = User(email=email, **defaults)
+                    db.add(u)
+                    db.flush()
+                    return u
+                return existing
 
-        _ensure_user("admin@test.com", dict(name="Admin User", password_hash=_hash(), role="admin", is_active=1, is_email_verified=1))
-        _ensure_user("sunny@rt.com", dict(name="Sunny", password_hash=_hash("123456"), role="manager", is_active=1, is_email_verified=1))
+            _ensure_user("admin@test.com", dict(name="Admin User", password_hash=_hash(), role="admin", is_active=1, is_email_verified=1))
+            _ensure_user("sunny@rt.com", dict(name="Sunny", password_hash=_hash("123456"), role="manager", is_active=1, is_email_verified=1))
 
-        db.commit()
-    finally:
-        db.close()
+            db.commit()
+        except Exception as e:
+            print(f"Note: could not seed default users: {e}")
+            db.rollback()
+        finally:
+            db.close()
+    except Exception as e:
+        print(f"Note: could not create DB session for seeding: {e}")
 
 
 def _port_available(port: int) -> bool:
