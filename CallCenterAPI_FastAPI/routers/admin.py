@@ -659,8 +659,8 @@ def admin_callbacks(
     from_date: date | None = Query(None, description="Filter by start date (YYYY-MM-DD)"),
     to_date: date | None = Query(None, description="Filter by end date (YYYY-MM-DD)"),
     employee_id: int | None = Query(None, description="Filter by employee"),
-    skip: int = Query(0, ge=0),
-    limit: int = Query(100, ge=1, le=500),
+    page: int = Query(1, ge=1, description="Page number"),
+    per_page: int = Query(20, ge=1, le=500, description="Items per page"),
     admin: User = Depends(require_admin),
     db: Session = Depends(get_db),
 ):
@@ -676,8 +676,10 @@ def admin_callbacks(
     if employee_id:
         q = q.filter(CallBack.employee_id == employee_id)
     total = q.count()
-    items = [_build_callback_out(c, c.customer) for c in q.order_by(CallBack.created_at.desc()).offset(skip).limit(limit).all()]
-    return {"items": items, "total": total, "skip": skip, "limit": limit}
+    total_pages = max(1, (total + per_page - 1) // per_page)
+    skip = (page - 1) * per_page
+    items = [_build_callback_out(c, c.customer) for c in q.order_by(CallBack.created_at.desc()).offset(skip).limit(per_page).all()]
+    return {"items": items, "total": total, "page": page, "totalPages": total_pages}
 
 
 @router.get("/callbacks/export")
@@ -805,8 +807,8 @@ def admin_transfers(
     from_date: date | None = Query(None, description="Filter by start date (YYYY-MM-DD)"),
     to_date: date | None = Query(None, description="Filter by end date (YYYY-MM-DD)"),
     employee_id: int | None = Query(None, description="Filter by employee"),
-    skip: int = Query(0, ge=0),
-    limit: int = Query(100, ge=1, le=500),
+    page: int = Query(1, ge=1, description="Page number"),
+    per_page: int = Query(20, ge=1, le=500, description="Items per page"),
     admin: User = Depends(require_admin),
     db: Session = Depends(get_db),
 ):
@@ -822,8 +824,10 @@ def admin_transfers(
     if employee_id:
         q = q.filter(Transfer.employee_id == employee_id)
     total = q.count()
-    items = [_transfer_out(t, t.customer) for t in q.order_by(Transfer.created_at.desc()).offset(skip).limit(limit).all()]
-    return {"items": items, "total": total, "skip": skip, "limit": limit}
+    total_pages = max(1, (total + per_page - 1) // per_page)
+    skip = (page - 1) * per_page
+    items = [_transfer_out(t, t.customer) for t in q.order_by(Transfer.created_at.desc()).offset(skip).limit(per_page).all()]
+    return {"items": items, "total": total, "page": page, "totalPages": total_pages}
 
 
 @router.get("/transfers/export")
@@ -951,8 +955,8 @@ def admin_sales(
     from_date: date | None = Query(None, description="Filter by start date (YYYY-MM-DD)"),
     to_date: date | None = Query(None, description="Filter by end date (YYYY-MM-DD)"),
     employee_id: int | None = Query(None, description="Filter by employee"),
-    skip: int = Query(0, ge=0),
-    limit: int = Query(100, ge=1, le=500),
+    page: int = Query(1, ge=1, description="Page number"),
+    per_page: int = Query(20, ge=1, le=500, description="Items per page"),
     admin: User = Depends(require_admin),
     db: Session = Depends(get_db),
 ):
@@ -968,8 +972,10 @@ def admin_sales(
     if employee_id:
         q = q.filter(Sale.employee_id == employee_id)
     total = q.count()
-    items = [_sale_out(s, s.customer) for s in q.order_by(Sale.created_at.desc()).offset(skip).limit(limit).all()]
-    return {"items": items, "total": total, "skip": skip, "limit": limit}
+    total_pages = max(1, (total + per_page - 1) // per_page)
+    skip = (page - 1) * per_page
+    items = [_sale_out(s, s.customer) for s in q.order_by(Sale.created_at.desc()).offset(skip).limit(per_page).all()]
+    return {"items": items, "total": total, "page": page, "totalPages": total_pages}
 
 
 @router.get("/sales/export")
