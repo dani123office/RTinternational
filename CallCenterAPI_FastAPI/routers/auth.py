@@ -186,6 +186,12 @@ def register(request: RegisterRequest, fastapi_req: Request, db: Session = Depen
         password_hash=hashed,
         role=request.role or "agent",
         is_active=1 if request.role == "manager" else 0,
+        father_name=request.fatherName,
+        cnic=request.cnic,
+        phone=request.phone,
+        date_of_birth=request.dateOfBirth,
+        emerg_contact_name=request.emergContactName,
+        emerg_contact_number=request.emergContactNumber,
     )
     db.add(user)
     db.flush()

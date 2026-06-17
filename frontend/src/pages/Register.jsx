@@ -3,12 +3,21 @@ import { Link, useNavigate } from 'react-router-dom'
 import { useAuthStore } from '@/store/authStore'
 import { Loader2, CheckCircle } from 'lucide-react'
 
+const formatCNIC = (value) => {
+  if (!value) return value;
+  const digits = value.replace(/\D/g, '');
+  if (digits.length <= 5) return digits;
+  if (digits.length <= 12) return `${digits.slice(0, 5)}-${digits.slice(5)}`;
+  return `${digits.slice(0, 5)}-${digits.slice(5, 12)}-${digits.slice(12, 13)}`;
+};
+
 export default function Register() {
   const navigate = useNavigate()
-  const [name, setName] = useState('')
-  const [email, setEmail] = useState('')
-  const [password, setPassword] = useState('')
-  const [confirmPassword, setConfirmPassword] = useState('')
+  const [form, setForm] = useState({
+    name: '', email: '', password: '', confirmPassword: '',
+    fatherName: '', cnic: '', phone: '', dateOfBirth: '',
+    emergContactName: '', emergContactNumber: '',
+  })
   const [showPassword, setShowPassword] = useState(false)
   const [showConfirm, setShowConfirm] = useState(false)
   const [error, setError] = useState('')
@@ -16,17 +25,27 @@ export default function Register() {
   const [registered, setRegistered] = useState(false)
   const { register, setEmailForVerification } = useAuthStore()
 
+  const set = (key) => (e) => {
+    let val = e.target.value
+    if (key === 'cnic') val = formatCNIC(val)
+    setForm({ ...form, [key]: val })
+  }
+
   const handleSubmit = async (e) => {
     e.preventDefault()
     setError('')
-    if (!name || !email || !password || !confirmPassword) { setError('All fields are required.'); return }
-    if (password !== confirmPassword) { setError('Passwords do not match.'); return }
-    if (password.length < 6) { setError('Password must be at least 6 characters.'); return }
+    if (!form.name || !form.email || !form.password || !form.confirmPassword) { setError('All fields are required.'); return }
+    if (form.password !== form.confirmPassword) { setError('Passwords do not match.'); return }
+    if (form.password.length < 6) { setError('Password must be at least 6 characters.'); return }
     setLoading(true)
-    const success = await register(name, email, password)
+    const success = await register(
+      form.name, form.email, form.password, 'agent', true,
+      form.fatherName, form.cnic, form.phone, form.dateOfBirth,
+      form.emergContactName, form.emergContactNumber,
+    )
     if (success) {
       setRegistered(true)
-      setEmailForVerification(email)
+      setEmailForVerification(form.email)
       setTimeout(() => navigate('/verify-email'), 1500)
     } else {
       setError(useAuthStore.getState().error || 'Registration failed.')
@@ -34,17 +53,23 @@ export default function Register() {
     setLoading(false)
   }
 
-  const strength = password.length > 0
-    ? password.length < 6 ? { level: 1, color: '#ef4444', text: 'Too short' }
-      : password.length < 9 ? { level: 2, color: '#f97316', text: 'Could be stronger' }
+  const strength = form.password.length > 0
+    ? form.password.length < 6 ? { level: 1, color: '#ef4444', text: 'Too short' }
+      : form.password.length < 9 ? { level: 2, color: '#f97316', text: 'Could be stronger' }
       : { level: 4, color: '#22c55e', text: 'Strong password \u2713' }
     : null
 
   const fields = [
-    { label: 'Full Name', value: name, setter: setName, type: 'text', placeholder: 'John Smith', icon: <><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" /><circle cx="12" cy="7" r="4" /></> },
-    { label: 'Email address', value: email, setter: setEmail, type: 'email', placeholder: 'you@rtinternational.co.uk', icon: <><rect x="2" y="4" width="20" height="16" rx="2" /><path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7" /></> },
-    { label: 'Password', value: password, setter: setPassword, type: 'password', placeholder: 'At least 6 characters', icon: <><rect x="3" y="11" width="18" height="11" rx="2" /><path d="M7 11V7a5 5 0 0 1 10 0v4" /></>, showState: showPassword, toggle: () => setShowPassword(!showPassword) },
-    { label: 'Confirm Password', value: confirmPassword, setter: setConfirmPassword, type: 'password', placeholder: 'Re-enter your password', icon: <><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" /></>, showState: showConfirm, toggle: () => setShowConfirm(!showConfirm) },
+    { key: 'name', label: 'Full Name', type: 'text', placeholder: 'John Smith', icon: <><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" /><circle cx="12" cy="7" r="4" /></> },
+    { key: 'fatherName', label: "Father's Name", type: 'text', placeholder: "Enter father's name", icon: <><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" /><circle cx="12" cy="7" r="4" /></> },
+    { key: 'email', label: 'Email address', type: 'email', placeholder: 'you@rtinternational.co.uk', icon: <><rect x="2" y="4" width="20" height="16" rx="2" /><path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7" /></> },
+    { key: 'phone', label: 'Telephone', type: 'tel', placeholder: 'Enter telephone number', icon: <><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07A19.5 19.5 0 0 1 1.61 3.4 2 2 0 0 1 3.6 1.21h3a2 2 0 0 1 2 1.72c.127.96.361 1.903.7 2.81a2 2 0 0 1-.45 2.11L7.91 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0 1 22 16.92z" /></> },
+    { key: 'dateOfBirth', label: 'Date of Birth', type: 'date', placeholder: '', icon: <><rect x="3" y="4" width="18" height="18" rx="2" /><line x1="16" y1="2" x2="16" y2="6" /><line x1="8" y1="2" x2="8" y2="6" /><line x1="3" y1="10" x2="21" y2="10" /></> },
+    { key: 'password', label: 'Password', type: 'password', placeholder: 'At least 6 characters', showState: showPassword, toggle: () => setShowPassword(!showPassword), icon: <><rect x="3" y="11" width="18" height="11" rx="2" /><path d="M7 11V7a5 5 0 0 1 10 0v4" /></> },
+    { key: 'confirmPassword', label: 'Confirm Password', type: 'password', placeholder: 'Re-enter your password', showState: showConfirm, toggle: () => setShowConfirm(!showConfirm), icon: <><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" /></> },
+    { key: 'cnic', label: 'CNIC', type: 'text', placeholder: 'XXXXX-XXXXXXX-X', icon: <><rect x="2" y="3" width="20" height="14" rx="2" /><line x1="8" y1="21" x2="16" y2="21" /><line x1="12" y1="17" x2="12" y2="21" /></> },
+    { key: 'emergContactName', label: 'Emerg. Contact Name', type: 'text', placeholder: 'Enter emergency contact', icon: <><path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" /><circle cx="8.5" cy="7" r="4" /><polyline points="17 11 19 13 23 9" /></> },
+    { key: 'emergContactNumber', label: 'Emerg. Contact Number', type: 'tel', placeholder: 'Enter emergency number', icon: <><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07A19.5 19.5 0 0 1 1.61 3.4 2 2 0 0 1 3.6 1.21h3a2 2 0 0 1 2 1.72c.127.96.361 1.903.7 2.81a2 2 0 0 1-.45 2.11L7.91 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0 1 22 16.92z" /></> },
   ]
 
   const btnGradient = 'linear-gradient(135deg, #6366f1 0%, #4f46e5 100%)'
@@ -231,26 +256,29 @@ export default function Register() {
             <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
 
               {fields.map((field, idx) => (
-                <div key={field.label} style={{ display: 'flex', flexDirection: 'column', gap: '7px' }}>
+                <div key={field.key} style={{ display: 'flex', flexDirection: 'column', gap: '7px' }}>
                   <label style={{
                     fontSize: '12px', fontWeight: 700, color: '#475569',
                     letterSpacing: '0.3px', textTransform: 'uppercase',
                   }}>{field.label}</label>
                   <div style={{ position: 'relative' }}>
-                    <span style={{
-                      position: 'absolute', left: '14px', top: '50%', transform: 'translateY(-50%)',
-                      color: '#94a3b8', pointerEvents: 'none', display: 'flex',
-                    }}>
-                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">{field.icon}</svg>
-                    </span>
+                    {field.type !== 'date' && (
+                      <span style={{
+                        position: 'absolute', left: '14px', top: '50%', transform: 'translateY(-50%)',
+                        color: '#94a3b8', pointerEvents: 'none', display: 'flex',
+                      }}>
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">{field.icon}</svg>
+                      </span>
+                    )}
                     <input
                       type={field.showState ? 'text' : field.type}
-                      value={field.value}
-                      onChange={(e) => field.setter(e.target.value)}
-                      required
+                      value={form[field.key]}
+                      onChange={set(field.key)}
                       placeholder={field.placeholder}
+                      maxLength={field.key === 'cnic' ? 15 : undefined}
                       style={{
-                        width: '100%', padding: '12px 14px 12px 42px',
+                        width: '100%',
+                        padding: field.type !== 'date' ? '12px 14px 12px 42px' : '12px 14px',
                         borderRadius: '12px', border: '1px solid #e2e8f0',
                         background: '#fff', color: '#0f172a',
                         fontSize: '14px', fontFamily: 'inherit', outline: 'none',
@@ -289,7 +317,7 @@ export default function Register() {
                       </button>
                     )}
                   </div>
-                  {idx === 2 && strength && (
+                  {field.key === 'password' && strength && (
                     <div style={{ marginTop: '4px' }}>
                       <div style={{ display: 'flex', gap: '4px', marginBottom: '4px' }}>
                         {[1, 2, 3, 4].map((i) => (

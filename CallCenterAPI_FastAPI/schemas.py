@@ -249,6 +249,12 @@ class RegisterRequest(BaseModel):
         "employee",
         description="User role"
     )
+    fatherName: Optional[str] = None
+    cnic: Optional[str] = None
+    phone: Optional[str] = None
+    dateOfBirth: Optional[date] = None
+    emergContactName: Optional[str] = None
+    emergContactNumber: Optional[str] = None
 
 
 class ForgotPasswordRequest(BaseModel):
