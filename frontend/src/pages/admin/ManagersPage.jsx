@@ -31,7 +31,6 @@ export default function ManagersPage() {
   }
 
   const handleDelete = async (manager) => {
-    if (!confirm(`Deactivate ${manager.name}? This will fail if they have agents assigned.`)) return
     try {
       await deleteUser(manager.id)
       await loadManagers()

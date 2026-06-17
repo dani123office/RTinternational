@@ -417,8 +417,10 @@ def delete_user(user_id: int, request: Request, admin: User = Depends(require_ad
             raise HTTPException(status_code=404, detail="User not found")
         if user.role == "admin":
             raise HTTPException(status_code=400, detail="Cannot delete admin account")
-        # Reassign agents to no manager
-        db.query(User).filter(User.manager_id == user.id).update({"manager_id": None})
+        if user.role == "manager":
+            agent_count = db.query(User).filter(User.manager_id == user.id).count()
+            if agent_count > 0:
+                raise HTTPException(status_code=400, detail="Unable to delete manager. First delete all agents associated with this manager")
         name = user.name
         # Delete activity logs
         db.query(ActivityLog).filter(ActivityLog.user_id == user.id).delete()
