@@ -656,6 +656,9 @@ def business_feed(admin: User = Depends(require_admin), db: Session = Depends(ge
 @router.get("/callbacks")
 def admin_callbacks(
     status: str | None = Query(None),
+    from_date: date | None = Query(None, description="Filter by start date (YYYY-MM-DD)"),
+    to_date: date | None = Query(None, description="Filter by end date (YYYY-MM-DD)"),
+    employee_id: int | None = Query(None, description="Filter by employee"),
     skip: int = Query(0, ge=0),
     limit: int = Query(100, ge=1, le=500),
     admin: User = Depends(require_admin),
@@ -664,6 +667,14 @@ def admin_callbacks(
     q = db.query(CallBack)
     if status:
         q = q.filter(CallBack.status == status)
+    if from_date:
+        from_dt = datetime.combine(from_date, datetime.min.time())
+        q = q.filter(CallBack.created_at >= from_dt)
+    if to_date:
+        to_dt = datetime.combine(to_date, datetime.max.time())
+        q = q.filter(CallBack.created_at <= to_dt)
+    if employee_id:
+        q = q.filter(CallBack.employee_id == employee_id)
     total = q.count()
     items = [_build_callback_out(c, c.customer) for c in q.order_by(CallBack.created_at.desc()).offset(skip).limit(limit).all()]
     return {"items": items, "total": total, "skip": skip, "limit": limit}
@@ -791,6 +802,9 @@ def admin_callbacks_export(
 @router.get("/transfers")
 def admin_transfers(
     status: str | None = Query(None),
+    from_date: date | None = Query(None, description="Filter by start date (YYYY-MM-DD)"),
+    to_date: date | None = Query(None, description="Filter by end date (YYYY-MM-DD)"),
+    employee_id: int | None = Query(None, description="Filter by employee"),
     skip: int = Query(0, ge=0),
     limit: int = Query(100, ge=1, le=500),
     admin: User = Depends(require_admin),
@@ -799,6 +813,14 @@ def admin_transfers(
     q = db.query(Transfer)
     if status:
         q = q.filter(Transfer.status == status)
+    if from_date:
+        from_dt = datetime.combine(from_date, datetime.min.time())
+        q = q.filter(Transfer.created_at >= from_dt)
+    if to_date:
+        to_dt = datetime.combine(to_date, datetime.max.time())
+        q = q.filter(Transfer.created_at <= to_dt)
+    if employee_id:
+        q = q.filter(Transfer.employee_id == employee_id)
     total = q.count()
     items = [_transfer_out(t, t.customer) for t in q.order_by(Transfer.created_at.desc()).offset(skip).limit(limit).all()]
     return {"items": items, "total": total, "skip": skip, "limit": limit}
@@ -926,6 +948,9 @@ def admin_transfers_export(
 @router.get("/sales")
 def admin_sales(
     status: str | None = Query(None),
+    from_date: date | None = Query(None, description="Filter by start date (YYYY-MM-DD)"),
+    to_date: date | None = Query(None, description="Filter by end date (YYYY-MM-DD)"),
+    employee_id: int | None = Query(None, description="Filter by employee"),
     skip: int = Query(0, ge=0),
     limit: int = Query(100, ge=1, le=500),
     admin: User = Depends(require_admin),
@@ -934,6 +959,14 @@ def admin_sales(
     q = db.query(Sale)
     if status:
         q = q.filter(Sale.cot_status == status)
+    if from_date:
+        from_dt = datetime.combine(from_date, datetime.min.time())
+        q = q.filter(Sale.created_at >= from_dt)
+    if to_date:
+        to_dt = datetime.combine(to_date, datetime.max.time())
+        q = q.filter(Sale.created_at <= to_dt)
+    if employee_id:
+        q = q.filter(Sale.employee_id == employee_id)
     total = q.count()
     items = [_sale_out(s, s.customer) for s in q.order_by(Sale.created_at.desc()).offset(skip).limit(limit).all()]
     return {"items": items, "total": total, "skip": skip, "limit": limit}

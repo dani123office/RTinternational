@@ -15,14 +15,34 @@ export default function AdminTransfers() {
   const [employeeId, setEmployeeId] = useState('')
   const [exporting, setExporting] = useState(false)
 
-  useEffect(() => {
-    api.get(endpoints.admin.transfers)
+  const loadTransfers = (params = {}) => {
+    setLoading(true)
+    api.get(endpoints.admin.transfers, { params })
       .then(res => { setTransfers(extractData(res)); setLoading(false) })
       .catch(() => setLoading(false))
+  }
+
+  useEffect(() => {
+    loadTransfers()
     api.get(endpoints.admin.agents)
       .then(res => { setAgents(Array.isArray(res.data) ? res.data : []) })
       .catch(() => {})
   }, [])
+
+  const handleApply = () => {
+    const params = {}
+    if (fromDate) params.from_date = fromDate
+    if (toDate) params.to_date = toDate
+    if (employeeId) params.employee_id = employeeId
+    loadTransfers(params)
+  }
+
+  const handleClear = () => {
+    setFromDate('')
+    setToDate('')
+    setEmployeeId('')
+    loadTransfers()
+  }
 
   const handleExport = async () => {
     if (!fromDate || !toDate) {
@@ -138,6 +158,22 @@ export default function AdminTransfers() {
                   ))}
                 </select>
               </div>
+            </div>
+            <div className="flex gap-2 mt-4">
+              <button
+                onClick={handleApply}
+                className="px-4 py-2 rounded-xl text-sm font-semibold transition-all cursor-pointer border-none text-white"
+                style={{ background: '#4F46E5' }}
+              >
+                Apply
+              </button>
+              <button
+                onClick={handleClear}
+                className="px-4 py-2 rounded-xl text-sm font-semibold transition-all cursor-pointer"
+                style={{ background: '#f1f5f9', color: '#475569', border: '1.5px solid #e2e8f0' }}
+              >
+                Clear
+              </button>
             </div>
           </div>
 
