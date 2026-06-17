@@ -7,7 +7,7 @@ from fastapi import APIRouter, Depends, HTTPException, Header, Request
 from sqlalchemy.orm import Session
 from sqlalchemy import func
 from ..database import get_db
-from ..models import User
+from ..models import User, EmailVerification
 from ..schemas import LoginRequest, LoginResponse, RegisterRequest, ForgotPasswordRequest, ResetPasswordRequest, SendOTPRequest, VerifyOTPRequest, VerifyOTPResponse, UserOut
 from ..utils.logger import log_activity, get_client_ip
 from ..utils.email import send_otp_email, generate_otp
@@ -112,7 +112,9 @@ def login(request: LoginRequest, fastapi_req: Request, db: Session = Depends(get
         raise HTTPException(status_code=401, detail="Invalid credentials")
     if not user.is_active:
         raise HTTPException(status_code=401, detail="Account is inactive")
-    if user.is_email_verified is False:
+
+    ev = db.query(EmailVerification).filter(EmailVerification.user_id == user.id).first()
+    if ev is not None and ev.is_verified is False:
         raise HTTPException(status_code=401, detail="Email not verified. Please verify your email first.")
     if user.role not in ("admin", "manager") and user.manager_id is None:
         raise HTTPException(status_code=401, detail="No manager assigned yet. Please wait for admin approval.")
@@ -186,6 +188,9 @@ def register(request: RegisterRequest, fastapi_req: Request, db: Session = Depen
         is_active=1 if request.role == "manager" else 0,
     )
     db.add(user)
+    db.flush()
+    ev = EmailVerification(user_id=user.id, is_verified=0 if request.role == "agent" else 1)
+    db.add(ev)
     db.commit()
     db.refresh(user)
 
@@ -205,9 +210,15 @@ def send_otp(request: SendOTPRequest, db: Session = Depends(get_db)):
     if not user:
         return {"message": "If this email exists, an OTP has been sent."}
 
+    ev = db.query(EmailVerification).filter(EmailVerification.user_id == user.id).first()
+    if not ev:
+        ev = EmailVerification(user_id=user.id)
+        db.add(ev)
+
     otp = generate_otp()
-    user.otp_code = otp
-    user.otp_expiry = datetime.utcnow() + timedelta(minutes=5)
+    ev.otp_code = otp
+    ev.otp_expiry = datetime.utcnow() + timedelta(minutes=5)
+    ev.is_verified = False
     db.commit()
 
     try:
@@ -225,18 +236,19 @@ def verify_otp(request: VerifyOTPRequest, db: Session = Depends(get_db)):
     if not user:
         raise HTTPException(status_code=404, detail="User not found")
 
-    if not user.otp_code or not user.otp_expiry:
+    ev = db.query(EmailVerification).filter(EmailVerification.user_id == user.id).first()
+    if not ev or not ev.otp_code or not ev.otp_expiry:
         raise HTTPException(status_code=400, detail="No OTP requested. Please request a new OTP.")
 
-    if user.otp_expiry < datetime.utcnow():
+    if ev.otp_expiry < datetime.utcnow():
         raise HTTPException(status_code=400, detail="OTP has expired. Please request a new OTP.")
 
-    if user.otp_code != request.otp:
+    if ev.otp_code != request.otp:
         raise HTTPException(status_code=400, detail="Invalid OTP. Please try again.")
 
-    user.is_email_verified = True
-    user.otp_code = None
-    user.otp_expiry = None
+    ev.is_verified = True
+    ev.otp_code = None
+    ev.otp_expiry = None
     db.commit()
 
     return VerifyOTPResponse(message="Email verified successfully", verified=True)

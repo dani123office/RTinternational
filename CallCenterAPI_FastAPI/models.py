@@ -25,9 +25,6 @@ class User(Base):
     emerg_contact_name = Column(String(100), nullable=True)
     emerg_contact_number = Column(String(30), nullable=True)
     is_active = Column(Boolean, default=True)
-    is_email_verified = Column(Boolean, default=False)
-    otp_code = Column(String(6), nullable=True)
-    otp_expiry = Column(DateTime, nullable=True)
     last_login_at = Column(DateTime, nullable=True)
     reset_token = Column(String(255), nullable=True, index=True)
     reset_token_expiry = Column(DateTime, nullable=True)
@@ -35,6 +32,20 @@ class User(Base):
     updated_at = Column(DateTime, default=datetime.now, onupdate=datetime.now)
 
     manager = relationship("User", remote_side="User.id", backref="agents", foreign_keys=[manager_id])
+
+
+class EmailVerification(Base):
+    __tablename__ = "email_verifications"
+
+    id = Column(Integer, primary_key=True, index=True)
+    user_id = Column(Integer, ForeignKey("users.id", ondelete="CASCADE"), nullable=False, index=True)
+    otp_code = Column(String(6), nullable=True)
+    otp_expiry = Column(DateTime, nullable=True)
+    is_verified = Column(Boolean, default=False)
+    created_at = Column(DateTime, default=datetime.now)
+    updated_at = Column(DateTime, default=datetime.now, onupdate=datetime.now)
+
+    user = relationship("User", backref="email_verification", uselist=False)
 
 
 class Customer(Base):

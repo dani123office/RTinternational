@@ -282,17 +282,24 @@ def on_startup():
             def _hash(pw: str = "password"):
                 return bcrypt.hashpw(pw.encode("utf-8"), bcrypt.gensalt()).decode("utf-8")
 
-            def _ensure_user(email, defaults):
+            from ..models import EmailVerification
+
+            def _ensure_user(email, defaults, verified=True):
                 existing = db.query(User).filter(func.lower(User.email) == email.lower()).first()
                 if not existing:
                     u = User(email=email, **defaults)
                     db.add(u)
                     db.flush()
+                    ev = db.query(EmailVerification).filter(EmailVerification.user_id == u.id).first()
+                    if not ev:
+                        ev = EmailVerification(user_id=u.id, is_verified=1 if verified else 0)
+                        db.add(ev)
+                        db.flush()
                     return u
                 return existing
 
-            _ensure_user("admin@test.com", dict(name="Admin User", password_hash=_hash(), role="admin", is_active=1, is_email_verified=1))
-            _ensure_user("sunny@rt.com", dict(name="Sunny", password_hash=_hash("123456"), role="manager", is_active=1, is_email_verified=1))
+            _ensure_user("admin@test.com", dict(name="Admin User", password_hash=_hash(), role="admin", is_active=1))
+            _ensure_user("sunny@rt.com", dict(name="Sunny", password_hash=_hash("123456"), role="manager", is_active=1))
 
             db.commit()
         except Exception as e:
