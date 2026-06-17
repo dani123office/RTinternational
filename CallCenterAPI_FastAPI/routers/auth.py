@@ -113,9 +113,10 @@ def login(request: LoginRequest, fastapi_req: Request, db: Session = Depends(get
     if not user.is_active:
         raise HTTPException(status_code=401, detail="Account is inactive")
 
-    ev = db.query(EmailVerification).filter(EmailVerification.user_id == user.id).first()
-    if ev is None or not ev.is_verified:
-        raise HTTPException(status_code=401, detail="Email not verified. Please verify your email first.")
+    if user.role != "admin":
+        ev = db.query(EmailVerification).filter(EmailVerification.user_id == user.id).first()
+        if ev is None or not ev.is_verified:
+            raise HTTPException(status_code=401, detail="Email not verified. Please verify your email first.")
     if user.role not in ("admin", "manager") and user.manager_id is None:
         raise HTTPException(status_code=401, detail="No manager assigned yet. Please wait for admin approval.")
 
