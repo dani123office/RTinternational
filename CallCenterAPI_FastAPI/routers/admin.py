@@ -410,7 +410,9 @@ def delete_user(user_id: int, request: Request, admin: User = Depends(require_ad
             if agents > 0:
                 raise HTTPException(status_code=400, detail=f"Cannot delete manager with {agents} agent(s). Reassign agents first.")
         name = user.name
+        db.query(ActivityLog).filter(ActivityLog.user_id == user.id).delete()
         db.query(CallBack).filter(CallBack.employee_id == user.id).delete()
+        db.query(CallBack).filter(CallBack.created_by_manager_id == user.id).delete()
         db.query(Transfer).filter(Transfer.employee_id == user.id).delete()
         db.query(Sale).filter(Sale.employee_id == user.id).delete()
         db.query(Customer).filter(Customer.created_by == user.id).delete()
