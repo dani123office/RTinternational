@@ -7,7 +7,7 @@ from fastapi.responses import Response
 from sqlalchemy.orm import Session
 from sqlalchemy import func
 from ..database import get_db
-from ..models import User, Customer, CallBack, Transfer, Sale, ActivityLog, Attendance, LeaveRequest, LoanRequest, Notification
+from ..models import User, Customer, CallBack, Transfer, Sale, ActivityLog, Attendance, LeaveRequest, LoanRequest, Notification, EmailVerification
 from .auth import require_admin
 from ..utils.logger import log_activity, get_client_ip
 from ..schemas import (
@@ -432,6 +432,8 @@ def delete_user(user_id: int, request: Request, admin: User = Depends(require_ad
         db.query(LeaveRequest).filter(LeaveRequest.admin_id == user.id).update({"admin_id": None})
         db.query(LoanRequest).filter(LoanRequest.user_id == user.id).delete()
         db.query(LoanRequest).filter(LoanRequest.admin_id == user.id).update({"admin_id": None})
+        # Delete email verification records (must be before user deletion)
+        db.query(EmailVerification).filter(EmailVerification.user_id == user.id).delete()
         u_id = user.id
         db.delete(user)
         db.commit()
