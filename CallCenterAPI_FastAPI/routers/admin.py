@@ -1,5 +1,6 @@
 import bcrypt
 import io
+import traceback
 from datetime import datetime, date
 from fastapi import APIRouter, Depends, HTTPException, Query, Request
 from fastapi.responses import Response
@@ -443,6 +444,8 @@ def delete_user(user_id: int, request: Request, admin: User = Depends(require_ad
         raise
     except Exception as e:
         db.rollback()
+        tb = traceback.format_exc()
+        print(f"[DELETE_USER ERROR] user_id={user_id}: {e}\n{tb}")
         raise HTTPException(status_code=400, detail=f"Failed to delete user: {str(e)}")
 
 
