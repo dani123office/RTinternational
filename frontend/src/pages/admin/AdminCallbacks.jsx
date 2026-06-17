@@ -1,6 +1,6 @@
 import { useEffect, useState, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { PhoneCall, ArrowRight, Download, Filter, CalendarDays, ChevronLeft, ChevronRight, Clock } from 'lucide-react'
+import { PhoneCall, ArrowRight, Download, Filter, ChevronLeft, ChevronRight, Clock } from 'lucide-react'
 import api, { endpoints } from '@/lib/api'
 import { APP_STYLES } from '@/lib/styles'
 import StatusBadge from '@/components/shared/StatusBadge'
@@ -109,24 +109,22 @@ export default function AdminCallbacks() {
                 <div>
                   <label className="text-xs font-semibold text-slate-400 uppercase tracking-wide mb-1.5 block">From Date</label>
                   <div className="relative">
-                    <CalendarDays size={14} className="absolute left-3 top-1/2 -translate-y-1/2" style={{ color: '#94a3b8' }} />
                     <input
                       type="date"
                       value={fromDate}
                       onChange={(e) => setFromDate(e.target.value)}
-                      className="rt-input text-sm py-2 pl-9 pr-3 w-full"
+                      className="rt-input text-sm py-2 px-3 w-full"
                     />
                   </div>
                 </div>
                 <div>
                   <label className="text-xs font-semibold text-slate-400 uppercase tracking-wide mb-1.5 block">To Date</label>
                   <div className="relative">
-                    <CalendarDays size={14} className="absolute left-3 top-1/2 -translate-y-1/2" style={{ color: '#94a3b8' }} />
                     <input
                       type="date"
                       value={toDate}
                       onChange={(e) => setToDate(e.target.value)}
-                      className="rt-input text-sm py-2 pl-9 pr-3 w-full"
+                      className="rt-input text-sm py-2 px-3 w-full"
                     />
                   </div>
                 </div>
