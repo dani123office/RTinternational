@@ -6,7 +6,7 @@ from fastapi.responses import Response
 from sqlalchemy.orm import Session
 from sqlalchemy import func
 from ..database import get_db
-from ..models import User, Customer, CallBack, Transfer, Sale, ActivityLog, Attendance
+from ..models import User, Customer, CallBack, Transfer, Sale, ActivityLog, Attendance, LeaveRequest, LoanRequest, Notification
 from .auth import require_admin
 from ..utils.logger import log_activity, get_client_ip
 from ..schemas import (
@@ -405,17 +405,32 @@ def delete_user(user_id: int, request: Request, admin: User = Depends(require_ad
             raise HTTPException(status_code=404, detail="User not found")
         if user.role == "admin":
             raise HTTPException(status_code=400, detail="Cannot delete admin account")
-        if user.role == "manager":
-            agents = db.query(User).filter(User.manager_id == user.id).count()
-            if agents > 0:
-                raise HTTPException(status_code=400, detail=f"Cannot delete manager with {agents} agent(s). Reassign agents first.")
+        # Reassign agents to no manager
+        db.query(User).filter(User.manager_id == user.id).update({"manager_id": None})
         name = user.name
+        # Delete activity logs
         db.query(ActivityLog).filter(ActivityLog.user_id == user.id).delete()
+        # Delete callbacks where this user is the employee or creating manager
         db.query(CallBack).filter(CallBack.employee_id == user.id).delete()
         db.query(CallBack).filter(CallBack.created_by_manager_id == user.id).delete()
+        # Delete transfers where this user is the employee
         db.query(Transfer).filter(Transfer.employee_id == user.id).delete()
+        # Delete sales where this user is the employee
         db.query(Sale).filter(Sale.employee_id == user.id).delete()
+        # Before deleting customers, remove all child records linked to them
+        customer_ids = [c.id for c in db.query(Customer.id).filter(Customer.created_by == user.id).all()]
+        if customer_ids:
+            db.query(CallBack).filter(CallBack.customer_id.in_(customer_ids)).delete(synchronize_session=False)
+            db.query(Transfer).filter(Transfer.customer_id.in_(customer_ids)).delete(synchronize_session=False)
+            db.query(Sale).filter(Sale.customer_id.in_(customer_ids)).delete(synchronize_session=False)
         db.query(Customer).filter(Customer.created_by == user.id).delete()
+        # Delete notification, attendance, leave, loan records for this user
+        db.query(Notification).filter(Notification.user_id == user.id).delete()
+        db.query(Attendance).filter(Attendance.user_id == user.id).delete()
+        db.query(LeaveRequest).filter(LeaveRequest.user_id == user.id).delete()
+        db.query(LeaveRequest).filter(LeaveRequest.admin_id == user.id).update({"admin_id": None})
+        db.query(LoanRequest).filter(LoanRequest.user_id == user.id).delete()
+        db.query(LoanRequest).filter(LoanRequest.admin_id == user.id).update({"admin_id": None})
         u_id = user.id
         db.delete(user)
         db.commit()
