@@ -53,6 +53,10 @@ def create_manager(data: CreateManagerRequest, request: Request, admin: User = D
             is_active=1,
         )
         db.add(user)
+        db.flush()
+        ev = db.query(EmailVerification).filter(EmailVerification.user_id == user.id).first()
+        if not ev:
+            db.add(EmailVerification(user_id=user.id, is_verified=1))
         db.commit()
         db.refresh(user)
         log_activity(db, admin.id, "created", "manager", user.id,
@@ -99,6 +103,12 @@ def create_agent(data: CreateAgentRequest, request: Request, admin: User = Depen
             emerg_contact_number=data.emergContactNumber,
         )
         db.add(user)
+        db.flush()
+        # Ensure email verification is required — mark as unverified
+        ev = db.query(EmailVerification).filter(EmailVerification.user_id == user.id).first()
+        if not ev:
+            ev = EmailVerification(user_id=user.id, is_verified=0)
+            db.add(ev)
         db.commit()
         db.refresh(user)
         log_activity(db, admin.id, "created", "agent", user.id,
