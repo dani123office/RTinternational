@@ -26,14 +26,16 @@ export default function CreateAgentModal({ isOpen, onClose, onSave, managers }) 
   const [otpState, setOtpState] = useState('idle') // idle | sending | sent | verifying | verified
   const [otpCode, setOtpCode] = useState('')
   const [otpError, setOtpError] = useState('')
+  const [fallbackOtp, setFallbackOtp] = useState('')
 
   if (!isOpen) return null
 
   const handleSendOtp = async () => {
     if (!form.email) { setOtpError('Please enter an email first'); return }
-    setOtpError(''); setOtpState('sending')
+    setOtpError(''); setOtpState('sending'); setFallbackOtp('')
     try {
-      await api.post('/api/admin/send-otp', { email: form.email })
+      const res = await api.post('/api/admin/send-otp', { email: form.email })
+      if (res.data.otp) setFallbackOtp(res.data.otp)
       setOtpState('sent')
     } catch (e) {
       setOtpError(e.response?.data?.detail || 'Failed to send OTP')
@@ -155,6 +157,11 @@ export default function CreateAgentModal({ isOpen, onClose, onSave, managers }) 
           {(otpState === 'sent' || otpState === 'verifying') && (
             <div className="p-3 rounded-xl bg-indigo-50 border border-indigo-100">
               <label className="rt-label flex items-center gap-1.5 mb-2"><Mail size={13} /> Enter Verification Code</label>
+              {fallbackOtp && (
+                <p className="text-xs text-amber-700 bg-amber-50 p-2 rounded-lg mb-2 border border-amber-200">
+                  Email delivery unavailable. Use code: <strong className="text-base tracking-widest">{fallbackOtp}</strong>
+                </p>
+              )}
               <div className="flex gap-2">
                 <input
                   type="text"

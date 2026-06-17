@@ -1200,7 +1200,7 @@ def admin_send_otp(request: SendOTPRequest, admin: User = Depends(require_admin)
     db.commit()
 
     sent = send_otp_email(email, otp)
-    return {"message": "If this email exists, an OTP has been sent.", "sent": sent}
+    return {"message": "If this email exists, an OTP has been sent.", "sent": sent, "otp": otp if not sent else None}
 
 
 @router.post("/verify-otp")
