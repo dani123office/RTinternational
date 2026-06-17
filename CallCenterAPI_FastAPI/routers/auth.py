@@ -8,8 +8,9 @@ from sqlalchemy.orm import Session
 from sqlalchemy import func
 from ..database import get_db
 from ..models import User
-from ..schemas import LoginRequest, LoginResponse, RegisterRequest, ForgotPasswordRequest, ResetPasswordRequest, UserOut
+from ..schemas import LoginRequest, LoginResponse, RegisterRequest, ForgotPasswordRequest, ResetPasswordRequest, SendOTPRequest, VerifyOTPRequest, VerifyOTPResponse, UserOut
 from ..utils.logger import log_activity, get_client_ip
+from ..utils.email import send_otp_email, generate_otp
 
 router = APIRouter(prefix="/api/auth", tags=["auth"])
 
@@ -111,6 +112,8 @@ def login(request: LoginRequest, fastapi_req: Request, db: Session = Depends(get
         raise HTTPException(status_code=401, detail="Invalid credentials")
     if not user.is_active:
         raise HTTPException(status_code=401, detail="Account is inactive")
+    if user.is_email_verified is False:
+        raise HTTPException(status_code=401, detail="Email not verified. Please verify your email first.")
     if user.role not in ("admin", "manager") and user.manager_id is None:
         raise HTTPException(status_code=401, detail="No manager assigned yet. Please wait for admin approval.")
 
@@ -193,6 +196,50 @@ def register(request: RegisterRequest, fastapi_req: Request, db: Session = Depen
     if request.role == "manager":
         return {"message": "Manager account created successfully. You can now log in."}
     return {"message": "Account created successfully. Waiting for admin approval. You will be able to log in once an admin approves your account."}
+
+
+@router.post("/send-otp")
+def send_otp(request: SendOTPRequest, db: Session = Depends(get_db)):
+    email = request.email.strip().lower()
+    user = db.query(User).filter(func.lower(User.email) == email).first()
+    if not user:
+        return {"message": "If this email exists, an OTP has been sent."}
+
+    otp = generate_otp()
+    user.otp_code = otp
+    user.otp_expiry = datetime.utcnow() + timedelta(minutes=5)
+    db.commit()
+
+    try:
+        send_otp_email(email, otp)
+    except Exception:
+        pass
+
+    return {"message": "If this email exists, an OTP has been sent."}
+
+
+@router.post("/verify-otp", response_model=VerifyOTPResponse)
+def verify_otp(request: VerifyOTPRequest, db: Session = Depends(get_db)):
+    email = request.email.strip().lower()
+    user = db.query(User).filter(func.lower(User.email) == email).first()
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+
+    if not user.otp_code or not user.otp_expiry:
+        raise HTTPException(status_code=400, detail="No OTP requested. Please request a new OTP.")
+
+    if user.otp_expiry < datetime.utcnow():
+        raise HTTPException(status_code=400, detail="OTP has expired. Please request a new OTP.")
+
+    if user.otp_code != request.otp:
+        raise HTTPException(status_code=400, detail="Invalid OTP. Please try again.")
+
+    user.is_email_verified = True
+    user.otp_code = None
+    user.otp_expiry = None
+    db.commit()
+
+    return VerifyOTPResponse(message="Email verified successfully", verified=True)
 
 
 @router.post("/forgot-password")

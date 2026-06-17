@@ -5,6 +5,7 @@ import Login from '@/pages/Login'
 import Register from '@/pages/Register'
 import ForgotPassword from '@/pages/ForgotPassword'
 import ResetPassword from '@/pages/ResetPassword'
+import VerifyEmail from '@/pages/VerifyEmail'
 import Dashboard from '@/pages/Dashboard'
 import Attendance from '@/pages/Attendance'
 import Callbacks from '@/pages/Callbacks'
@@ -77,6 +78,7 @@ export default function App() {
       <Route path="/register" element={<PublicRoute><Register /></PublicRoute>} />
       <Route path="/forgot-password" element={<PublicRoute><ForgotPassword /></PublicRoute>} />
       <Route path="/reset-password" element={<PublicRoute><ResetPassword /></PublicRoute>} />
+      <Route path="/verify-email" element={<PublicRoute><VerifyEmail /></PublicRoute>} />
 
       <Route path="/" element={<ProtectedRoute><AppLayout /></ProtectedRoute>}>
         <Route index element={<RoleRoute allowedRoles={['agent']}><Dashboard /></RoleRoute>} />

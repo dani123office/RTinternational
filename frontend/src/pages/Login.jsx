@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { useNavigate, Link } from 'react-router-dom'
 import { useAuthStore } from '@/store/authStore'
 import api, { endpoints } from '@/lib/api'
-import { Loader2 } from 'lucide-react'
+import { Loader2, AlertCircle } from 'lucide-react'
 
 export default function Login() {
   const [email, setEmail] = useState('')
@@ -10,6 +10,7 @@ export default function Login() {
   const [showPassword, setShowPassword] = useState(false)
   const [rememberMe, setRememberMe] = useState(true)
   const [error, setError] = useState('')
+  const [emailNotVerified, setEmailNotVerified] = useState(false)
   const [loading, setLoading] = useState(false)
   const { login } = useAuthStore()
   const navigate = useNavigate()
@@ -17,6 +18,7 @@ export default function Login() {
   const handleSubmit = async (e) => {
     e.preventDefault()
     setError('')
+    setEmailNotVerified(false)
     if (!email || !password) { setError('Please enter your email and password.'); return }
     setLoading(true)
     const success = await login(email, password, rememberMe)
@@ -31,6 +33,8 @@ export default function Login() {
       const errMsg = useAuthStore.getState().error || 'Invalid email or password. Please try again.'
       if (errMsg.toLowerCase().includes('inactive')) {
         setError('Your account is pending admin approval. Please wait for an admin to activate your account.')
+      } else if (errMsg.toLowerCase().includes('email not verified')) {
+        setEmailNotVerified(true)
       } else if (errMsg.toLowerCase().includes('manager')) {
         setError('Your account is not fully set up yet. Please wait for an admin to assign you a manager.')
       } else {
@@ -436,7 +440,21 @@ export default function Login() {
               </div>
 
               {/* Error */}
-              {error && (
+              {emailNotVerified && (
+                <div className="error-box" style={{ display: 'block' }}>
+                  <div style={{ display: 'flex', alignItems: 'flex-start', gap: 8 }}>
+                    <AlertCircle size={16} className="error-icon" style={{ flexShrink: 0, marginTop: 1 }} />
+                    <div>
+                      Email not verified.{' '}
+                      <Link to="/verify-email" className="forgot-link"
+                        onClick={() => useAuthStore.getState().setEmailForVerification(email)}>
+                        Verify now
+                      </Link>
+                    </div>
+                  </div>
+                </div>
+              )}
+              {error && !emailNotVerified && (
                 <div className="error-box">
                   <svg className="error-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                     <circle cx="12" cy="12" r="10" /><line x1="12" y1="8" x2="12" y2="12" /><line x1="12" y1="16" x2="12.01" y2="16" />

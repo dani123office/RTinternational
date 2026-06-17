@@ -1,8 +1,12 @@
 import os
 import socket
 import re
+from pathlib import Path
 from datetime import datetime
 import bcrypt
+from dotenv import load_dotenv
+
+load_dotenv(dotenv_path=Path(__file__).resolve().parent / ".env")
 from fastapi import FastAPI, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.exceptions import RequestValidationError
@@ -288,8 +292,8 @@ def on_startup():
                 return u
             return existing
 
-        _ensure_user("admin@test.com", dict(name="Admin User", password_hash=_hash(), role="admin", is_active=1))
-        _ensure_user("sunny@rt.com", dict(name="Sunny", password_hash=_hash("123456"), role="manager", is_active=1))
+        _ensure_user("admin@test.com", dict(name="Admin User", password_hash=_hash(), role="admin", is_active=1, is_email_verified=1))
+        _ensure_user("sunny@rt.com", dict(name="Sunny", password_hash=_hash("123456"), role="manager", is_active=1, is_email_verified=1))
 
         db.commit()
     finally:

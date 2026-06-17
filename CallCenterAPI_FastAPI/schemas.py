@@ -260,6 +260,20 @@ class ResetPasswordRequest(BaseModel):
     password: str = Field(..., max_length=128, description="New password (min 6 characters)")
 
 
+class SendOTPRequest(BaseModel):
+    email: str = Field(..., max_length=255, description="Email address to send OTP")
+
+
+class VerifyOTPRequest(BaseModel):
+    email: str = Field(..., max_length=255, description="Email address")
+    otp: str = Field(..., min_length=6, max_length=6, description="OTP code received via email")
+
+
+class VerifyOTPResponse(BaseModel):
+    message: str
+    verified: bool
+
+
 class UserOut(BaseModel):
     id: int
     name: str

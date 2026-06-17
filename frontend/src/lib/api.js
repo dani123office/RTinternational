@@ -108,6 +108,8 @@ export const endpoints = {
     me: '/api/auth/me',
     forgotPassword: '/api/auth/forgot-password',
     resetPassword: '/api/auth/reset-password',
+    sendOtp: '/api/auth/send-otp',
+    verifyOtp: '/api/auth/verify-otp',
   },
   callbacks: '/api/callbacks',
   transfers: '/api/transfers',

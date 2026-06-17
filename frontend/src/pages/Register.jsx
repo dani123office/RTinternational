@@ -1,9 +1,10 @@
 import { useState } from 'react'
-import { Link } from 'react-router-dom'
+import { Link, useNavigate } from 'react-router-dom'
 import { useAuthStore } from '@/store/authStore'
 import { Loader2, CheckCircle } from 'lucide-react'
 
 export default function Register() {
+  const navigate = useNavigate()
   const [name, setName] = useState('')
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
@@ -13,7 +14,7 @@ export default function Register() {
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
   const [registered, setRegistered] = useState(false)
-  const { register } = useAuthStore()
+  const { register, setEmailForVerification } = useAuthStore()
 
   const handleSubmit = async (e) => {
     e.preventDefault()
@@ -23,8 +24,13 @@ export default function Register() {
     if (password.length < 6) { setError('Password must be at least 6 characters.'); return }
     setLoading(true)
     const success = await register(name, email, password)
-    if (success) setRegistered(true)
-    else setError(useAuthStore.getState().error || 'Registration failed.')
+    if (success) {
+      setRegistered(true)
+      setEmailForVerification(email)
+      setTimeout(() => navigate('/verify-email'), 1500)
+    } else {
+      setError(useAuthStore.getState().error || 'Registration failed.')
+    }
     setLoading(false)
   }
 

@@ -23,6 +23,7 @@ const storage = {
 }
 
 export const useAuthStore = create((set, get) => ({
+  emailForVerification: null,
   token: storage.get('token') || null,
   user: (() => {
     try { return JSON.parse(storage.get('user')) } catch { return null }
@@ -65,6 +66,26 @@ export const useAuthStore = create((set, get) => ({
         ? 'Connection error. Please check your internet and try again.'
         : (err.response?.data?.detail || err.response?.data?.message || 'Registration failed')
       set({ error: msg, isLoading: false })
+      return false
+    }
+  },
+
+  setEmailForVerification: (email) => set({ emailForVerification: email }),
+
+  sendOtp: async (email) => {
+    try {
+      await api.post(endpoints.auth.sendOtp, { email })
+      return true
+    } catch {
+      return false
+    }
+  },
+
+  verifyOtp: async (email, otp) => {
+    try {
+      const res = await api.post(endpoints.auth.verifyOtp, { email, otp })
+      return res.data?.verified === true
+    } catch {
       return false
     }
   },
