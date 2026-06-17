@@ -37,7 +37,8 @@ api.interceptors.response.use(
   async (error) => {
     const originalRequest = error.config
 
-    if (error.response?.status === 401 && !originalRequest._retry && !isRefreshing) {
+    const isLoginRequest = originalRequest.url === '/api/auth/login'
+    if (error.response?.status === 401 && !originalRequest._retry && !isRefreshing && !isLoginRequest) {
       const refreshToken = getRefreshToken()
       if (!refreshToken) {
         if (!redirecting) {
