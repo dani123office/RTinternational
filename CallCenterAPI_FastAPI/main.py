@@ -3,7 +3,6 @@ import socket
 import re
 from pathlib import Path
 from datetime import datetime
-import bcrypt
 from dotenv import load_dotenv
 
 load_dotenv(dotenv_path=Path(__file__).resolve().parent / ".env")
@@ -280,39 +279,9 @@ def on_startup():
     except Exception as e:
         print(f"Warning: Failed to ensure database schema: {e}")
 
-    try:
-        db = SessionLocal()
-        try:
-            def _hash(pw: str = "password"):
-                return bcrypt.hashpw(pw.encode("utf-8"), bcrypt.gensalt()).decode("utf-8")
-
-            from ..models import EmailVerification
-
-            def _ensure_user(email, defaults, verified=True):
-                existing = db.query(User).filter(func.lower(User.email) == email.lower()).first()
-                if not existing:
-                    u = User(email=email, **defaults)
-                    db.add(u)
-                    db.flush()
-                    ev = db.query(EmailVerification).filter(EmailVerification.user_id == u.id).first()
-                    if not ev:
-                        ev = EmailVerification(user_id=u.id, is_verified=1 if verified else 0)
-                        db.add(ev)
-                        db.flush()
-                    return u
-                return existing
-
-            _ensure_user("admin@test.com", dict(name="Admin User", password_hash=_hash(), role="admin", is_active=1))
-            _ensure_user("sunny@rt.com", dict(name="Sunny", password_hash=_hash("123456"), role="manager", is_active=1))
-
-            db.commit()
-        except Exception as e:
-            print(f"Note: could not seed default users: {e}")
-            db.rollback()
-        finally:
-            db.close()
-    except Exception as e:
-        print(f"Note: could not create DB session for seeding: {e}")
+    # Default users are NOT seeded here — any user deleted from the admin panel
+    # would reappear on the next Vercel cold start.  Create users via /register
+    # or the admin panel instead.
 
 
 def _port_available(port: int) -> bool:

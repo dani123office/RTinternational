@@ -1,7 +1,7 @@
 import { useEffect, useState, useCallback } from 'react'
 import { useAdminStore } from '@/store/adminStore'
 import api, { endpoints } from '@/lib/api'
-import { UserPlus, CheckCircle, XCircle, Loader2, UserRoundCog, CalendarCheck, Check, X, Wallet, ChevronLeft, ChevronRight, Clock, Eye, Pencil, Save } from 'lucide-react'
+import { UserPlus, CheckCircle, XCircle, Loader2, UserRoundCog, CalendarCheck, Check, X, Wallet, ChevronLeft, ChevronRight, Clock, Eye, Pencil, Save, Trash2 } from 'lucide-react'
 import { APP_STYLES } from '@/lib/styles'
 import DataTable from '@/components/shared/DataTable'
 import LoadingSpinner from '@/components/shared/LoadingSpinner'
@@ -77,6 +77,17 @@ export default function PendingUsers() {
       setLeaveHistory((prev) => ({ ...prev, items: prev.items.filter((l) => l.id !== id), total: prev.total - 1 }))
     } catch (err) {
       alert(err?.response?.data?.detail || 'Failed to delete leave')
+    } finally { setDeleteProcessing(null) }
+  }
+
+  const handleDeletePendingUser = async (user) => {
+    if (!window.confirm(`Delete pending user "${user.name}" permanently?`)) return
+    setDeleteProcessing(user.id)
+    try {
+      await useAdminStore.getState().deleteUser(user.id)
+      await loadPendingUsers()
+    } catch (err) {
+      alert(err?.response?.data?.detail || 'Failed to delete user')
     } finally { setDeleteProcessing(null) }
   }
 
@@ -217,6 +228,15 @@ export default function PendingUsers() {
           >
             <Eye size={14} />
             View
+          </button>
+          <button
+            onClick={() => handleDeletePendingUser(row)}
+            disabled={deleteProcessing === row.id}
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold cursor-pointer transition-all duration-200 border-none text-white disabled:opacity-50"
+            style={{ background: 'linear-gradient(135deg, #ef4444, #dc2626)' }}
+          >
+            <Trash2 size={14} />
+            Delete
           </button>
         </div>
       ),
