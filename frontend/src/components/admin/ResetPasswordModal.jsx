@@ -1,11 +1,12 @@
 import { useState } from 'react'
-import { X, Loader2 } from 'lucide-react'
+import { X, Loader2, Eye, EyeOff } from 'lucide-react'
 
 import api from '@/lib/api'
 
 export default function ResetPasswordModal({ userId, userName, onClose, onSuccess }) {
   const [newPassword, setNewPassword] = useState('')
   const [confirmPassword, setConfirmPassword] = useState('')
+  const [showPassword, setShowPassword] = useState(false)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
   const [done, setDone] = useState(false)
@@ -56,22 +57,40 @@ export default function ResetPasswordModal({ userId, userName, onClose, onSucces
             <>
               {userName && <p className="text-[0.85rem] text-slate-600 mb-4">Set a new password for <strong>{userName}</strong></p>}
               {error && <p className="text-[0.8rem] text-red-500 p-2 bg-red-50 rounded-lg mb-3">{error}</p>}
-              <div className="flex flex-col gap-3">
-                <input
-                  type="password"
-                  className="rt-input"
-                  placeholder="New password (min 6 chars)"
-                  value={newPassword}
-                  onChange={e => setNewPassword(e.target.value)}
-                />
-                <input
-                  type="password"
-                  className="rt-input"
-                  placeholder="Confirm new password"
-                  value={confirmPassword}
-                  onChange={e => setConfirmPassword(e.target.value)}
-                />
-              </div>
+               <div className="flex flex-col gap-3">
+                 <div className="relative">
+                   <input
+                     type={showPassword ? "text" : "password"}
+                     className="rt-input w-full pr-10"
+                     placeholder="New password (min 6 chars)"
+                     value={newPassword}
+                     onChange={e => setNewPassword(e.target.value)}
+                   />
+                   <button
+                     type="button"
+                     className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 border-none bg-transparent cursor-pointer"
+                     onClick={() => setShowPassword(!showPassword)}
+                   >
+                     {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                   </button>
+                 </div>
+                 <div className="relative">
+                   <input
+                     type={showPassword ? "text" : "password"}
+                     className="rt-input w-full pr-10"
+                     placeholder="Confirm new password"
+                     value={confirmPassword}
+                     onChange={e => setConfirmPassword(e.target.value)}
+                   />
+                   <button
+                     type="button"
+                     className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 border-none bg-transparent cursor-pointer"
+                     onClick={() => setShowPassword(!showPassword)}
+                   >
+                     {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                   </button>
+                 </div>
+               </div>
             </>
           )}
         </div>
