@@ -8,7 +8,9 @@ export default function ResetPasswordModal(props) {
 
   const uid = newUserId ?? oldUser?.id
   const uname = newUserName ?? oldUser?.name
+  const isOwnChange = !onSave
 
+  const [oldPassword, setOldPassword] = useState('')
   const [newPassword, setNewPassword] = useState('')
   const [confirmPassword, setConfirmPassword] = useState('')
   const [showPassword, setShowPassword] = useState(false)
@@ -20,6 +22,7 @@ export default function ResetPasswordModal(props) {
 
   const handleSave = async () => {
     setError('')
+    if (isOwnChange && !oldPassword) { setError('Please enter your current password'); return }
     if (!newPassword) { setError('Please enter a new password'); return }
     if (newPassword.length < 6) { setError('Password must be at least 6 characters'); return }
     if (newPassword !== confirmPassword) { setError('Passwords do not match'); return }
@@ -28,7 +31,7 @@ export default function ResetPasswordModal(props) {
       if (onSave) {
         await onSave(uid, newPassword)
       } else {
-        await api.put(`/api/admin/users/${uid}/reset-password`, { newPassword })
+        await api.put(`/api/admin/users/${uid}/reset-password`, { oldPassword, newPassword })
       }
       if (onSuccess) onSuccess()
       setDone(true)
@@ -38,6 +41,7 @@ export default function ResetPasswordModal(props) {
   }
 
   const handleClose = () => {
+    setOldPassword('')
     setNewPassword('')
     setConfirmPassword('')
     setError('')
@@ -68,6 +72,17 @@ export default function ResetPasswordModal(props) {
               {uname && <p className="text-[0.85rem] text-slate-600 mb-4">Set a new password for <strong>{uname}</strong></p>}
               {error && <p className="text-[0.8rem] text-red-500 p-2 bg-red-50 rounded-lg mb-3">{error}</p>}
                <div className="flex flex-col gap-3">
+                 {isOwnChange && (
+                   <div className="relative">
+                     <input
+                       type="password"
+                       className="rt-input w-full"
+                       placeholder="Current password"
+                       value={oldPassword}
+                       onChange={e => setOldPassword(e.target.value)}
+                     />
+                   </div>
+                 )}
                  <div className="relative">
                    <input
                      type={showPassword ? "text" : "password"}

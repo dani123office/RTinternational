@@ -581,6 +581,9 @@ def reset_user_password(
         raise HTTPException(status_code=404, detail="User not found")
     if len(data.newPassword) < 6:
         raise HTTPException(status_code=400, detail="Password must be at least 6 characters")
+    if data.oldPassword:
+        if not bcrypt.checkpw(data.oldPassword.encode("utf-8"), user.password_hash.encode("utf-8")):
+            raise HTTPException(status_code=400, detail="Old password is incorrect")
     user.password_hash = bcrypt.hashpw(data.newPassword.encode("utf-8"), bcrypt.gensalt()).decode("utf-8")
     db.commit()
     log_activity(db, admin.id, "password_reset", "user", user.id,

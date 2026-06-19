@@ -366,6 +366,7 @@ class ApproveUserRequest(BaseModel):
 
 
 class ResetUserPasswordRequest(BaseModel):
+    oldPassword: Optional[str] = Field(None, description="Current password for verification (required when changing own password)")
     newPassword: str = Field(..., max_length=128, description="New password (min 6 characters)")
 
 
