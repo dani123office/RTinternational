@@ -1,12 +1,13 @@
 import bcrypt
-from datetime import datetime
+from datetime import datetime, timedelta
 from fastapi import APIRouter, Depends, HTTPException, Request
 from sqlalchemy.orm import Session
 from sqlalchemy import func
 from ..database import get_db
-from ..models import User
+from ..models import User, EmailVerification
 from .auth import get_current_user
 from ..utils.logger import log_activity, get_client_ip
+from ..utils.email import generate_otp, send_otp_email
 from pydantic import BaseModel, Field
 from typing import Optional
 from datetime import date
@@ -70,6 +71,65 @@ def get_profile(current_user: User = Depends(get_current_user)):
         emergContactNumber=current_user.emerg_contact_number,
     )
 
+
+class SendNewEmailOTPRequest(BaseModel):
+    newEmail: str
+
+
+class VerifyNewEmailOTPRequest(BaseModel):
+    newEmail: str
+    otp: str
+
+
+@router.post("/send-new-email-otp")
+def send_new_email_otp(
+    dto: SendNewEmailOTPRequest,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    new_email = dto.newEmail.strip().lower()
+    existing = db.query(User).filter(func.lower(User.email) == new_email, User.id != current_user.id).first()
+    if existing:
+        raise HTTPException(status_code=400, detail="Email already in use")
+
+    otp = generate_otp()
+    ev = db.query(EmailVerification).filter(EmailVerification.user_id == current_user.id).first()
+    if not ev:
+        ev = EmailVerification(user_id=current_user.id)
+        db.add(ev)
+    ev.otp_code = otp
+    ev.otp_expiry = datetime.utcnow() + timedelta(minutes=5)
+    ev.is_verified = False
+    db.commit()
+
+    sent = send_otp_email(new_email, otp)
+    return {"sent": sent}
+
+
+@router.post("/verify-new-email")
+def verify_new_email(
+    dto: VerifyNewEmailOTPRequest,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    new_email = dto.newEmail.strip().lower()
+
+    ev = db.query(EmailVerification).filter(EmailVerification.user_id == current_user.id).first()
+    if not ev or not ev.otp_code or not ev.otp_expiry:
+        raise HTTPException(status_code=400, detail="No OTP requested. Please request a new OTP.")
+    if ev.otp_expiry < datetime.utcnow():
+        raise HTTPException(status_code=400, detail="OTP has expired. Please request a new OTP.")
+    if ev.otp_code != dto.otp:
+        raise HTTPException(status_code=400, detail="Invalid OTP. Please try again.")
+
+    current_user.email = new_email
+    ev.is_verified = True
+    ev.otp_code = None
+    ev.otp_expiry = None
+    current_user.updated_at = datetime.now()
+    db.commit()
+
+    return {"ok": True, "email": new_email}
 
 @router.put("")
 def update_profile(

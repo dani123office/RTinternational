@@ -166,6 +166,10 @@ export const endpoints = {
     review: (id) => `/api/loans/${id}/review`,
     delete: (id) => `/api/loans/${id}`,
   },
+  profile: {
+    sendNewEmailOtp: '/api/profile/send-new-email-otp',
+    verifyNewEmail: '/api/profile/verify-new-email',
+  },
   salary: {
     slip: '/api/salary/slip',
     adminSlip: (userId) => `/api/admin/salary/slip/${userId}`,

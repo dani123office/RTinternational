@@ -94,6 +94,24 @@ export const useAuthStore = create((set, get) => ({
     }
   },
 
+  sendNewEmailOtp: async (newEmail) => {
+    try {
+      const res = await api.post(endpoints.profile.sendNewEmailOtp, { newEmail })
+      return { ok: true, sent: res.data?.sent === true }
+    } catch {
+      return { ok: false, sent: false }
+    }
+  },
+
+  verifyNewEmail: async (newEmail, otp) => {
+    try {
+      const res = await api.post(endpoints.profile.verifyNewEmail, { newEmail, otp })
+      return res.data?.ok === true
+    } catch {
+      return false
+    }
+  },
+
   logout: () => {
     storage.remove('token')
     storage.remove('refreshToken')

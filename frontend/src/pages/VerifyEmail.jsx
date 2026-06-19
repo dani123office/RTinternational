@@ -6,7 +6,7 @@ import { Loader2, Mail, CheckCircle, AlertCircle, Pencil } from 'lucide-react'
 export default function VerifyEmail() {
   const [searchParams] = useSearchParams()
   const navigate = useNavigate()
-  const { emailForVerification, setEmailForVerification, sendOtp, verifyOtp } = useAuthStore()
+  const { emailForVerification, setEmailForVerification, sendOtp, verifyOtp, sendNewEmailOtp, verifyNewEmail } = useAuthStore()
 
   const email = emailForVerification || searchParams.get('email') || ''
   const [otp, setOtp] = useState(['', '', '', '', '', ''])
@@ -39,7 +39,7 @@ export default function VerifyEmail() {
     const currentEmail = showEmailInput ? newEmail : email
     setSending(true)
     setError('')
-    const res = await sendOtp(currentEmail)
+    const res = showEmailInput ? await sendNewEmailOtp(currentEmail) : await sendOtp(currentEmail)
     if (!res.ok) {
       setError('Failed to request OTP. Please try again.')
       setSending(false)
@@ -71,7 +71,7 @@ export default function VerifyEmail() {
     if (code.length !== 6) { setError('Please enter the complete 6-digit OTP.'); return }
     setLoading(true)
     setError('')
-    const ok = await verifyOtp(email, code)
+    const ok = showEmailInput ? await verifyNewEmail(email, code) : await verifyOtp(email, code)
     if (ok) {
       setVerified(true)
       setTimeout(() => navigate('/login'), 2000)
