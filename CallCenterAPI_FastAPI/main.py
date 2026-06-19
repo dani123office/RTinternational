@@ -205,6 +205,10 @@ app.add_middleware(
 app.add_middleware(RateLimitMiddleware)
 app.add_middleware(SQLInjectionMiddleware)
 
+@app.get("/api/health")
+def health():
+    return {"status": "ok"}
+
 app.include_router(auth.router)
 app.include_router(customers.router)
 app.include_router(callbacks.router)
