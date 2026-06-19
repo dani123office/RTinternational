@@ -3,7 +3,7 @@ import { useAuthStore } from '@/store/authStore'
 import { useToast } from '@/components/ui/toastContext'
 import api from '@/lib/api'
 import { APP_STYLES } from '@/lib/styles'
-import { Loader2, User, Mail, Phone, Shield, Calendar, Save, Building2, Percent, UserSquare2 } from 'lucide-react'
+import { Loader2, User, Mail, Shield, Calendar, Save, Building2, Percent, UserSquare2 } from 'lucide-react'
 import ResetPasswordModal from '@/components/admin/ResetPasswordModal'
 
 export default function ProfileSettings() {
@@ -17,7 +17,6 @@ export default function ProfileSettings() {
 
   const [name, setName] = useState('')
   const [email, setEmail] = useState('')
-  const [phone, setPhone] = useState('')
 
   const isManager = user?.role === 'manager'
   const isAdmin = user?.role === 'admin'
@@ -32,7 +31,6 @@ export default function ProfileSettings() {
         setProfile(p)
         setName(p.name || '')
         setEmail(p.email || '')
-        setPhone(p.phone || '')
       } catch {
         toast('Failed to load profile', 'error')
       } finally {
@@ -45,7 +43,7 @@ export default function ProfileSettings() {
   const handleSave = async () => {
     setSaving(true)
     try {
-      const body = { name: name.trim(), email: email.trim(), phone: phone.trim() || null }
+      const body = { name: name.trim(), email: email.trim() }
       const res = await api.put('/api/profile', body)
       setProfile(res.data)
       toast('Profile updated successfully', 'success')
@@ -129,12 +127,6 @@ export default function ProfileSettings() {
                   <Mail size={15} />
                   <span style={{ color: '#0f172a', fontWeight: 500 }}>{profile.email}</span>
                 </div>
-                {profile.phone && (
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '12px', color: '#64748b', fontSize: '13px' }}>
-                    <Phone size={15} />
-                    <span style={{ color: '#0f172a', fontWeight: 500 }}>{profile.phone}</span>
-                  </div>
-                )}
                 {profile.managerId && (
                   <div style={{ display: 'flex', alignItems: 'center', gap: '12px', color: '#64748b', fontSize: '13px' }}>
                     <Building2 size={15} />
@@ -184,21 +176,6 @@ export default function ProfileSettings() {
                   <input
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
-                    style={{
-                      padding: '10px 14px', border: '1px solid #e2e6ec', borderRadius: '10px',
-                      fontSize: '14px', color: '#0f172a', outline: 'none',
-                      background: '#f8fafc', transition: 'border-color 0.15s',
-                    }}
-                    onFocus={(e) => { e.target.style.borderColor = accentColor }}
-                    onBlur={(e) => { e.target.style.borderColor = '#e2e6ec' }}
-                  />
-                </div>
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-                  <label style={{ fontSize: '11px', fontWeight: 700, color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Phone</label>
-                  <input
-                    value={phone}
-                    onChange={(e) => setPhone(e.target.value)}
-                    placeholder="+44 1234 567890"
                     style={{
                       padding: '10px 14px', border: '1px solid #e2e6ec', borderRadius: '10px',
                       fontSize: '14px', color: '#0f172a', outline: 'none',
