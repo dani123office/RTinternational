@@ -21,16 +21,6 @@ export default function VerifyEmail() {
   const [newEmail, setNewEmail] = useState(email)
   const inputsRef = useRef([])
 
-  const handleChangeEmail = () => {
-    if (newEmail && newEmail !== email) {
-      setEmailForVerification(newEmail)
-      setSent(false)
-      setOtp(['', '', '', '', '', ''])
-      setError('')
-      setShowEmailInput(false)
-    }
-  }
-
   useEffect(() => {
     if (!email) navigate('/register')
   }, [email, navigate])
@@ -43,9 +33,13 @@ export default function VerifyEmail() {
   }, [cooldown])
 
   const handleSendOtp = async () => {
+    if (showEmailInput && newEmail && newEmail !== email) {
+      setEmailForVerification(newEmail)
+    }
+    const currentEmail = showEmailInput ? newEmail : email
     setSending(true)
     setError('')
-    const res = await sendOtp(email)
+    const res = await sendOtp(currentEmail)
     if (!res.ok) {
       setError('Failed to request OTP. Please try again.')
       setSending(false)
@@ -123,30 +117,18 @@ export default function VerifyEmail() {
               </button>
             </p>
           ) : (
-            <div style={{ display: 'flex', gap: 8, marginTop: 8, justifyContent: 'center' }}>
-              <input
-                type="email"
-                value={newEmail}
-                onChange={(e) => setNewEmail(e.target.value)}
-                style={{
-                  padding: '10px 14px', borderRadius: 10, border: '1px solid #e2e8f0',
-                  fontSize: 14, outline: 'none', flex: 1, maxWidth: 280,
-                }}
-                placeholder="Enter new email"
-              />
-              <button
-                onClick={handleChangeEmail}
-                disabled={!newEmail || newEmail === email}
-                style={{
-                  padding: '10px 16px', borderRadius: 10, border: 'none',
-                  background: newEmail && newEmail !== email ? 'linear-gradient(135deg, #6366f1, #4f46e5)' : '#e2e8f0',
-                  color: newEmail && newEmail !== email ? '#fff' : '#94a3b8',
-                  fontSize: 13, fontWeight: 600, cursor: newEmail && newEmail !== email ? 'pointer' : 'default',
-                }}
-              >
-                Save
-              </button>
-            </div>
+              <div style={{ marginTop: 8 }}>
+                <input
+                  type="email"
+                  value={newEmail}
+                  onChange={(e) => setNewEmail(e.target.value)}
+                  style={{
+                    padding: '10px 14px', borderRadius: 10, border: '1px solid #e2e8f0',
+                    fontSize: 14, outline: 'none', width: '80%', maxWidth: 280,
+                  }}
+                  placeholder="Enter new email"
+                />
+              </div>
           )}
         </div>
 
