@@ -14,6 +14,7 @@ export default function ResetPasswordModal(props) {
   const [newPassword, setNewPassword] = useState('')
   const [confirmPassword, setConfirmPassword] = useState('')
   const [showPassword, setShowPassword] = useState(false)
+  const [showOldPassword, setShowOldPassword] = useState(false)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
   const [done, setDone] = useState(false)
@@ -75,12 +76,19 @@ export default function ResetPasswordModal(props) {
                  {isOwnChange && (
                    <div className="relative">
                      <input
-                       type="password"
-                       className="rt-input w-full"
+                       type={showOldPassword ? "text" : "password"}
+                       className="rt-input w-full pr-10"
                        placeholder="Current password"
                        value={oldPassword}
                        onChange={e => setOldPassword(e.target.value)}
                      />
+                     <button
+                       type="button"
+                       className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 border-none bg-transparent cursor-pointer"
+                       onClick={() => setShowOldPassword(!showOldPassword)}
+                     >
+                       {showOldPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                     </button>
                    </div>
                  )}
                  <div className="relative">
