@@ -74,7 +74,7 @@ export default function VerifyEmail() {
     const ok = showEmailInput ? await verifyNewEmail(email, code) : await verifyOtp(email, code)
     if (ok) {
       setVerified(true)
-      setTimeout(() => navigate('/login'), 2000)
+      setTimeout(() => showEmailInput ? navigate('/profile') : navigate('/login'), 2000)
     } else {
       setError('Invalid or expired OTP. Please try again.')
     }
@@ -86,8 +86,8 @@ export default function VerifyEmail() {
       <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#f8fafc', fontFamily: 'Inter, system-ui, sans-serif' }}>
         <div style={{ textAlign: 'center', padding: 40 }}>
           <CheckCircle size={64} color="#22c55e" style={{ marginBottom: 16 }} />
-          <h2 style={{ fontSize: 24, fontWeight: 700, color: '#0f172a', marginBottom: 8 }}>Email Verified!</h2>
-          <p style={{ color: '#64748b' }}>Redirecting to login...</p>
+          <h2 style={{ fontSize: 24, fontWeight: 700, color: '#0f172a', marginBottom: 8 }}>{showEmailInput ? 'Email Changed!' : 'Email Verified!'}</h2>
+          <p style={{ color: '#64748b' }}>{showEmailInput ? 'Redirecting to profile...' : 'Redirecting to login...'}</p>
         </div>
       </div>
     )

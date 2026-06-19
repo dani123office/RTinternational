@@ -78,7 +78,7 @@ export default function App() {
       <Route path="/register" element={<PublicRoute><Register /></PublicRoute>} />
       <Route path="/forgot-password" element={<PublicRoute><ForgotPassword /></PublicRoute>} />
       <Route path="/reset-password" element={<PublicRoute><ResetPassword /></PublicRoute>} />
-      <Route path="/verify-email" element={<PublicRoute><VerifyEmail /></PublicRoute>} />
+      <Route path="/verify-email" element={<VerifyEmail />} />
 
       <Route path="/" element={<ProtectedRoute><AppLayout /></ProtectedRoute>}>
         <Route index element={<RoleRoute allowedRoles={['agent']}><Dashboard /></RoleRoute>} />
