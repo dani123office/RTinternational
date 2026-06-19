@@ -3,7 +3,12 @@ import { X, Loader2, Eye, EyeOff } from 'lucide-react'
 
 import api from '@/lib/api'
 
-export default function ResetPasswordModal({ userId, userName, onClose, onSuccess }) {
+export default function ResetPasswordModal(props) {
+  const { isOpen, onClose, onSave, user: oldUser, userId: newUserId, userName: newUserName, onSuccess } = props
+
+  const uid = newUserId ?? oldUser?.id
+  const uname = newUserName ?? oldUser?.name
+
   const [newPassword, setNewPassword] = useState('')
   const [confirmPassword, setConfirmPassword] = useState('')
   const [showPassword, setShowPassword] = useState(false)
@@ -11,7 +16,7 @@ export default function ResetPasswordModal({ userId, userName, onClose, onSucces
   const [error, setError] = useState('')
   const [done, setDone] = useState(false)
 
-  // if (!isOpen) return null
+  if (isOpen === false) return null
 
   const handleSave = async () => {
     setError('')
@@ -20,8 +25,13 @@ export default function ResetPasswordModal({ userId, userName, onClose, onSucces
     if (newPassword !== confirmPassword) { setError('Passwords do not match'); return }
     setLoading(true)
     try {
-      await api.put(`/api/admin/users/${userId}/reset-password`, { newPassword })
-      onSuccess()
+      if (onSave) {
+        await onSave(uid, newPassword)
+      } else {
+        await api.put(`/api/admin/users/${uid}/reset-password`, { newPassword })
+      }
+      if (onSuccess) onSuccess()
+      setDone(true)
     } catch (e) {
       setError(e.response?.data?.detail || 'Failed to reset password')
     } finally { setLoading(false) }
@@ -55,7 +65,7 @@ export default function ResetPasswordModal({ userId, userName, onClose, onSucces
             </div>
           ) : (
             <>
-              {userName && <p className="text-[0.85rem] text-slate-600 mb-4">Set a new password for <strong>{userName}</strong></p>}
+              {uname && <p className="text-[0.85rem] text-slate-600 mb-4">Set a new password for <strong>{uname}</strong></p>}
               {error && <p className="text-[0.8rem] text-red-500 p-2 bg-red-50 rounded-lg mb-3">{error}</p>}
                <div className="flex flex-col gap-3">
                  <div className="relative">
