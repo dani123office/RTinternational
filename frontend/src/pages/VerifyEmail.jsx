@@ -6,7 +6,7 @@ import { Loader2, Mail, CheckCircle, AlertCircle, Pencil } from 'lucide-react'
 export default function VerifyEmail() {
   const [searchParams] = useSearchParams()
   const navigate = useNavigate()
-  const { emailForVerification, setEmailForVerification, sendOtp, verifyOtp, sendNewEmailOtp, verifyNewEmail } = useAuthStore()
+  const { emailForVerification, setEmailForVerification, sendOtp, verifyOtp, sendNewEmailOtp, verifyNewEmail, token } = useAuthStore()
 
   const email = emailForVerification || searchParams.get('email') || ''
   const [otp, setOtp] = useState(['', '', '', '', '', ''])
@@ -39,7 +39,7 @@ export default function VerifyEmail() {
     const currentEmail = showEmailInput ? newEmail : email
     setSending(true)
     setError('')
-    const res = showEmailInput ? await sendNewEmailOtp(currentEmail) : await sendOtp(currentEmail)
+    const res = showEmailInput && token ? await sendNewEmailOtp(currentEmail) : await sendOtp(currentEmail)
     if (!res.ok) {
       setError('Failed to request OTP. Please try again.')
       setSending(false)
@@ -71,7 +71,7 @@ export default function VerifyEmail() {
     if (code.length !== 6) { setError('Please enter the complete 6-digit OTP.'); return }
     setLoading(true)
     setError('')
-    const ok = showEmailInput ? await verifyNewEmail(email, code) : await verifyOtp(email, code)
+    const ok = showEmailInput && token ? await verifyNewEmail(email, code) : await verifyOtp(email, code)
     if (ok) {
       setVerified(true)
       setTimeout(() => showEmailInput ? navigate('/profile') : navigate('/login'), 2000)
@@ -105,16 +105,18 @@ export default function VerifyEmail() {
             <p style={{ color: '#64748b', fontSize: 14 }}>
               We sent a 6-digit code to<br /><strong style={{ color: '#0f172a' }}>{email}</strong>
               <br />
-              <button
-                onClick={() => { setShowEmailInput(true); setNewEmail(email) }}
-                style={{
-                  background: 'none', border: 'none', color: '#6366f1', fontSize: 12, fontWeight: 600,
-                  cursor: 'pointer', textDecoration: 'underline', marginTop: 4, padding: 0,
-                }}
-              >
-                <Pencil size={12} style={{ display: 'inline', verticalAlign: 'middle', marginRight: 2 }} />
-                Change email
-              </button>
+              {token && (
+                <button
+                  onClick={() => { setShowEmailInput(true); setNewEmail(email) }}
+                  style={{
+                    background: 'none', border: 'none', color: '#6366f1', fontSize: 12, fontWeight: 600,
+                    cursor: 'pointer', textDecoration: 'underline', marginTop: 4, padding: 0,
+                  }}
+                >
+                  <Pencil size={12} style={{ display: 'inline', verticalAlign: 'middle', marginRight: 2 }} />
+                  Change email
+                </button>
+              )}
             </p>
           ) : (
               <div style={{ marginTop: 8 }}>
