@@ -570,7 +570,7 @@ def approve_user(
     return {"ok": True, "message": f"User {user.name} approved and assigned to {manager.name}"}
 
 
-@router.post("/reset-user-password/{user_id}")
+@router.put("/users/{user_id}/reset-password")
 def reset_user_password(
     user_id: int, data: ResetUserPasswordRequest,
     request: Request,

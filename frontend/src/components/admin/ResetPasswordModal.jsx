@@ -1,14 +1,16 @@
 import { useState } from 'react'
 import { X, Loader2 } from 'lucide-react'
 
-export default function ResetPasswordModal({ isOpen, onClose, onSave, user }) {
+import api from '@/lib/api'
+
+export default function ResetPasswordModal({ userId, userName, onClose, onSuccess }) {
   const [newPassword, setNewPassword] = useState('')
   const [confirmPassword, setConfirmPassword] = useState('')
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
   const [done, setDone] = useState(false)
 
-  if (!isOpen) return null
+  // if (!isOpen) return null
 
   const handleSave = async () => {
     setError('')
@@ -17,8 +19,8 @@ export default function ResetPasswordModal({ isOpen, onClose, onSave, user }) {
     if (newPassword !== confirmPassword) { setError('Passwords do not match'); return }
     setLoading(true)
     try {
-      await onSave(user.id, newPassword)
-      setDone(true)
+      await api.put(`/api/admin/users/${userId}/reset-password`, { newPassword })
+      onSuccess()
     } catch (e) {
       setError(e.response?.data?.detail || 'Failed to reset password')
     } finally { setLoading(false) }
@@ -52,7 +54,7 @@ export default function ResetPasswordModal({ isOpen, onClose, onSave, user }) {
             </div>
           ) : (
             <>
-              {user && <p className="text-[0.85rem] text-slate-600 mb-4">Set a new password for <strong>{user.name}</strong></p>}
+              {userName && <p className="text-[0.85rem] text-slate-600 mb-4">Set a new password for <strong>{userName}</strong></p>}
               {error && <p className="text-[0.8rem] text-red-500 p-2 bg-red-50 rounded-lg mb-3">{error}</p>}
               <div className="flex flex-col gap-3">
                 <input

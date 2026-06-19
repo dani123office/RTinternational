@@ -4,6 +4,7 @@ import { useToast } from '@/components/ui/toastContext'
 import api from '@/lib/api'
 import { APP_STYLES } from '@/lib/styles'
 import { Loader2, User, Mail, Phone, Shield, Calendar, Save, Building2, Percent, UserSquare2 } from 'lucide-react'
+import ResetPasswordModal from '@/components/admin/ResetPasswordModal'
 
 export default function ProfileSettings() {
   const { user } = useAuthStore()
@@ -12,6 +13,7 @@ export default function ProfileSettings() {
   const [profile, setProfile] = useState(null)
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
+  const [showPasswordModal, setShowPasswordModal] = useState(false)
 
   const [name, setName] = useState('')
   const [email, setEmail] = useState('')
@@ -282,6 +284,36 @@ export default function ProfileSettings() {
             </div>
           )}
 
+          {/* Change Password for Admin */}
+          {isAdmin && (
+            <div className="rt-card rt-fade rt-d4" style={{ marginBottom: '20px' }}>
+              <div className="rt-card-header">
+                <div className="rt-card-header-left">
+                  <div className="rt-card-icon" style={{ background: `${accentColor}15` }}>
+                    <Shield size={16} style={{ color: accentColor }} />
+                  </div>
+                  <span className="rt-card-title">Change Password</span>
+                </div>
+              </div>
+              <div className="rt-card-body" style={{ padding: '24px 28px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <p style={{ fontSize: '14px', color: '#334155', margin: 0 }}>Admins can change their password here.</p>
+                <button
+                  onClick={() => setShowPasswordModal(true)}
+                  style={{
+                    padding: '8px 20px', border: '1px solid #e2e6ec', borderRadius: '10px',
+                    cursor: 'pointer', background: 'white', color: '#0f172a',
+                    fontWeight: 600, fontSize: '13px', transition: 'border-color 0.15s',
+                    outline: 'none',
+                  }}
+                  onMouseEnter={(e) => { e.target.style.borderColor = accentColor }}
+                  onMouseLeave={(e) => { e.target.style.borderColor = '#e2e6ec' }}
+                >
+                  Change Password
+                </button>
+              </div>
+            </div>
+          )}
+
           {/* Save Button */}
           <div className="rt-fade rt-d4" style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: '40px' }}>
             <button
@@ -301,6 +333,18 @@ export default function ProfileSettings() {
               {saving ? 'Saving...' : 'Save Changes'}
             </button>
           </div>
+
+          {isAdmin && showPasswordModal && (
+            <ResetPasswordModal
+              userId={user.id}
+              userName={profile.name}
+              onClose={() => setShowPasswordModal(false)}
+              onSuccess={() => {
+                toast('Password changed successfully', 'success')
+                setShowPasswordModal(false)
+              }}
+            />
+          )}
         </div>
       </div>
     </>
