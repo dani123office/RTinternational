@@ -76,18 +76,20 @@ export const useAuthStore = create((set, get) => ({
 
   setEmailForVerification: (email) => set({ emailForVerification: email }),
 
-  sendOtp: async (email) => {
+  sendOtp: async (email, existingEmail) => {
     try {
-      const res = await api.post(endpoints.auth.sendOtp, { email })
+      const body = existingEmail ? { email, existingEmail } : { email }
+      const res = await api.post(endpoints.auth.sendOtp, body)
       return { ok: true, sent: res.data?.sent === true }
     } catch {
       return { ok: false, sent: false }
     }
   },
 
-  verifyOtp: async (email, otp) => {
+  verifyOtp: async (email, otp, existingEmail) => {
     try {
-      const res = await api.post(endpoints.auth.verifyOtp, { email, otp })
+      const body = existingEmail ? { email, otp, existingEmail } : { email, otp }
+      const res = await api.post(endpoints.auth.verifyOtp, body)
       return res.data?.verified === true
     } catch {
       return false

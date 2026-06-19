@@ -212,14 +212,22 @@ def register(request: RegisterRequest, fastapi_req: Request, db: Session = Depen
 
 @router.post("/send-otp")
 def send_otp(request: SendOTPRequest, db: Session = Depends(get_db)):
-    email = request.email.strip().lower()
-    user = db.query(User).filter(func.lower(User.email) == email).first()
-    if not user:
+    target_email = request.email.strip().lower()
+    target_user = None
+
+    if request.existingEmail:
+        existing_email = request.existingEmail.strip().lower()
+        target_user = db.query(User).filter(func.lower(User.email) == existing_email).first()
+
+    if not target_user:
+        target_user = db.query(User).filter(func.lower(User.email) == target_email).first()
+
+    if not target_user:
         return {"message": "If this email exists, an OTP has been sent.", "sent": False}
 
-    ev = db.query(EmailVerification).filter(EmailVerification.user_id == user.id).first()
+    ev = db.query(EmailVerification).filter(EmailVerification.user_id == target_user.id).first()
     if not ev:
-        ev = EmailVerification(user_id=user.id)
+        ev = EmailVerification(user_id=target_user.id)
         db.add(ev)
 
     otp = generate_otp()
@@ -228,19 +236,27 @@ def send_otp(request: SendOTPRequest, db: Session = Depends(get_db)):
     ev.is_verified = False
     db.commit()
 
-    sent = send_otp_email(email, otp)
+    sent = send_otp_email(target_email, otp)
 
     return {"message": "If this email exists, an OTP has been sent.", "sent": sent}
 
 
 @router.post("/verify-otp", response_model=VerifyOTPResponse)
 def verify_otp(request: VerifyOTPRequest, db: Session = Depends(get_db)):
-    email = request.email.strip().lower()
-    user = db.query(User).filter(func.lower(User.email) == email).first()
-    if not user:
+    target_email = request.email.strip().lower()
+    target_user = None
+
+    if request.existingEmail:
+        existing_email = request.existingEmail.strip().lower()
+        target_user = db.query(User).filter(func.lower(User.email) == existing_email).first()
+
+    if not target_user:
+        target_user = db.query(User).filter(func.lower(User.email) == target_email).first()
+
+    if not target_user:
         raise HTTPException(status_code=404, detail="User not found")
 
-    ev = db.query(EmailVerification).filter(EmailVerification.user_id == user.id).first()
+    ev = db.query(EmailVerification).filter(EmailVerification.user_id == target_user.id).first()
     if not ev or not ev.otp_code or not ev.otp_expiry:
         raise HTTPException(status_code=400, detail="No OTP requested. Please request a new OTP.")
 
@@ -253,6 +269,10 @@ def verify_otp(request: VerifyOTPRequest, db: Session = Depends(get_db)):
     ev.is_verified = True
     ev.otp_code = None
     ev.otp_expiry = None
+
+    if request.existingEmail and target_user.email.lower() != target_email:
+        target_user.email = target_email
+
     db.commit()
 
     return VerifyOTPResponse(message="Email verified successfully", verified=True)

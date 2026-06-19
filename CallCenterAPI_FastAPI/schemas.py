@@ -268,11 +268,13 @@ class ResetPasswordRequest(BaseModel):
 
 class SendOTPRequest(BaseModel):
     email: str = Field(..., max_length=255, description="Email address to send OTP")
+    existingEmail: str | None = Field(None, max_length=255, description="Original registered email (for change-email flow)")
 
 
 class VerifyOTPRequest(BaseModel):
     email: str = Field(..., max_length=255, description="Email address")
     otp: str = Field(..., min_length=6, max_length=6, description="OTP code received via email")
+    existingEmail: str | None = Field(None, max_length=255, description="Original registered email (for change-email flow)")
 
 
 class VerifyOTPResponse(BaseModel):
