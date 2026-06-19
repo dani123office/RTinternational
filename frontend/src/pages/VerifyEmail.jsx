@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from 'react'
 import { useNavigate, useSearchParams, Link } from 'react-router-dom'
 import { useAuthStore } from '@/store/authStore'
-import { Loader2, Mail, CheckCircle, AlertCircle } from 'lucide-react'
+import { Loader2, Mail, CheckCircle, AlertCircle, Pencil } from 'lucide-react'
 
 export default function VerifyEmail() {
   const [searchParams] = useSearchParams()
@@ -17,7 +17,19 @@ export default function VerifyEmail() {
   const [error, setError] = useState('')
   const [verified, setVerified] = useState(false)
   const [cooldown, setCooldown] = useState(0)
+  const [showEmailInput, setShowEmailInput] = useState(false)
+  const [newEmail, setNewEmail] = useState(email)
   const inputsRef = useRef([])
+
+  const handleChangeEmail = () => {
+    if (newEmail && newEmail !== email) {
+      setEmailForVerification(newEmail)
+      setSent(false)
+      setOtp(['', '', '', '', '', ''])
+      setError('')
+      setShowEmailInput(false)
+    }
+  }
 
   useEffect(() => {
     if (!email) navigate('/register')
@@ -95,9 +107,47 @@ export default function VerifyEmail() {
             <Mail size={28} color="#6366f1" />
           </div>
           <h1 style={{ fontSize: 24, fontWeight: 700, color: '#0f172a', marginBottom: 8 }}>Verify Your Email</h1>
-          <p style={{ color: '#64748b', fontSize: 14 }}>
-            We sent a 6-digit code to<br /><strong style={{ color: '#0f172a' }}>{email}</strong>
-          </p>
+          {!showEmailInput ? (
+            <p style={{ color: '#64748b', fontSize: 14 }}>
+              We sent a 6-digit code to<br /><strong style={{ color: '#0f172a' }}>{email}</strong>
+              <br />
+              <button
+                onClick={() => { setShowEmailInput(true); setNewEmail(email) }}
+                style={{
+                  background: 'none', border: 'none', color: '#6366f1', fontSize: 12, fontWeight: 600,
+                  cursor: 'pointer', textDecoration: 'underline', marginTop: 4, padding: 0,
+                }}
+              >
+                <Pencil size={12} style={{ display: 'inline', verticalAlign: 'middle', marginRight: 2 }} />
+                Change email
+              </button>
+            </p>
+          ) : (
+            <div style={{ display: 'flex', gap: 8, marginTop: 8, justifyContent: 'center' }}>
+              <input
+                type="email"
+                value={newEmail}
+                onChange={(e) => setNewEmail(e.target.value)}
+                style={{
+                  padding: '10px 14px', borderRadius: 10, border: '1px solid #e2e8f0',
+                  fontSize: 14, outline: 'none', flex: 1, maxWidth: 280,
+                }}
+                placeholder="Enter new email"
+              />
+              <button
+                onClick={handleChangeEmail}
+                disabled={!newEmail || newEmail === email}
+                style={{
+                  padding: '10px 16px', borderRadius: 10, border: 'none',
+                  background: newEmail && newEmail !== email ? 'linear-gradient(135deg, #6366f1, #4f46e5)' : '#e2e8f0',
+                  color: newEmail && newEmail !== email ? '#fff' : '#94a3b8',
+                  fontSize: 13, fontWeight: 600, cursor: newEmail && newEmail !== email ? 'pointer' : 'default',
+                }}
+              >
+                Save
+              </button>
+            </div>
+          )}
         </div>
 
         <div style={{ display: 'flex', flexDirection: 'column', gap: 24 }}>
