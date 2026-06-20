@@ -347,7 +347,7 @@ def regex_fallback_extraction(text: str, error_msg: str) -> dict:
         "ownerName": None,
         "email": None,
         "utilityType": None,
-        "notes": f"[AI OFFLINE: Basic fields extracted locally. Error: {error_msg}]",
+        "notes": None,
         "electricityMeters": [],
         "gasMeters": [],
         "offeredRates": None,

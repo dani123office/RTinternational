@@ -1,12 +1,14 @@
 import { useState } from 'react'
 import api from '@/lib/api'
 import { endpoints } from '@/lib/api'
+import { useToast } from '@/components/ui/toastContext'
 import { Sparkles, Loader2, Zap } from 'lucide-react'
 
 export default function AiFormFiller({ onFill }) {
   const [text, setText] = useState('')
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
+  const { toast } = useToast()
 
   const handleExtract = async () => {
     if (!text.trim()) return
@@ -19,10 +21,17 @@ export default function AiFormFiller({ onFill }) {
         setError(data.error)
         return
       }
+      if (data.warnings?.length) {
+        const msg = data.warnings.join('. ')
+        setError(msg)
+        toast(msg, 'warning')
+      }
       onFill(data)
       setText('')
     } catch (err) {
-      setError(err?.response?.data?.detail || 'Extraction failed. Please try again.')
+      const msg = err?.response?.data?.detail || 'Extraction failed. Please try again.'
+      setError(msg)
+      toast(msg, 'error')
     } finally {
       setLoading(false)
     }
