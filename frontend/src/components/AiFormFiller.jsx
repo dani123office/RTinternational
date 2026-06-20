@@ -28,6 +28,9 @@ export default function AiFormFiller({ onFill }) {
       }
       onFill(data)
       setText('')
+      if (!data.warnings?.length) {
+        toast('Form auto-filled successfully', 'success')
+      }
     } catch (err) {
       const msg = err?.response?.data?.detail || 'Extraction failed. Please try again.'
       setError(msg)
