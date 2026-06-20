@@ -1,6 +1,6 @@
 import { useEffect, useState, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { PoundSterling, ArrowRight, Download, Filter, ChevronLeft, ChevronRight } from 'lucide-react'
+import { PoundSterling, ArrowRight, Download, Filter, ChevronLeft, ChevronRight, Search } from 'lucide-react'
 import api, { endpoints } from '@/lib/api'
 import { APP_STYLES } from '@/lib/styles'
 import StatusBadge from '@/components/shared/StatusBadge'
@@ -12,6 +12,7 @@ export default function AdminSales() {
   const [data, setData] = useState({ items: [], total: 0, page: 1, totalPages: 0 })
   const [loading, setLoading] = useState(false)
   const [agents, setAgents] = useState([])
+  const [searchQuery, setSearchQuery] = useState('')
   const [fromDate, setFromDate] = useState('')
   const [toDate, setToDate] = useState('')
   const [employeeId, setEmployeeId] = useState('')
@@ -67,6 +68,14 @@ export default function AdminSales() {
     if (!d) return '-'
     return new Date(d).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })
   }
+
+  const q = searchQuery.toLowerCase().trim()
+  const filteredItems = q
+    ? data.items.filter((s) =>
+        [s.customer?.businessName, s.customer?.ownerName, s.ownerFullName, s.agentName, s.notes]
+          .some((f) => f && f.toLowerCase().includes(q))
+      )
+    : data.items
 
   return (
     <>
@@ -149,11 +158,21 @@ export default function AdminSales() {
                 <h2 className="rt-card-title">Records</h2>
                 <p className="text-sm text-slate-500">{data.total} total entries</p>
               </div>
+              <div className="relative">
+                <Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+                <input
+                  type="text"
+                  placeholder="Search records..."
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  className="rt-input text-sm py-2 pl-9 pr-3 w-56 rounded-xl"
+                />
+              </div>
             </div>
             <div className="rt-card-body p-0 overflow-x-auto">
               {loading ? (
                 <p className="text-sm text-slate-400 text-center py-8">Loading records...</p>
-              ) : data.items?.length === 0 ? (
+              ) : filteredItems.length === 0 ? (
                 <p className="text-sm text-slate-400 text-center py-8">No records found for the selected filters.</p>
               ) : (
                 <table className="w-full min-w-[750px] text-sm border-separate border-spacing-0">
@@ -168,7 +187,7 @@ export default function AdminSales() {
                     </tr>
                   </thead>
                   <tbody>
-                    {data.items.map((s) => (
+                    {filteredItems.map((s) => (
                       <tr
                         key={s.id}
                         className="border-b border-slate-100 hover:bg-slate-50 transition-colors cursor-pointer"
