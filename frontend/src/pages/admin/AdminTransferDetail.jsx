@@ -1,8 +1,11 @@
 import { useEffect, useState } from 'react'
 import { useParams, useNavigate, Link } from 'react-router-dom'
-import { ArrowLeft, Calendar, Clock, Mail, Phone, MapPin, FileText, Tag } from 'lucide-react'
+import { ArrowLeft, Calendar, Clock, Mail, Phone, MapPin, FileText, Tag, Trash2 } from 'lucide-react'
 import api, { endpoints } from '@/lib/api'
 import { APP_STYLES } from '@/lib/styles'
+import { useToast } from '@/components/ui/toastContext'
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter, DialogClose } from '@/components/ui/dialog'
+import { Button } from '@/components/ui/button'
 import StatusBadge from '@/components/shared/StatusBadge'
 import LoadingSpinner from '@/components/shared/LoadingSpinner'
 import MeterDetailsCard from '@/components/shared/MeterDetailsCard'
@@ -21,15 +24,36 @@ function Field({ label, children }) {
 export default function AdminTransferDetail() {
   const { id } = useParams()
   const navigate = useNavigate()
+  const { toast } = useToast()
   const [data, setData] = useState(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
+  const [showDelete, setShowDelete] = useState(false)
+  const [deleting, setDeleting] = useState(false)
 
   useEffect(() => {
     api.get(`${endpoints.transfers}/${id}`)
       .then(res => { setData(res.data); setLoading(false) })
       .catch(err => { setError(err.response?.data?.detail || 'Failed to load transfer'); setLoading(false) })
   }, [id])
+
+  const handleDelete = async () => {
+    setDeleting(true)
+    try {
+      await api.delete(`${endpoints.transfers}/${id}`)
+      toast('Transfer deleted', 'success')
+      navigate('/admin/transfers', { replace: true })
+    } catch (err) {
+      const detail = err.response?.data?.detail
+      const msg = typeof detail === 'string' ? detail
+        : Array.isArray(detail) ? detail.map(d => d.msg).join('; ')
+        : detail?.message || err.message || 'Failed to delete transfer'
+      toast(msg, 'error')
+    } finally {
+      setDeleting(false)
+      setShowDelete(false)
+    }
+  }
 
   if (loading) return (
     <>
@@ -153,8 +177,33 @@ export default function AdminTransferDetail() {
           <div className="rt-fade mt-4">
             <OfferedRatesCard transfer={t} />
           </div>
+
+          <div className="rt-actions mt-6">
+            <button onClick={() => setShowDelete(true)} className="rt-btn-danger">
+              <Trash2 size={16} /> Delete Transfer
+            </button>
+          </div>
         </div>
       </div>
+
+      <Dialog open={showDelete} onOpenChange={(o) => !o && setShowDelete(false)}>
+        <DialogContent className="max-w-sm w-full">
+          <DialogClose onClose={() => setShowDelete(false)} />
+          <DialogHeader>
+            <div className="mx-auto w-12 h-12 rounded-2xl bg-red-50 flex items-center justify-center mb-3">
+              <Trash2 size={22} color="#ef4444" />
+            </div>
+            <DialogTitle className="text-lg text-center">Delete Transfer?</DialogTitle>
+            <DialogDescription className="text-center text-slate-500">
+              This action cannot be undone. All associated data will be permanently removed.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter className="justify-center">
+            <Button variant="outline" onClick={() => setShowDelete(false)}>Cancel</Button>
+            <Button variant="destructive" onClick={handleDelete} loading={deleting}>Delete</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </>
   )
 }
