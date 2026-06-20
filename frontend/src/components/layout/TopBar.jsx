@@ -67,6 +67,31 @@ export default function TopBar({ onMenuClick }) {
             </button>
           </div>
         )}
+        {user?.role === 'admin' && location.pathname !== '/admin' && location.pathname.startsWith('/admin') && (
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => navigate('/admin/callbacks')}
+              className="flex items-center gap-2 px-3 py-2 bg-teal-50 hover:bg-teal-100 text-teal-600 rounded-lg text-xs font-semibold border-none cursor-pointer transition-colors"
+            >
+              <PhoneCall size={13} />
+              <span className="hidden sm:inline">Callbacks</span>
+            </button>
+            <button
+              onClick={() => navigate('/admin/transfers')}
+              className="flex items-center gap-2 px-3 py-2 bg-indigo-50 hover:bg-indigo-100 text-indigo-600 rounded-lg text-xs font-semibold border-none cursor-pointer transition-colors"
+            >
+              <ArrowLeftRight size={13} />
+              <span className="hidden sm:inline">Transfers</span>
+            </button>
+            <button
+              onClick={() => navigate('/admin/sales')}
+              className="flex items-center gap-2 px-3 py-2 bg-amber-50 hover:bg-amber-100 text-amber-600 rounded-lg text-xs font-semibold border-none cursor-pointer transition-colors"
+            >
+              <span className="text-base leading-none">£</span>
+              <span className="hidden sm:inline">Sales</span>
+            </button>
+          </div>
+        )}
       </div>
       <div className="flex items-center gap-2 shrink-0" ref={menuRef}>
         <div
