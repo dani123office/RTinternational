@@ -144,7 +144,7 @@ class _SalaryPDF:
         # ── header block ─────────────────────────────────────────────────────
         y = Y(52)
         buf.append(self._fg(*self.C_DARK))
-        buf.append(self._tc(y, "RT International", "Helvetica-Bold", 22))
+        buf.append(self._tc(y, "Rindh Tech International", "Helvetica-Bold", 22))
         y -= 20
         buf.append(self._fg(*self.C_DARK))
         buf.append(self._tc(y, "SALARY SLIP", "Helvetica-Bold", 11))
