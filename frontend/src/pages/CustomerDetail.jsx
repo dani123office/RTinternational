@@ -61,7 +61,7 @@ export default function CustomerDetail() {
     )
   }
 
-  const customerCallbacks = callbacks.filter((c) => c.customerId === customer.id)
+  const customerCallbacks = callbacks.filter((c) => c.customerId === customer.id && c.status !== 'done' && c.status !== 'not_interested')
   const customerNotInterestedCallbacks = callbacks.filter((c) => c.customerId === customer.id && (c.outcome === 'not_interested' || c.status === 'not_interested'))
   const customerNotInterestedTransfers = transfers.filter((t) => t.customerId === customer.id && (t.outcome === 'not_interested' || t.status === 'not_interested'))
   const customerTransfers = transfers.filter((t) => t.customerId === customer.id)
