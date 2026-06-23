@@ -15,6 +15,13 @@ const processQueue = (error, token = null) => {
   failedQueue = []
 }
 
+const clearAuthStorage = () => {
+  ;['token', 'refreshToken', 'user', 'rememberMe'].forEach(key => {
+    localStorage.removeItem(key)
+    sessionStorage.removeItem(key)
+  })
+}
+
 const getToken = () => localStorage.getItem('token') || sessionStorage.getItem('token')
 const getRefreshToken = () => localStorage.getItem('refreshToken') || sessionStorage.getItem('refreshToken')
 
@@ -37,14 +44,22 @@ api.interceptors.response.use(
   async (error) => {
     const originalRequest = error.config
 
-    const isLoginRequest = originalRequest.url === '/api/auth/login'
-    if (error.response?.status === 401 && !originalRequest._retry && !isRefreshing && !isLoginRequest) {
+    const isLoginRequest = originalRequest?.url === '/api/auth/login'
+    if (error.response?.status === 401 && !originalRequest?._retry && !isLoginRequest) {
+      if (isRefreshing) {
+        return new Promise((resolve, reject) => {
+          failedQueue.push({ resolve, reject })
+        }).then(token => {
+          originalRequest.headers.Authorization = `Bearer ${token}`
+          return api(originalRequest)
+        })
+      }
+
       const refreshToken = getRefreshToken()
       if (!refreshToken) {
         if (!redirecting) {
           redirecting = true
-          localStorage.clear()
-          sessionStorage.clear()
+          clearAuthStorage()
           window.location.href = '/login'
         }
         return Promise.reject(error)
@@ -70,16 +85,15 @@ api.interceptors.response.use(
         processQueue(null, newToken)
         isRefreshing = false
         return api(originalRequest)
-      } catch {
-        processQueue(error, null)
+      } catch (refreshError) {
+        processQueue(refreshError, null)
         isRefreshing = false
         if (!redirecting) {
           redirecting = true
-          localStorage.clear()
-          sessionStorage.clear()
+          clearAuthStorage()
           window.location.href = '/login'
         }
-        return Promise.reject(error)
+        return Promise.reject(refreshError)
       }
     }
     

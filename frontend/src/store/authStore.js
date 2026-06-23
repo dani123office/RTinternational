@@ -1,6 +1,15 @@
 import { create } from 'zustand'
 import api, { endpoints } from '@/lib/api'
 
+const isTokenExpired = (token) => {
+  try {
+    const payload = JSON.parse(atob(token.split('.')[1]))
+    return payload.exp * 1000 < Date.now()
+  } catch {
+    return true
+  }
+}
+
 const storage = {
   get(key) {
     const val = localStorage.getItem(key)
@@ -22,9 +31,18 @@ const storage = {
   },
 }
 
+const storedToken = storage.get('token')
+const expired = storedToken && isTokenExpired(storedToken)
+if (expired) {
+  ;['token', 'refreshToken', 'user', 'rememberMe'].forEach(key => {
+    localStorage.removeItem(key)
+    sessionStorage.removeItem(key)
+  })
+}
+
 export const useAuthStore = create((set, get) => ({
   emailForVerification: null,
-  token: storage.get('token') || null,
+  token: expired ? null : (storedToken || null),
   user: (() => {
     try { return JSON.parse(storage.get('user')) } catch { return null }
   })(),
