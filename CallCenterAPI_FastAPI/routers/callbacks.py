@@ -154,7 +154,7 @@ def create_callback(dto: CallBackCreate, request: Request, current_user: User = 
             callback.employee_id = current_user.id
             callback.scheduled_datetime = dt
             if dto.notes:
-                callback.notes = (callback.notes or "") + f"\n[Rescheduled by Agent] " + dto.notes
+                callback.notes = dto.notes
             callback.status = "pending"
             if dto.accountNumber is not None:
                 callback.account_number = dto.accountNumber

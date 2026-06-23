@@ -77,7 +77,7 @@ export function useTransferDetail() {
         customerId: transfer.customerId,
         employeeId: transfer.employeeId || 1,
         scheduledDateTime: `${date}T${time}:00`,
-        notes: `Scheduled from Transfer #${transfer.id}`,
+        notes: '',
         offeredElectricityRates: transfer.offeredElectricityRates,
         offeredGasRates: transfer.offeredGasRates,
       })

@@ -139,7 +139,7 @@ export default function ManagerTransferDetail() {
         customerId: transfer.customerId,
         employeeId: transfer.employeeId,
         scheduledDateTime: `${date}T${time || '10:00'}:00`,
-        notes: `Scheduled from Transfer #${transfer.id}`,
+        notes: '',
         transferId: transfer.id,
       }
       console.log('Callback payload:', JSON.stringify(payload))
