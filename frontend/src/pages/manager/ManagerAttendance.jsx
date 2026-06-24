@@ -54,6 +54,7 @@ function formatDuration(checkIn, checkOut) {
 export default function ManagerAttendance() {
   const { user } = useAuthStore()
   const { toast } = useToast()
+  const isAdmin = user?.role === 'admin'
 
   /* ── clock tick ── */
   const [, forceUpdate] = useState(0)
@@ -191,12 +192,14 @@ export default function ManagerAttendance() {
 
   /* ── team loaders ── */
   useEffect(() => {
-    Promise.all([
+    const promises = [
       api.get(endpoints.attendance.teamToday).then(res => setTeam(res.data)).catch(() => {}),
-      loadToday(),
-      loadMyStats(),
-    ]).finally(() => setLoading(false))
-  }, [loadToday, loadMyStats])
+    ]
+    if (isAdmin) {
+      promises.push(loadToday(), loadMyStats())
+    }
+    Promise.all(promises).finally(() => setLoading(false))
+  }, [loadToday, loadMyStats, isAdmin])
 
   const openHistory = async (member) => {
     setSelectedMember(member)
@@ -245,7 +248,8 @@ export default function ManagerAttendance() {
       <div className="rt-page">
         <div style={{ maxWidth: '960px', margin: '0 auto' }}>
 
-          {/* ═══ MY ATTENDANCE SECTION ═══ */}
+          {/* ═══ MY ATTENDANCE SECTION (admin only) ═══ */}
+          {isAdmin && (<>
           <div className="rt-fade flex items-center justify-between" style={{ marginBottom: '20px' }}>
             <div>
               <h1 className="rt-page-title">My Attendance</h1>
@@ -411,6 +415,7 @@ export default function ManagerAttendance() {
 
           {/* ═══ Divider ═══ */}
           <div style={{ height: '1px', background: 'linear-gradient(90deg, transparent, #e2e8f0, transparent)', marginBottom: '28px' }} />
+          </>)}
 
           {/* ═══ TEAM ATTENDANCE SECTION ═══ */}
           <div className="rt-fade flex items-center justify-between" style={{ marginBottom: '20px' }}>
@@ -544,7 +549,7 @@ export default function ManagerAttendance() {
       </div>
 
       {/* ═══ MY HISTORY MODAL ═══ */}
-      {showMyHistory && (
+      {isAdmin && showMyHistory && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm" onClick={() => setShowMyHistory(false)}>
           <div className="bg-white rounded-2xl w-[90%] max-w-[800px] shadow-2xl max-h-[85vh] flex flex-col" onClick={e => e.stopPropagation()}>
             <div className="flex items-center justify-between px-6 py-4 border-b border-slate-100 shrink-0">
@@ -633,7 +638,7 @@ export default function ManagerAttendance() {
       )}
 
       {/* ═══ REPORT LATE ARRIVAL MODAL ═══ */}
-      {showLateReport && (
+      {isAdmin && showLateReport && (
         <div style={{
           position: 'fixed', inset: 0, zIndex: 1000,
           display: 'flex', alignItems: 'center', justifyContent: 'center',
