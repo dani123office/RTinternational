@@ -33,8 +33,12 @@ export default function CustomerInfoCard({ customer, agentName }) {
         )}
 
         <div>
-          <span className="text-slate-500">Phone</span>
-          <p className="font-semibold text-slate-900 mt-1">{customer.businessPhone || customer.ownerPhone || 'N/A'}</p>
+          <span className="text-slate-500">Business Phone</span>
+          <p className="font-semibold text-slate-900 mt-1">{customer.businessPhone || 'N/A'}</p>
+        </div>
+        <div>
+          <span className="text-slate-500">Owner Phone</span>
+          <p className="font-semibold text-slate-900 mt-1">{customer.ownerPhone || 'N/A'}</p>
         </div>
 
         {customer.email && (
