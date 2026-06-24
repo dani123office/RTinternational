@@ -392,6 +392,11 @@ export default function EditTransfer() {
                     <input className="rt-input" placeholder="e.g. 07712 345678" value={form.ownerPhone} onChange={(e) => setField('ownerPhone', e.target.value)} />
                   </Field>
                 </div>
+                <div className="rt-span2">
+                  <Field label="Email">
+                    <input className="rt-input" type="email" placeholder="e.g. info@acmecorp.com" value={form.email} onChange={(e) => setField('email', e.target.value)} />
+                  </Field>
+                </div>
               </div>
             </Card>
 
