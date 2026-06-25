@@ -449,15 +449,6 @@ export default function SaleApplication() {
 
           <form onSubmit={handleSubmit} className="rt-section-gap">
             
-            {/* Sale Type Selection */}
-            <Card icon={FileText} iconColor="#f59e0b" iconBg="rgba(245,158,11,0.15)" title="Sale Type" delay="rt-d1">
-              <Field label="Select Sale Type" required>
-                <Select value={form.saleType} onChange={(e) => setField('saleType', e.target.value)} className="rt-input">
-                  {SALE_TYPES.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
-                </Select>
-              </Field>
-            </Card>
-
             {/* 1. Business Information Card */}
             <Card icon={Building2} iconColor="#6366f1" iconBg="rgba(99,102,241,0.15)" title="Business Details" delay="rt-d1">
               <div className="rt-grid2">
@@ -595,6 +586,15 @@ export default function SaleApplication() {
             <Card icon={FileText} iconColor="#6366f1" iconBg="rgba(99,102,241,0.15)" title="Sales Notes" delay="rt-d6">
               <Field label="Notes">
                 <textarea className="rt-textarea" rows={3} value={form.notes} onChange={(e) => upd('notes', e.target.value)} placeholder="Add sales notes..." />
+              </Field>
+            </Card>
+
+            {/* Sale Type Selection */}
+            <Card icon={FileText} iconColor="#f59e0b" iconBg="rgba(245,158,11,0.15)" title="Sale Type" delay="rt-d6">
+              <Field label="Select Sale Type" required>
+                <Select value={form.saleType} onChange={(e) => setField('saleType', e.target.value)} className="rt-input">
+                  {SALE_TYPES.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
+                </Select>
               </Field>
             </Card>
 
