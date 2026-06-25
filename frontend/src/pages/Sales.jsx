@@ -53,6 +53,12 @@ export default function Sales() {
     { header: 'Owner', cell: (row) => <span className="text-sm text-gray-700">{row.ownerFullName || '-'}</span> },
     { header: 'Status', cell: (row) => <StatusBadge status={row.cotStatus} type="sale" /> },
     {
+      header: 'Type', cell: (row) => {
+        const label = row.saleType === 'cot' ? 'COT' : row.saleType === 'renewal' ? 'Renewal' : row.saleType === 'out_of_contract' ? 'OOC' : '-'
+        return <span className="text-xs font-semibold px-2 py-0.5 rounded-md bg-slate-100 text-slate-600">{label}</span>
+      },
+    },
+    {
       header: 'Business Type',
       cell: (row) => <span className="text-sm text-gray-600 capitalize">{formatCamel(row.businessType) || '-'}</span>,
     },

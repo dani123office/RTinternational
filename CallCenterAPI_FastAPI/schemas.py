@@ -618,6 +618,7 @@ class ManagerSaleCreate(BaseModel):
     accountTitle: Optional[str] = None
     sortCode: Optional[str] = None
     bankAccountNumber: Optional[str] = None
+    saleType: Optional[str] = None
     notes: Optional[str] = None
 
 
@@ -1444,6 +1445,7 @@ class SaleOut(BaseModel):
     bankAccountNumber: Optional[str] = None
     cotStatus: str
     cotDate: Optional[date] = None
+    saleType: Optional[str] = None
     notes: Optional[str] = None
     createdAt: datetime
     customer: Optional[CustomerOut] = None
@@ -1477,6 +1479,7 @@ class SaleCreate(BaseModel):
         None, max_length=20,
         description="Bank account number (6-10 digits)"
     )
+    saleType: Optional[str] = Field(None, max_length=20, description="Sale type: cot, renewal, out_of_contract")
     notes: Optional[str] = Field(None, max_length=2000)
 
     @field_validator('ownerFullName')
@@ -1558,6 +1561,7 @@ class SaleUpdate(BaseModel):
         None, description="COT status: cotInProgress, transferSubmitted, completed, hold"
     )
     cotDate: Optional[date] = None
+    saleType: Optional[str] = Field(None, max_length=20, description="Sale type: cot, renewal, out_of_contract")
     notes: Optional[str] = Field(None, max_length=2000)
 
     @field_validator('ownerFullName')

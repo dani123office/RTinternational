@@ -69,6 +69,12 @@ export const SALE_FILTERS = [
   { key: 'done', label: 'Sale Complete' },
 ];
 
+export const SALE_TYPES = [
+  { value: 'cot', label: 'COT (Change of Tenancy)' },
+  { value: 'renewal', label: 'Renewal' },
+  { value: 'out_of_contract', label: 'Out of Contract' },
+];
+
 export const DEFAULT_ELEC_METER = {
   currentSupplier: '', supplyNumber: '', dayUnitRate: '',
   nightUnitRate: '', eveningUnitRate: '', standingRate: '',

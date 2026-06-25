@@ -74,6 +74,7 @@ export default function SaleDetail() {
   } = useSaleDetail()
   const { user } = useAuthStore()
   const isManager = user?.role === 'manager'
+  const isCotSale = sale?.saleType === 'cot' || !sale?.saleType
 
   if (loading) {
     return (
@@ -126,9 +127,11 @@ export default function SaleDetail() {
           <div className="rt-section-gap">
             <SaleHero sale={sale} customer={customer} />
 
-            <Card icon={Activity} title="Progress" delay="rt-d1">
-              <ProgressTracker currentStatus={sale.cotStatus || 'submitted'} steps={rateHistorySteps} />
-            </Card>
+            {isCotSale && (
+              <Card icon={Activity} title="Progress" delay="rt-d1">
+                <ProgressTracker currentStatus={sale.cotStatus || 'submitted'} steps={rateHistorySteps} />
+              </Card>
+            )}
 
             <CustomerInfoCard customer={compositeCustomer} />
             <PaymentDetailsCard sale={sale} />
@@ -147,12 +150,18 @@ export default function SaleDetail() {
             )}
 
             <Card icon={CheckCircle} title="Status" delay="rt-d2">
-              <Select value={sale.cotStatus} onChange={(e) => handleStatusChange(e.target.value)} className="rt-input" style={{maxWidth:'280px'}}>
-                <option value="chasing">Chasing</option>
-                <option value="cotInProgress">COT In Progress</option>
-                <option value="cotComplete">COT Complete</option>
-                <option value="done">Sale Complete</option>
-              </Select>
+              {isCotSale ? (
+                <Select value={sale.cotStatus} onChange={(e) => handleStatusChange(e.target.value)} className="rt-input" style={{maxWidth:'280px'}}>
+                  <option value="chasing">Chasing</option>
+                  <option value="cotInProgress">COT In Progress</option>
+                  <option value="cotComplete">COT Complete</option>
+                  <option value="done">Sale Complete</option>
+                </Select>
+              ) : (
+                <div className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-green-50 text-green-700 font-semibold text-sm">
+                  <CheckCircle size={16} /> Sale Complete
+                </div>
+              )}
             </Card>
 
             {sale.notes && (

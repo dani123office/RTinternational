@@ -11,7 +11,7 @@ import UtilityTypeSelector from '@/components/UtilityTypeSelector'
 import ElectricityMeterSection from '@/components/ElectricityMeterSection'
 import GasMeterSection from '@/components/GasMeterSection'
 import AiFormFiller from '@/components/AiFormFiller'
-import { DEFAULT_ELEC_METER, DEFAULT_GAS_METER, BUSINESS_TYPES, BILL_FREQUENCIES } from '@/lib/constants'
+import { DEFAULT_ELEC_METER, DEFAULT_GAS_METER, BUSINESS_TYPES, BILL_FREQUENCIES, SALE_TYPES } from '@/lib/constants'
 import {
   ArrowLeft, Save, Loader2, User, FileText,
   Building2, Zap, Calendar as CalendarIcon, Clock, Mail, Phone, MapPin
@@ -132,6 +132,7 @@ export default function SaleApplication() {
           date: lt?.scheduledDateTime?.substring(0, 10) || '',
           time: lt?.scheduledDateTime?.substring(11, 16) || '',
           transferNotes: lt?.notes || '',
+          saleType: s.saleType || 'cot',
           ownerFullName: s.ownerFullName || '',
           homeAddress: s.homeAddress || '',
           dateOfBirth: s.dateOfBirth ? s.dateOfBirth.substring(0, 10) : '',
@@ -197,6 +198,7 @@ export default function SaleApplication() {
       transferNotes: prefill.notes || '',
 
       // Sales specific details
+      saleType: 'cot',
       ownerFullName: customer.ownerName || prefill.ownerName || customer.businessName || prefill.businessName || '',
       homeAddress: customer.businessAddress || prefill.businessAddress || '',
       dateOfBirth: '',
@@ -348,6 +350,7 @@ export default function SaleApplication() {
 
       // 3. Submit or Update Sale Application
       const salePayload = {
+        saleType: form.saleType,
         ownerFullName: form.ownerFullName.trim(),
         homeAddress: form.homeAddress.trim(),
         dateOfBirth: form.dateOfBirth ? new Date(form.dateOfBirth).toISOString().split('T')[0] : null,
@@ -446,6 +449,15 @@ export default function SaleApplication() {
 
           <form onSubmit={handleSubmit} className="rt-section-gap">
             
+            {/* Sale Type Selection */}
+            <Card icon={FileText} iconColor="#f59e0b" iconBg="rgba(245,158,11,0.15)" title="Sale Type" delay="rt-d1">
+              <Field label="Select Sale Type" required>
+                <Select value={form.saleType} onChange={(e) => setField('saleType', e.target.value)} className="rt-input">
+                  {SALE_TYPES.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
+                </Select>
+              </Field>
+            </Card>
+
             {/* 1. Business Information Card */}
             <Card icon={Building2} iconColor="#6366f1" iconBg="rgba(99,102,241,0.15)" title="Business Details" delay="rt-d1">
               <div className="rt-grid2">

@@ -58,6 +58,7 @@ def _sale_out(s: Sale, customer: Customer = None) -> SaleOut:
         bankAccountNumber=s.bank_account_number,
         cotStatus=s.cot_status,
         cotDate=s.cot_date,
+        saleType=s.sale_type,
         notes=s.notes,
         createdAt=s.created_at,
         customer=customer_out,
@@ -118,7 +119,8 @@ def create_sale(dto: SaleCreate, request: Request, current_user: User = Depends(
             sort_code=dto.sortCode,
             bank_account_number=dto.bankAccountNumber,
             notes=dto.notes,
-            cot_status="chasing",
+            sale_type=dto.saleType or "cot",
+            cot_status="done" if dto.saleType in ("renewal", "out_of_contract") else "chasing",
             created_at=datetime.now(),
         )
         db.add(sale)
@@ -169,6 +171,10 @@ def update_sale(id: int, dto: SaleUpdate, request: Request, current_user: User =
             sale.cot_status = dto.cotStatus
         if dto.cotDate is not None:
             sale.cot_date = dto.cotDate
+        if dto.saleType is not None:
+            sale.sale_type = dto.saleType
+            if dto.saleType in ("renewal", "out_of_contract"):
+                sale.cot_status = "done"
         if dto.notes is not None:
             sale.notes = dto.notes
 

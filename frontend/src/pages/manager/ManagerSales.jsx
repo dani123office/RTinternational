@@ -123,6 +123,14 @@ export default function ManagerSales() {
       cell: (row) => <StatusBadge status={row.cotStatus} type="sale" />
     },
     {
+      header: 'Type',
+      width: '60px',
+      cell: (row) => {
+        const label = row.saleType === 'cot' ? 'COT' : row.saleType === 'renewal' ? 'Ren' : row.saleType === 'out_of_contract' ? 'OOC' : '-'
+        return <span className="text-xs font-semibold px-2 py-0.5 rounded-md bg-slate-100 text-slate-600">{label}</span>
+      },
+    },
+    {
       header: 'Business Type',
       width: '110px',
       cell: (row) => <span className="text-sm text-slate-600 capitalize">{formatCamel(row.businessType) || '-'}</span>,

@@ -140,6 +140,9 @@ export default function AdminSaleDetail() {
               <div className="rt-card-body">
                 <Field label="Agent">{s.agentName}</Field>
                 <Field label="Status"><StatusBadge status={s.cotStatus} type="sale" /></Field>
+                <Field label="Type">{
+                  s.saleType === 'cot' ? 'COT' : s.saleType === 'renewal' ? 'Renewal' : s.saleType === 'out_of_contract' ? 'Out of Contract' : 'COT'
+                }</Field>
                 <Field label="Owner Name">{s.ownerFullName}</Field>
                 <Field label="Home Address">{s.homeAddress}</Field>
                 <Field label="DOB">{s.dateOfBirth ? new Date(s.dateOfBirth).toLocaleDateString('en-GB') : ''}</Field>

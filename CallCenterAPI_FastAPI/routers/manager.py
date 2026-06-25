@@ -488,6 +488,8 @@ def create_manager_sale(
             account_title=data.accountTitle,
             sort_code=data.sortCode,
             bank_account_number=data.bankAccountNumber,
+            sale_type=data.saleType or "cot",
+            cot_status="done" if data.saleType in ("renewal", "out_of_contract") else "submitted",
             notes=data.notes,
         )
         db.add(s)
@@ -722,6 +724,8 @@ def update_sale(
             attr = _to_snake(key)
             if hasattr(s, attr):
                 setattr(s, attr, val)
+        if data.get("saleType") in ("renewal", "out_of_contract"):
+            s.cot_status = "done"
         db.commit()
         db.refresh(s)
         log_activity(db, manager.id, "updated", "manager_sale", s.id,
