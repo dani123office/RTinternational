@@ -102,11 +102,20 @@ def _ensure_tables():
             for col in table.columns:
                 if col.name not in existing_columns:
                     col_type = col.type.compile(engine.dialect)
+                    default_clause = ""
+                    if col.server_default is not None:
+                        val = col.server_default.arg.text if hasattr(col.server_default.arg, 'text') else str(col.server_default.arg)
+                        default_clause = f" DEFAULT {val}"
+                    elif col.default is not None and not callable(col.default.arg):
+                        val = str(col.default.arg)
+                        if isinstance(col.default.arg, str):
+                            val = f"'{val}'"
+                        default_clause = f" DEFAULT {val}"
                     nullable = "NULL" if col.nullable else "NOT NULL"
                     with engine.connect() as conn:
-                        conn.execute(text(f"ALTER TABLE {table_name} ADD COLUMN {col.name} {col_type} {nullable}"))
+                        conn.execute(text(f"ALTER TABLE {table_name} ADD COLUMN {col.name} {col_type}{default_clause} {nullable}"))
                         conn.commit()
-                    print(f"Added missing column '{col.name}' to '{table_name}'")
+                    print(f"Added missing column '{col.name}' to '{table_name}' with default '{default_clause}'")
     except Exception as e:
         print(f"Warning: Failed to ensure database tables: {e}")
 
