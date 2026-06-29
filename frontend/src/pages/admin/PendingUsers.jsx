@@ -20,6 +20,9 @@ export default function PendingUsers() {
   const [newLoanReason, setNewLoanReason] = useState('')
   const [newLoanSubmitting, setNewLoanSubmitting] = useState(false)
 
+  // Details Modal state variable
+  const [viewingDetailItem, setViewingDetailItem] = useState(null)
+
   const [pendingLeaves, setPendingLeaves] = useState([])
   const [leavesLoading, setLeavesLoading] = useState(false)
   const [reviewProcessing, setReviewProcessing] = useState(null)
@@ -451,7 +454,21 @@ export default function PendingUsers() {
                               <td className="py-2.5 px-2 text-slate-600 text-xs">{l.leaveType}</td>
                               <td className="py-2.5 px-2 text-slate-600 text-xs">{new Date(l.fromDate).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })}</td>
                               <td className="py-2.5 px-2 text-slate-600 text-xs">{new Date(l.toDate).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })}</td>
-                              <td className="py-2.5 px-2 text-slate-500 text-xs max-w-[160px] truncate">{l.reason || '-'}</td>
+                              <td 
+                                className="py-2.5 px-2 text-slate-500 text-xs max-w-[160px] truncate cursor-pointer hover:text-indigo-600 underline decoration-dotted underline-offset-2"
+                                title="Click to view details"
+                                onClick={() => setViewingDetailItem({
+                                  title: 'Leave Request Details',
+                                  fields: [
+                                    { label: 'Agent', value: l.userName || `User #${l.userId}` },
+                                    { label: 'Leave Type', value: l.leaveType },
+                                    { label: 'Dates', value: `${new Date(l.fromDate).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })} to ${new Date(l.toDate).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}` },
+                                    { label: 'Reason', value: l.reason || '-' }
+                                  ]
+                                })}
+                              >
+                                {l.reason || '-'}
+                              </td>
                               <td className="py-2.5 px-2">
                                 <div className="flex items-center gap-2">
                                   <button
@@ -527,7 +544,21 @@ export default function PendingUsers() {
                                 <td className="py-2.5 px-3 text-slate-600 text-xs">{l.leaveType}</td>
                                 <td className="py-2.5 px-3 text-slate-600 text-xs">{new Date(l.fromDate).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}</td>
                                 <td className="py-2.5 px-3 text-slate-600 text-xs">{new Date(l.toDate).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}</td>
-                                <td className="py-2.5 px-3 text-slate-500 text-xs max-w-[120px] truncate">{l.reason || '-'}</td>
+                                <td 
+                                  className="py-2.5 px-3 text-slate-500 text-xs max-w-[120px] truncate cursor-pointer hover:text-indigo-600 underline decoration-dotted underline-offset-2"
+                                  title="Click to view details"
+                                  onClick={() => setViewingDetailItem({
+                                    title: 'Leave Request Details',
+                                    fields: [
+                                      { label: 'Agent', value: l.userName || `User #${l.userId}` },
+                                      { label: 'Leave Type', value: l.leaveType },
+                                      { label: 'Dates', value: `${new Date(l.fromDate).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })} to ${new Date(l.toDate).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}` },
+                                      { label: 'Reason', value: l.reason || '-' }
+                                    ]
+                                  })}
+                                >
+                                  {l.reason || '-'}
+                                </td>
                                 <td className="py-2.5 px-3">
                                   <span className="inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-semibold" style={{ background: s.bg, color: s.color }}>
                                     {l.status === 'approved' ? <CheckCircle size={11} /> : l.status === 'rejected' ? <XCircle size={11} /> : <Clock size={11} />}
@@ -609,7 +640,21 @@ export default function PendingUsers() {
                             <tr key={l.id} className="hover:bg-slate-50 transition-colors" style={{ borderBottom: '1px solid #f8fafc' }}>
                               <td className="py-2.5 px-2 font-semibold text-slate-800 text-xs">{l.userName || `User #${l.userId}`}</td>
                               <td className="py-2.5 px-2 font-bold text-slate-900 text-sm">Rs. {Number(l.amount).toLocaleString()}</td>
-                              <td className="py-2.5 px-2 text-slate-500 text-xs max-w-[160px] truncate">{l.reason || '-'}</td>
+                              <td 
+                                className="py-2.5 px-2 text-slate-500 text-xs max-w-[160px] truncate cursor-pointer hover:text-indigo-600 underline decoration-dotted underline-offset-2"
+                                title="Click to view details"
+                                onClick={() => setViewingDetailItem({
+                                  title: 'Loan Request Details',
+                                  fields: [
+                                    { label: 'Agent', value: l.userName || `User #${l.userId}` },
+                                    { label: 'Amount', value: `Rs. ${Number(l.amount).toLocaleString()}` },
+                                    { label: 'Date', value: new Date(l.createdAt).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' }) },
+                                    { label: 'Reason', value: l.reason || '-' }
+                                  ]
+                                })}
+                              >
+                                {l.reason || '-'}
+                              </td>
                               <td className="py-2.5 px-2 text-slate-600 text-xs">{new Date(l.createdAt).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })}</td>
                               <td className="py-2.5 px-2">
                                 <div className="flex items-center gap-2">
@@ -689,10 +734,25 @@ export default function PendingUsers() {
                                 <td className="py-2.5 px-3 font-bold text-slate-900 text-xs">Rs. {Number(l.amount).toLocaleString()}</td>
                                 <td className="py-2.5 px-3 text-xs text-green-600 font-semibold">{isApproved ? `Rs. ${Number(l.paidAmount || 0).toLocaleString()}` : '-'}</td>
                                 <td className="py-2.5 px-3 text-xs text-indigo-600 font-bold">{isApproved ? `Rs. ${Number(remaining).toLocaleString()}` : '-'}</td>
-                                <td className="py-2.5 px-3 text-slate-500 text-xs max-w-[120px] truncate" title={l.reason || ''}>
+                                <td 
+                                  className="py-2.5 px-3 text-slate-500 text-xs max-w-[120px] truncate cursor-pointer hover:text-indigo-600 underline decoration-dotted underline-offset-2" 
+                                  title="Click to view details"
+                                  onClick={() => setViewingDetailItem({
+                                    title: 'Loan Request Details',
+                                    fields: [
+                                      { label: 'Agent', value: l.userName || `User #${l.userId}` },
+                                      { label: 'Total Amount', value: `Rs. ${Number(l.amount).toLocaleString()}` },
+                                      { label: 'Paid Back', value: l.status === 'approved' ? `Rs. ${Number(l.paidAmount || 0).toLocaleString()}` : '-' },
+                                      { label: 'Pending Balance', value: l.status === 'approved' ? `Rs. ${Number(l.amount - (l.paidAmount || 0)).toLocaleString()}` : '-' },
+                                      { label: 'Date', value: new Date(l.createdAt).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' }) },
+                                      { label: 'Reason', value: l.reason || '-' },
+                                      { label: 'Admin Remarks', value: l.adminNotes || '-' }
+                                    ]
+                                  })}
+                                >
                                   <div>{l.reason || '-'}</div>
                                   {l.adminNotes && (
-                                    <div className="text-[10px] text-amber-600 mt-1 font-semibold whitespace-normal leading-normal" title={l.adminNotes}>
+                                    <div className="text-[10px] text-amber-600 mt-1 font-semibold whitespace-normal leading-normal">
                                       Remarks: {l.adminNotes}
                                     </div>
                                   )}
@@ -1010,6 +1070,39 @@ export default function PendingUsers() {
               >
                 {newLoanSubmitting ? <Loader2 size={16} className="animate-spin" /> : <CheckCircle size={16} />}
                 Add & Approve
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+      {viewingDetailItem && (
+        <div style={{ position: 'fixed', inset: 0, background: 'rgba(15,23,42,0.3)', backdropFilter: 'blur(4px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 100, padding: 20 }}>
+          <div className="rt-card rt-fade" style={{ width: '100%', maxWidth: '480px', background: '#fff', borderRadius: '16px', boxShadow: '0 20px 25px -5px rgba(0,0,0,0.1)', padding: '24px 28px' }}>
+            <div className="flex items-center gap-2 mb-4" style={{ borderBottom: '1px solid #f1f5f9', paddingBottom: '12px' }}>
+              <div className="w-8 h-8 rounded-lg flex items-center justify-center" style={{ background: '#eef2ff' }}>
+                <Clock size={16} color="#6366f1" />
+              </div>
+              <h3 className="font-bold text-slate-900 text-lg">{viewingDetailItem.title}</h3>
+            </div>
+
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+              {viewingDetailItem.fields.map((f, idx) => (
+                <div key={idx} style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                  <span style={labelStyle}>{f.label}</span>
+                  <div className="text-sm text-slate-700 bg-slate-50 p-2.5 rounded-lg whitespace-pre-wrap leading-relaxed border border-slate-100">
+                    {f.value}
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '24px', paddingTop: '16px', borderTop: '1px solid #f1f5f9' }}>
+              <button
+                onClick={() => setViewingDetailItem(null)}
+                className="flex items-center gap-1.5 px-4 py-2 rounded-lg text-sm font-semibold cursor-pointer border"
+                style={{ background: '#fff', borderColor: '#e2e8f0', color: '#64748b' }}
+              >
+                Close
               </button>
             </div>
           </div>
