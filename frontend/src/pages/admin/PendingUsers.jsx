@@ -955,12 +955,12 @@ export default function PendingUsers() {
                   <option value="">Choose staff member...</option>
                   {managers.length > 0 && <optgroup label="Managers">
                     {managers.map((m) => (
-                      <option key={m.id} value={m.id}>{m.name} ({m.email})</option>
+                      <option key={m.id} value={m.id}>{m.name}</option>
                     ))}
                   </optgroup>}
                   {agents.length > 0 && <optgroup label="Agents">
                     {agents.map((a) => (
-                      <option key={a.id} value={a.id}>{a.name} ({a.email})</option>
+                      <option key={a.id} value={a.id}>{a.name}</option>
                     ))}
                   </optgroup>}
                 </select>
