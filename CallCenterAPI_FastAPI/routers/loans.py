@@ -181,11 +181,12 @@ def record_payback(
     if record.status != "approved":
         raise HTTPException(status_code=400, detail="Can only record payback for approved loans")
 
-    remaining_balance = record.amount - record.paid_amount
+    current_paid = record.paid_amount if record.paid_amount is not None else 0.0
+    remaining_balance = record.amount - current_paid
     if dto.payback_amount > remaining_balance + 0.01:
         raise HTTPException(status_code=400, detail=f"Payback amount exceeds remaining balance of Rs. {remaining_balance}")
 
-    record.paid_amount += dto.payback_amount
+    record.paid_amount = current_paid + dto.payback_amount
     if dto.admin_notes:
         if record.admin_notes:
             record.admin_notes += f"\n[Payback: Rs. {dto.payback_amount}] {dto.admin_notes}"
