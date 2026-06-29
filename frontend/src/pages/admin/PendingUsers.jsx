@@ -1077,7 +1077,7 @@ export default function PendingUsers() {
       )}
       {viewingDetailItem && (
         <div style={{ position: 'fixed', inset: 0, background: 'rgba(15,23,42,0.3)', backdropFilter: 'blur(4px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 100, padding: 20 }}>
-          <div className="rt-card rt-fade" style={{ width: '100%', maxWidth: '480px', background: '#fff', borderRadius: '16px', boxShadow: '0 20px 25px -5px rgba(0,0,0,0.1)', padding: '24px 28px' }}>
+          <div className="rt-card rt-fade" style={{ width: '100%', maxWidth: '480px', maxHeight: '90vh', overflowY: 'auto', background: '#fff', borderRadius: '16px', boxShadow: '0 20px 25px -5px rgba(0,0,0,0.1)', padding: '24px 28px' }}>
             <div className="flex items-center gap-2 mb-4" style={{ borderBottom: '1px solid #f1f5f9', paddingBottom: '12px' }}>
               <div className="w-8 h-8 rounded-lg flex items-center justify-center" style={{ background: '#eef2ff' }}>
                 <Clock size={16} color="#6366f1" />
