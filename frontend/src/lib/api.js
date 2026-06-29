@@ -202,7 +202,7 @@ export const endpoints = {
     assignAgent: '/api/admin/assign-agent',
     pendingUsers: '/api/admin/pending-users',
     approveUser: (id) => `/api/admin/approve-user/${id}`,
-    resetUserPassword: (id) => `/api/admin/reset-user-password/${id}`,
+    resetUserPassword: (id) => `/api/admin/users/${id}/reset-password`,
     callbacks: '/api/admin/callbacks',
     callbackDetail: (id) => `/api/admin/callbacks/${id}`,
     callbacksExport: '/api/admin/callbacks/export',

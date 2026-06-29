@@ -123,7 +123,7 @@ export const useAdminStore = create((set, get) => ({
   },
 
   resetUserPassword: async (userId, newPassword) => {
-    const res = await api.post(endpoints.admin.resetUserPassword(userId), { newPassword })
+    const res = await api.put(endpoints.admin.resetUserPassword(userId), { newPassword })
     return res.data
   },
 
