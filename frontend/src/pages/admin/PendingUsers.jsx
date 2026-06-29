@@ -5,6 +5,7 @@ import { UserPlus, CheckCircle, XCircle, Loader2, UserRoundCog, CalendarCheck, C
 import { APP_STYLES } from '@/lib/styles'
 import DataTable from '@/components/shared/DataTable'
 import LoadingSpinner from '@/components/shared/LoadingSpinner'
+import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs'
 
 export default function PendingUsers() {
   const { pendingUsers, managers, loadPendingUsers, loadManagers, approveUser } = useAdminStore()
@@ -333,345 +334,367 @@ export default function PendingUsers() {
             </div>
           )}
 
-          {/* Pending Leave Requests */}
-          <div className="rt-fade rt-card">
-            <div className="rt-card-header">
-              <div className="flex items-center gap-2.5">
-                <div className="rt-card-icon" style={{ background: '#fffbeb' }}>
-                  <CalendarCheck size={16} color="#d97706" />
-                </div>
-                <h2 className="rt-card-title">Leave Requests ({pendingLeaves.length})</h2>
-              </div>
+          <Tabs defaultValue="users">
+            <div className="flex items-center justify-between flex-wrap gap-3 mb-5">
+              <TabsList>
+                <TabsTrigger value="users" className="flex items-center gap-1.5">
+                  <UserPlus size={15} /> Users ({pendingUsers.length})
+                </TabsTrigger>
+                <TabsTrigger value="leaves" className="flex items-center gap-1.5">
+                  <CalendarCheck size={15} /> Leaves ({pendingLeaves.length})
+                </TabsTrigger>
+                <TabsTrigger value="loans" className="flex items-center gap-1.5">
+                  <Wallet size={15} /> Loans ({pendingLoans.length})
+                </TabsTrigger>
+              </TabsList>
             </div>
-            <div className="rt-card-body">
-              {leavesLoading ? (
-                <p className="text-sm text-slate-400 text-center py-6">Loading...</p>
-              ) : pendingLeaves.length === 0 ? (
-                <div className="flex flex-col items-center justify-center py-6">
-                  <CalendarCheck size={28} color="#94a3b8" />
-                  <p className="text-sm font-semibold text-slate-500 mt-3">No pending leave requests</p>
-                  <p className="text-xs text-slate-400 mt-1">All caught up!</p>
-                </div>
-              ) : (
-                <div className="overflow-x-auto">
-                  <table className="w-full text-sm">
-                    <thead>
-                      <tr style={{ borderBottom: '1px solid #f1f5f9' }}>
-                        <th className="text-left py-2.5 px-2 font-semibold text-slate-500 text-xs uppercase">Agent</th>
-                        <th className="text-left py-2.5 px-2 font-semibold text-slate-500 text-xs uppercase">Type</th>
-                        <th className="text-left py-2.5 px-2 font-semibold text-slate-500 text-xs uppercase">From</th>
-                        <th className="text-left py-2.5 px-2 font-semibold text-slate-500 text-xs uppercase">To</th>
-                        <th className="text-left py-2.5 px-2 font-semibold text-slate-500 text-xs uppercase">Reason</th>
-                        <th className="text-left py-2.5 px-2 font-semibold text-slate-500 text-xs uppercase">Action</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {pendingLeaves.map((l) => (
-                        <tr key={l.id} className="hover:bg-slate-50 transition-colors" style={{ borderBottom: '1px solid #f8fafc' }}>
-                          <td className="py-2.5 px-2 font-semibold text-slate-800 text-xs">{l.userName || `User #${l.userId}`}</td>
-                          <td className="py-2.5 px-2 text-slate-600 text-xs">{l.leaveType}</td>
-                          <td className="py-2.5 px-2 text-slate-600 text-xs">{new Date(l.fromDate).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })}</td>
-                          <td className="py-2.5 px-2 text-slate-600 text-xs">{new Date(l.toDate).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })}</td>
-                          <td className="py-2.5 px-2 text-slate-500 text-xs max-w-[160px] truncate">{l.reason || '-'}</td>
-                          <td className="py-2.5 px-2">
-                            <div className="flex items-center gap-2">
-                              <button
-                                onClick={() => handleReview(l.id, 'approved')}
-                                disabled={reviewProcessing === l.id}
-                                className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-semibold cursor-pointer border-0 text-white disabled:opacity-50 transition-all"
-                                style={{ background: 'linear-gradient(135deg, #22c55e, #16a34a)' }}
-                              >
-                                {reviewProcessing === l.id ? <Loader2 size={12} className="animate-spin" /> : <Check size={12} />}
-                                Approve
-                              </button>
-                              <button
-                                onClick={() => handleReview(l.id, 'rejected')}
-                                disabled={reviewProcessing === l.id}
-                                className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-semibold cursor-pointer border-0 text-white disabled:opacity-50 transition-all"
-                                style={{ background: 'linear-gradient(135deg, #ef4444, #dc2626)' }}
-                              >
-                                <X size={12} /> Reject
-                              </button>
-                            </div>
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-              )}
-            </div>
-          </div>
 
-          {/* Pending Loan Requests */}
-          <div className="rt-fade rt-card" style={{ marginTop: '24px' }}>
-            <div className="rt-card-header">
-              <div className="flex items-center gap-2.5">
-                <div className="rt-card-icon" style={{ background: '#ecfdf5' }}>
-                  <Wallet size={16} color="#16a34a" />
+            <TabsContent value="users">
+              <div className="rt-fade rt-card">
+                <div className="rt-card-header">
+                  <div className="flex items-center gap-2.5">
+                    <div className="rt-card-icon" style={{ background: '#eef2ff' }}>
+                      <UserPlus size={16} color="#6366f1" />
+                    </div>
+                    <h2 className="rt-card-title">Pending Approvals ({pendingUsers.length})</h2>
+                  </div>
                 </div>
-                <h2 className="rt-card-title">Loan Requests ({pendingLoans.length})</h2>
+                <div className="rt-card-body">
+                  {pendingUsers.length === 0 ? (
+                    <div className="flex flex-col items-center justify-center py-6">
+                      <UserPlus size={28} color="#94a3b8" />
+                      <p className="text-sm font-semibold text-slate-500 mt-3">You're all caught up!</p>
+                      <p className="text-xs text-slate-400 mt-1">No pending approvals</p>
+                    </div>
+                  ) : (
+                    <DataTable columns={columns} data={pendingUsers} pageSize={10} onRowClick={(row) => openEditModal(row)} />
+                  )}
+                </div>
               </div>
-            </div>
-            <div className="rt-card-body">
-              {loansLoading ? (
-                <p className="text-sm text-slate-400 text-center py-6">Loading...</p>
-              ) : pendingLoans.length === 0 ? (
-                <div className="flex flex-col items-center justify-center py-6">
-                  <Wallet size={28} color="#94a3b8" />
-                  <p className="text-sm font-semibold text-slate-500 mt-3">No pending loan requests</p>
-                  <p className="text-xs text-slate-400 mt-1">All caught up!</p>
-                </div>
-              ) : (
-                <div className="overflow-x-auto">
-                  <table className="w-full text-sm">
-                    <thead>
-                      <tr style={{ borderBottom: '1px solid #f1f5f9' }}>
-                        <th className="text-left py-2.5 px-2 font-semibold text-slate-500 text-xs uppercase">Agent</th>
-                        <th className="text-left py-2.5 px-2 font-semibold text-slate-500 text-xs uppercase">Amount</th>
-                        <th className="text-left py-2.5 px-2 font-semibold text-slate-500 text-xs uppercase">Reason</th>
-                        <th className="text-left py-2.5 px-2 font-semibold text-slate-500 text-xs uppercase">Date</th>
-                        <th className="text-left py-2.5 px-2 font-semibold text-slate-500 text-xs uppercase">Action</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {pendingLoans.map((l) => (
-                        <tr key={l.id} className="hover:bg-slate-50 transition-colors" style={{ borderBottom: '1px solid #f8fafc' }}>
-                          <td className="py-2.5 px-2 font-semibold text-slate-800 text-xs">{l.userName || `User #${l.userId}`}</td>
-                          <td className="py-2.5 px-2 font-bold text-slate-900 text-sm">Rs. {Number(l.amount).toLocaleString()}</td>
-                          <td className="py-2.5 px-2 text-slate-500 text-xs max-w-[160px] truncate">{l.reason || '-'}</td>
-                          <td className="py-2.5 px-2 text-slate-600 text-xs">{new Date(l.createdAt).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })}</td>
-                          <td className="py-2.5 px-2">
-                            <div className="flex items-center gap-2">
-                              <button
-                                onClick={() => handleLoanReview(l.id, 'approved')}
-                                disabled={loanReviewProcessing === l.id}
-                                className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-semibold cursor-pointer border-0 text-white disabled:opacity-50 transition-all"
-                                style={{ background: 'linear-gradient(135deg, #22c55e, #16a34a)' }}
-                              >
-                                {loanReviewProcessing === l.id ? <Loader2 size={12} className="animate-spin" /> : <Check size={12} />}
-                                Approve
-                              </button>
-                              <button
-                                onClick={() => handleLoanReview(l.id, 'rejected')}
-                                disabled={loanReviewProcessing === l.id}
-                                className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-semibold cursor-pointer border-0 text-white disabled:opacity-50 transition-all"
-                                style={{ background: 'linear-gradient(135deg, #ef4444, #dc2626)' }}
-                              >
-                                <X size={12} /> Reject
-                              </button>
-                            </div>
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-              )}
-            </div>
-          </div>
+            </TabsContent>
 
-          <div className="rt-fade rt-card" style={{ marginTop: '24px' }}>
-            <div className="rt-card-header">
-              <div className="flex items-center gap-2.5">
-                <div className="rt-card-icon" style={{ background: '#eef2ff' }}>
-                  <UserPlus size={16} color="#6366f1" />
+            <TabsContent value="leaves">
+              {/* Pending Leave Requests */}
+              <div className="rt-fade rt-card">
+                <div className="rt-card-header">
+                  <div className="flex items-center gap-2.5">
+                    <div className="rt-card-icon" style={{ background: '#fffbeb' }}>
+                      <CalendarCheck size={16} color="#d97706" />
+                    </div>
+                    <h2 className="rt-card-title">Pending Leave Requests ({pendingLeaves.length})</h2>
+                  </div>
                 </div>
-                <h2 className="rt-card-title">Pending Approvals ({pendingUsers.length})</h2>
-              </div>
-            </div>
-            <div className="rt-card-body">
-              {pendingUsers.length === 0 ? (
-                <div className="flex flex-col items-center justify-center py-6">
-                  <UserPlus size={28} color="#94a3b8" />
-                  <p className="text-sm font-semibold text-slate-500 mt-3">You're all caught up!</p>
-                  <p className="text-xs text-slate-400 mt-1">No pending approvals</p>
-                </div>
-              ) : (
-                <DataTable columns={columns} data={pendingUsers} pageSize={10} onRowClick={(row) => openEditModal(row)} />
-              )}
-            </div>
-          </div>
-
-          {/* Loan History */}
-          <div className="rt-fade rt-card" style={{ marginTop: '24px' }}>
-            <div className="rt-card-header">
-              <div className="flex items-center gap-2.5">
-                <div className="rt-card-icon" style={{ background: '#f1f5f9' }}>
-                  <Wallet size={16} color="#64748b" />
-                </div>
-                <h2 className="rt-card-title">Loan History ({loanHistory.total || 0})</h2>
-              </div>
-            </div>
-            <div className="rt-card-body p-0 overflow-x-auto">
-              {loanHistoryLoading ? (
-                <p className="text-sm text-slate-400 text-center py-6">Loading history...</p>
-              ) : loanHistory.items?.length === 0 ? (
-                <div className="flex flex-col items-center justify-center py-6">
-                  <Wallet size={28} color="#94a3b8" />
-                  <p className="text-sm font-semibold text-slate-500 mt-3">No loan history</p>
-                </div>
-              ) : (
-                <>
-                  <table className="w-full text-sm">
-                    <thead>
-                      <tr style={{ borderBottom: '1px solid #f1f5f9' }}>
-                        <th className="text-left py-2.5 px-3 font-semibold text-slate-500 text-xs uppercase">Agent</th>
-                        <th className="text-left py-2.5 px-3 font-semibold text-slate-500 text-xs uppercase">Total</th>
-                        <th className="text-left py-2.5 px-3 font-semibold text-slate-500 text-xs uppercase">Paid Back</th>
-                        <th className="text-left py-2.5 px-3 font-semibold text-slate-500 text-xs uppercase">Pending</th>
-                        <th className="text-left py-2.5 px-3 font-semibold text-slate-500 text-xs uppercase">Reason</th>
-                        <th className="text-left py-2.5 px-3 font-semibold text-slate-500 text-xs uppercase">Status</th>
-                        <th className="text-left py-2.5 px-3 font-semibold text-slate-500 text-xs uppercase">Date</th>
-                        <th className="text-left py-2.5 px-3 font-semibold text-slate-500 text-xs uppercase">Action</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {loanHistory.items.map((l) => {
-                        const s = l.status === 'approved'
-                          ? { bg: '#dcfce7', color: '#16a34a', label: 'Approved' }
-                          : l.status === 'rejected'
-                          ? { bg: '#fee2e2', color: '#dc2626', label: 'Rejected' }
-                          : { bg: '#fef3c7', color: '#d97706', label: 'Pending' }
-                        const isApproved = l.status === 'approved'
-                        const remaining = isApproved ? (l.amount - (l.paidAmount || 0)) : 0
-                        return (
-                          <tr key={l.id} className="hover:bg-slate-50 transition-colors" style={{ borderBottom: '1px solid #f8fafc' }}>
-                            <td className="py-2.5 px-3 font-semibold text-slate-800 text-xs">{l.userName || `User #${l.userId}`}</td>
-                            <td className="py-2.5 px-3 font-bold text-slate-900 text-xs">Rs. {Number(l.amount).toLocaleString()}</td>
-                            <td className="py-2.5 px-3 text-xs text-green-600 font-semibold">{isApproved ? `Rs. ${Number(l.paidAmount || 0).toLocaleString()}` : '-'}</td>
-                            <td className="py-2.5 px-3 text-xs text-indigo-600 font-bold">{isApproved ? `Rs. ${Number(remaining).toLocaleString()}` : '-'}</td>
-                            <td className="py-2.5 px-3 text-slate-500 text-xs max-w-[120px] truncate" title={l.reason || ''}>
-                              <div>{l.reason || '-'}</div>
-                              {l.adminNotes && (
-                                <div className="text-[10px] text-amber-600 mt-1 font-semibold whitespace-normal leading-normal" title={l.adminNotes}>
-                                  Remarks: {l.adminNotes}
-                                </div>
-                              )}
-                            </td>
-                            <td className="py-2.5 px-3">
-                              <span className="inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-semibold" style={{ background: s.bg, color: s.color }}>
-                                {l.status === 'approved' ? <CheckCircle size={11} /> : l.status === 'rejected' ? <XCircle size={11} /> : <Clock size={11} />}
-                                {s.label}
-                              </span>
-                            </td>
-                            <td className="py-2.5 px-3 text-slate-600 text-xs">{new Date(l.createdAt).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}</td>
-                            <td className="py-2.5 px-3">
-                              <div className="flex items-center gap-1.5">
-                                {isApproved && remaining > 0 && (
+                <div className="rt-card-body">
+                  {leavesLoading ? (
+                    <p className="text-sm text-slate-400 text-center py-6">Loading...</p>
+                  ) : pendingLeaves.length === 0 ? (
+                    <div className="flex flex-col items-center justify-center py-6">
+                      <CalendarCheck size={28} color="#94a3b8" />
+                      <p className="text-sm font-semibold text-slate-500 mt-3">No pending leave requests</p>
+                      <p className="text-xs text-slate-400 mt-1">All caught up!</p>
+                    </div>
+                  ) : (
+                    <div className="overflow-x-auto">
+                      <table className="w-full text-sm">
+                        <thead>
+                          <tr style={{ borderBottom: '1px solid #f1f5f9' }}>
+                            <th className="text-left py-2.5 px-2 font-semibold text-slate-500 text-xs uppercase">Agent</th>
+                            <th className="text-left py-2.5 px-2 font-semibold text-slate-500 text-xs uppercase">Type</th>
+                            <th className="text-left py-2.5 px-2 font-semibold text-slate-500 text-xs uppercase">From</th>
+                            <th className="text-left py-2.5 px-2 font-semibold text-slate-500 text-xs uppercase">To</th>
+                            <th className="text-left py-2.5 px-2 font-semibold text-slate-500 text-xs uppercase">Reason</th>
+                            <th className="text-left py-2.5 px-2 font-semibold text-slate-500 text-xs uppercase">Action</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {pendingLeaves.map((l) => (
+                            <tr key={l.id} className="hover:bg-slate-50 transition-colors" style={{ borderBottom: '1px solid #f8fafc' }}>
+                              <td className="py-2.5 px-2 font-semibold text-slate-800 text-xs">{l.userName || `User #${l.userId}`}</td>
+                              <td className="py-2.5 px-2 text-slate-600 text-xs">{l.leaveType}</td>
+                              <td className="py-2.5 px-2 text-slate-600 text-xs">{new Date(l.fromDate).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })}</td>
+                              <td className="py-2.5 px-2 text-slate-600 text-xs">{new Date(l.toDate).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })}</td>
+                              <td className="py-2.5 px-2 text-slate-500 text-xs max-w-[160px] truncate">{l.reason || '-'}</td>
+                              <td className="py-2.5 px-2">
+                                <div className="flex items-center gap-2">
                                   <button
-                                    onClick={() => openPaybackModal(l)}
-                                    className="flex items-center gap-1 px-2 py-1 rounded-lg text-xs font-semibold cursor-pointer border-0 text-white transition-all"
-                                    style={{ background: 'linear-gradient(135deg, #6366f1, #4f46e5)' }}
+                                    onClick={() => handleReview(l.id, 'approved')}
+                                    disabled={reviewProcessing === l.id}
+                                    className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-semibold cursor-pointer border-0 text-white disabled:opacity-50 transition-all"
+                                    style={{ background: 'linear-gradient(135deg, #22c55e, #16a34a)' }}
                                   >
-                                    Payback
+                                    {reviewProcessing === l.id ? <Loader2 size={12} className="animate-spin" /> : <Check size={12} />}
+                                    Approve
                                   </button>
-                                )}
-                                <button onClick={() => handleDeleteLoan(l.id)} disabled={deleteProcessing === l.id}
-                                  className="flex items-center gap-1 px-1.5 py-1 rounded-lg text-xs font-semibold cursor-pointer border-0 text-white disabled:opacity-50 transition-all"
-                                  style={{ background: 'linear-gradient(135deg, #ef4444, #dc2626)' }}>
-                                  <Trash2 size={11} />
-                                </button>
-                              </div>
-                            </td>
-                          </tr>
-                        )
-                      })}
-                    </tbody>
-                  </table>
-                  {loanHistory.totalPages > 1 && (
-                    <div className="flex items-center justify-between px-3 py-3" style={{ borderTop: '1px solid #f1f5f9' }}>
-                      <p className="text-xs text-slate-400">{loanHistory.total} total</p>
-                      <div className="flex items-center gap-2">
-                        <button disabled={loanHistory.page <= 1} onClick={() => loadLoanHistory(loanHistory.page - 1)} className="p-1.5 rounded-lg border border-slate-200 bg-white cursor-pointer disabled:opacity-40"><ChevronLeft size={14} /></button>
-                        <span className="text-xs font-semibold text-slate-500">{loanHistory.page} / {loanHistory.totalPages}</span>
-                        <button disabled={loanHistory.page >= loanHistory.totalPages} onClick={() => loadLoanHistory(loanHistory.page + 1)} className="p-1.5 rounded-lg border border-slate-200 bg-white cursor-pointer disabled:opacity-40"><ChevronRight size={14} /></button>
-                      </div>
+                                  <button
+                                    onClick={() => handleReview(l.id, 'rejected')}
+                                    disabled={reviewProcessing === l.id}
+                                    className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-semibold cursor-pointer border-0 text-white disabled:opacity-50 transition-all"
+                                    style={{ background: 'linear-gradient(135deg, #ef4444, #dc2626)' }}
+                                  >
+                                    <X size={12} /> Reject
+                                  </button>
+                                </div>
+                              </td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
                     </div>
                   )}
-                </>
-              )}
-            </div>
-          </div>
-
-          {/* Leave History */}
-          <div className="rt-fade rt-card" style={{ marginTop: '24px' }}>
-            <div className="rt-card-header">
-              <div className="flex items-center gap-2.5">
-                <div className="rt-card-icon" style={{ background: '#f1f5f9' }}>
-                  <CalendarCheck size={16} color="#64748b" />
                 </div>
-                <h2 className="rt-card-title">Leave History ({leaveHistory.total || 0})</h2>
               </div>
-            </div>
-            <div className="rt-card-body p-0 overflow-x-auto">
-              {leaveHistoryLoading ? (
-                <p className="text-sm text-slate-400 text-center py-6">Loading history...</p>
-              ) : leaveHistory.items?.length === 0 ? (
-                <div className="flex flex-col items-center justify-center py-6">
-                  <CalendarCheck size={28} color="#94a3b8" />
-                  <p className="text-sm font-semibold text-slate-500 mt-3">No leave history</p>
+
+              {/* Leave History */}
+              <div className="rt-fade rt-card" style={{ marginTop: '24px' }}>
+                <div className="rt-card-header">
+                  <div className="flex items-center gap-2.5">
+                    <div className="rt-card-icon" style={{ background: '#f1f5f9' }}>
+                      <CalendarCheck size={16} color="#64748b" />
+                    </div>
+                    <h2 className="rt-card-title">Leave History ({leaveHistory.total || 0})</h2>
+                  </div>
                 </div>
-              ) : (
-                <>
-                  <table className="w-full text-sm">
-                    <thead>
-                      <tr style={{ borderBottom: '1px solid #f1f5f9' }}>
-                        <th className="text-left py-2.5 px-3 font-semibold text-slate-500 text-xs uppercase">Agent</th>
-                        <th className="text-left py-2.5 px-3 font-semibold text-slate-500 text-xs uppercase">Type</th>
-                        <th className="text-left py-2.5 px-3 font-semibold text-slate-500 text-xs uppercase">From</th>
-                        <th className="text-left py-2.5 px-3 font-semibold text-slate-500 text-xs uppercase">To</th>
-                        <th className="text-left py-2.5 px-3 font-semibold text-slate-500 text-xs uppercase">Reason</th>
-                        <th className="text-left py-2.5 px-3 font-semibold text-slate-500 text-xs uppercase">Status</th>
-                        <th className="text-left py-2.5 px-3 font-semibold text-slate-500 text-xs uppercase">Action</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {leaveHistory.items.map((l) => {
-                        const s = l.status === 'approved'
-                          ? { bg: '#dcfce7', color: '#16a34a', label: 'Approved' }
-                          : l.status === 'rejected'
-                          ? { bg: '#fee2e2', color: '#dc2626', label: 'Rejected' }
-                          : { bg: '#fef3c7', color: '#d97706', label: 'Pending' }
-                        return (
-                          <tr key={l.id} className="hover:bg-slate-50 transition-colors" style={{ borderBottom: '1px solid #f8fafc' }}>
-                            <td className="py-2.5 px-3 font-semibold text-slate-800 text-xs">{l.userName || `User #${l.userId}`}</td>
-                            <td className="py-2.5 px-3 text-slate-600 text-xs">{l.leaveType}</td>
-                            <td className="py-2.5 px-3 text-slate-600 text-xs">{new Date(l.fromDate).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}</td>
-                            <td className="py-2.5 px-3 text-slate-600 text-xs">{new Date(l.toDate).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}</td>
-                            <td className="py-2.5 px-3 text-slate-500 text-xs max-w-[120px] truncate">{l.reason || '-'}</td>
-                            <td className="py-2.5 px-3">
-                              <span className="inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-semibold" style={{ background: s.bg, color: s.color }}>
-                                {l.status === 'approved' ? <CheckCircle size={11} /> : l.status === 'rejected' ? <XCircle size={11} /> : <Clock size={11} />}
-                                {s.label}
-                              </span>
-                            </td>
-                            <td className="py-2.5 px-3">
-                              <button onClick={() => handleDeleteLeave(l.id)} disabled={deleteProcessing === l.id}
-                                className="flex items-center gap-1 px-2 py-1 rounded-lg text-xs font-semibold cursor-pointer border-0 text-white disabled:opacity-50 transition-all"
-                                style={{ background: 'linear-gradient(135deg, #ef4444, #dc2626)' }}>
-                                <X size={10} /> Delete
-                              </button>
-                            </td>
+                <div className="rt-card-body p-0 overflow-x-auto">
+                  {leaveHistoryLoading ? (
+                    <p className="text-sm text-slate-400 text-center py-6">Loading history...</p>
+                  ) : leaveHistory.items?.length === 0 ? (
+                    <div className="flex flex-col items-center justify-center py-6">
+                      <CalendarCheck size={28} color="#94a3b8" />
+                      <p className="text-sm font-semibold text-slate-500 mt-3">No leave history</p>
+                    </div>
+                  ) : (
+                    <>
+                      <table className="w-full text-sm">
+                        <thead>
+                          <tr style={{ borderBottom: '1px solid #f1f5f9' }}>
+                            <th className="text-left py-2.5 px-3 font-semibold text-slate-500 text-xs uppercase">Agent</th>
+                            <th className="text-left py-2.5 px-3 font-semibold text-slate-500 text-xs uppercase">Type</th>
+                            <th className="text-left py-2.5 px-3 font-semibold text-slate-500 text-xs uppercase">From</th>
+                            <th className="text-left py-2.5 px-3 font-semibold text-slate-500 text-xs uppercase">To</th>
+                            <th className="text-left py-2.5 px-3 font-semibold text-slate-500 text-xs uppercase">Reason</th>
+                            <th className="text-left py-2.5 px-3 font-semibold text-slate-500 text-xs uppercase">Status</th>
+                            <th className="text-left py-2.5 px-3 font-semibold text-slate-500 text-xs uppercase">Action</th>
                           </tr>
-                        )
-                      })}
-                    </tbody>
-                  </table>
-                  {leaveHistory.totalPages > 1 && (
-                    <div className="flex items-center justify-between px-3 py-3" style={{ borderTop: '1px solid #f1f5f9' }}>
-                      <p className="text-xs text-slate-400">{leaveHistory.total} total</p>
-                      <div className="flex items-center gap-2">
-                        <button disabled={leaveHistory.page <= 1} onClick={() => loadLeaveHistory(leaveHistory.page - 1)} className="p-1.5 rounded-lg border border-slate-200 bg-white cursor-pointer disabled:opacity-40"><ChevronLeft size={14} /></button>
-                        <span className="text-xs font-semibold text-slate-500">{leaveHistory.page} / {leaveHistory.totalPages}</span>
-                        <button disabled={leaveHistory.page >= leaveHistory.totalPages} onClick={() => loadLeaveHistory(leaveHistory.page + 1)} className="p-1.5 rounded-lg border border-slate-200 bg-white cursor-pointer disabled:opacity-40"><ChevronRight size={14} /></button>
-                      </div>
+                        </thead>
+                        <tbody>
+                          {leaveHistory.items.map((l) => {
+                            const s = l.status === 'approved'
+                              ? { bg: '#dcfce7', color: '#16a34a', label: 'Approved' }
+                              : l.status === 'rejected'
+                              ? { bg: '#fee2e2', color: '#dc2626', label: 'Rejected' }
+                              : { bg: '#fef3c7', color: '#d97706', label: 'Pending' }
+                            return (
+                              <tr key={l.id} className="hover:bg-slate-50 transition-colors" style={{ borderBottom: '1px solid #f8fafc' }}>
+                                <td className="py-2.5 px-3 font-semibold text-slate-800 text-xs">{l.userName || `User #${l.userId}`}</td>
+                                <td className="py-2.5 px-3 text-slate-600 text-xs">{l.leaveType}</td>
+                                <td className="py-2.5 px-3 text-slate-600 text-xs">{new Date(l.fromDate).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}</td>
+                                <td className="py-2.5 px-3 text-slate-600 text-xs">{new Date(l.toDate).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}</td>
+                                <td className="py-2.5 px-3 text-slate-500 text-xs max-w-[120px] truncate">{l.reason || '-'}</td>
+                                <td className="py-2.5 px-3">
+                                  <span className="inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-semibold" style={{ background: s.bg, color: s.color }}>
+                                    {l.status === 'approved' ? <CheckCircle size={11} /> : l.status === 'rejected' ? <XCircle size={11} /> : <Clock size={11} />}
+                                    {s.label}
+                                  </span>
+                                </td>
+                                <td className="py-2.5 px-3">
+                                  <button onClick={() => handleDeleteLeave(l.id)} disabled={deleteProcessing === l.id}
+                                    className="flex items-center gap-1 px-2 py-1 rounded-lg text-xs font-semibold cursor-pointer border-0 text-white disabled:opacity-50 transition-all"
+                                    style={{ background: 'linear-gradient(135deg, #ef4444, #dc2626)' }}>
+                                    <X size={10} /> Delete
+                                  </button>
+                                </td>
+                              </tr>
+                            )
+                          })}
+                        </tbody>
+                      </table>
+                      {leaveHistory.totalPages > 1 && (
+                        <div className="flex items-center justify-between px-3 py-3" style={{ borderTop: '1px solid #f1f5f9' }}>
+                          <p className="text-xs text-slate-400">{leaveHistory.total} total</p>
+                          <div className="flex items-center gap-2">
+                            <button disabled={leaveHistory.page <= 1} onClick={() => loadLeaveHistory(leaveHistory.page - 1)} className="p-1.5 rounded-lg border border-slate-200 bg-white cursor-pointer disabled:opacity-40"><ChevronLeft size={14} /></button>
+                            <span className="text-xs font-semibold text-slate-500">{leaveHistory.page} / {leaveHistory.totalPages}</span>
+                            <button disabled={leaveHistory.page >= leaveHistory.totalPages} onClick={() => loadLeaveHistory(leaveHistory.page + 1)} className="p-1.5 rounded-lg border border-slate-200 bg-white cursor-pointer disabled:opacity-40"><ChevronRight size={14} /></button>
+                          </div>
+                        </div>
+                      )}
+                    </>
+                  )}
+                </div>
+              </div>
+            </TabsContent>
+
+            <TabsContent value="loans">
+              {/* Pending Loan Requests */}
+              <div className="rt-fade rt-card">
+                <div className="rt-card-header">
+                  <div className="flex items-center gap-2.5">
+                    <div className="rt-card-icon" style={{ background: '#ecfdf5' }}>
+                      <Wallet size={16} color="#16a34a" />
+                    </div>
+                    <h2 className="rt-card-title">Pending Loan Requests ({pendingLoans.length})</h2>
+                  </div>
+                </div>
+                <div className="rt-card-body">
+                  {loansLoading ? (
+                    <p className="text-sm text-slate-400 text-center py-6">Loading...</p>
+                  ) : pendingLoans.length === 0 ? (
+                    <div className="flex flex-col items-center justify-center py-6">
+                      <Wallet size={28} color="#94a3b8" />
+                      <p className="text-sm font-semibold text-slate-500 mt-3">No pending loan requests</p>
+                      <p className="text-xs text-slate-400 mt-1">All caught up!</p>
+                    </div>
+                  ) : (
+                    <div className="overflow-x-auto">
+                      <table className="w-full text-sm">
+                        <thead>
+                          <tr style={{ borderBottom: '1px solid #f1f5f9' }}>
+                            <th className="text-left py-2.5 px-2 font-semibold text-slate-500 text-xs uppercase">Agent</th>
+                            <th className="text-left py-2.5 px-2 font-semibold text-slate-500 text-xs uppercase">Amount</th>
+                            <th className="text-left py-2.5 px-2 font-semibold text-slate-500 text-xs uppercase">Reason</th>
+                            <th className="text-left py-2.5 px-2 font-semibold text-slate-500 text-xs uppercase">Date</th>
+                            <th className="text-left py-2.5 px-2 font-semibold text-slate-500 text-xs uppercase">Action</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {pendingLoans.map((l) => (
+                            <tr key={l.id} className="hover:bg-slate-50 transition-colors" style={{ borderBottom: '1px solid #f8fafc' }}>
+                              <td className="py-2.5 px-2 font-semibold text-slate-800 text-xs">{l.userName || `User #${l.userId}`}</td>
+                              <td className="py-2.5 px-2 font-bold text-slate-900 text-sm">Rs. {Number(l.amount).toLocaleString()}</td>
+                              <td className="py-2.5 px-2 text-slate-500 text-xs max-w-[160px] truncate">{l.reason || '-'}</td>
+                              <td className="py-2.5 px-2 text-slate-600 text-xs">{new Date(l.createdAt).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })}</td>
+                              <td className="py-2.5 px-2">
+                                <div className="flex items-center gap-2">
+                                  <button
+                                    onClick={() => handleLoanReview(l.id, 'approved')}
+                                    disabled={loanReviewProcessing === l.id}
+                                    className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-semibold cursor-pointer border-0 text-white disabled:opacity-50 transition-all"
+                                    style={{ background: 'linear-gradient(135deg, #22c55e, #16a34a)' }}
+                                  >
+                                    {loanReviewProcessing === l.id ? <Loader2 size={12} className="animate-spin" /> : <Check size={12} />}
+                                    Approve
+                                  </button>
+                                  <button
+                                    onClick={() => handleLoanReview(l.id, 'rejected')}
+                                    disabled={loanReviewProcessing === l.id}
+                                    className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-semibold cursor-pointer border-0 text-white disabled:opacity-50 transition-all"
+                                    style={{ background: 'linear-gradient(135deg, #ef4444, #dc2626)' }}
+                                  >
+                                    <X size={12} /> Reject
+                                  </button>
+                                </div>
+                              </td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
                     </div>
                   )}
-                </>
-              )}
-            </div>
-          </div>
+                </div>
+              </div>
+
+              {/* Loan History */}
+              <div className="rt-fade rt-card" style={{ marginTop: '24px' }}>
+                <div className="rt-card-header">
+                  <div className="flex items-center gap-2.5">
+                    <div className="rt-card-icon" style={{ background: '#f1f5f9' }}>
+                      <Wallet size={16} color="#64748b" />
+                    </div>
+                    <h2 className="rt-card-title">Loan History ({loanHistory.total || 0})</h2>
+                  </div>
+                </div>
+                <div className="rt-card-body p-0 overflow-x-auto">
+                  {loanHistoryLoading ? (
+                    <p className="text-sm text-slate-400 text-center py-6">Loading history...</p>
+                  ) : loanHistory.items?.length === 0 ? (
+                    <div className="flex flex-col items-center justify-center py-6">
+                      <Wallet size={28} color="#94a3b8" />
+                      <p className="text-sm font-semibold text-slate-500 mt-3">No loan history</p>
+                    </div>
+                  ) : (
+                    <>
+                      <table className="w-full text-sm">
+                        <thead>
+                          <tr style={{ borderBottom: '1px solid #f1f5f9' }}>
+                            <th className="text-left py-2.5 px-3 font-semibold text-slate-500 text-xs uppercase">Agent</th>
+                            <th className="text-left py-2.5 px-3 font-semibold text-slate-500 text-xs uppercase">Total</th>
+                            <th className="text-left py-2.5 px-3 font-semibold text-slate-500 text-xs uppercase">Paid Back</th>
+                            <th className="text-left py-2.5 px-3 font-semibold text-slate-500 text-xs uppercase">Pending</th>
+                            <th className="text-left py-2.5 px-3 font-semibold text-slate-500 text-xs uppercase">Reason</th>
+                            <th className="text-left py-2.5 px-3 font-semibold text-slate-500 text-xs uppercase">Status</th>
+                            <th className="text-left py-2.5 px-3 font-semibold text-slate-500 text-xs uppercase">Date</th>
+                            <th className="text-left py-2.5 px-3 font-semibold text-slate-500 text-xs uppercase">Action</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {loanHistory.items.map((l) => {
+                            const s = l.status === 'approved'
+                              ? { bg: '#dcfce7', color: '#16a34a', label: 'Approved' }
+                              : l.status === 'rejected'
+                              ? { bg: '#fee2e2', color: '#dc2626', label: 'Rejected' }
+                              : { bg: '#fef3c7', color: '#d97706', label: 'Pending' }
+                            const isApproved = l.status === 'approved'
+                            const remaining = isApproved ? (l.amount - (l.paidAmount || 0)) : 0
+                            return (
+                              <tr key={l.id} className="hover:bg-slate-50 transition-colors" style={{ borderBottom: '1px solid #f8fafc' }}>
+                                <td className="py-2.5 px-3 font-semibold text-slate-800 text-xs">{l.userName || `User #${l.userId}`}</td>
+                                <td className="py-2.5 px-3 font-bold text-slate-900 text-xs">Rs. {Number(l.amount).toLocaleString()}</td>
+                                <td className="py-2.5 px-3 text-xs text-green-600 font-semibold">{isApproved ? `Rs. ${Number(l.paidAmount || 0).toLocaleString()}` : '-'}</td>
+                                <td className="py-2.5 px-3 text-xs text-indigo-600 font-bold">{isApproved ? `Rs. ${Number(remaining).toLocaleString()}` : '-'}</td>
+                                <td className="py-2.5 px-3 text-slate-500 text-xs max-w-[120px] truncate" title={l.reason || ''}>
+                                  <div>{l.reason || '-'}</div>
+                                  {l.adminNotes && (
+                                    <div className="text-[10px] text-amber-600 mt-1 font-semibold whitespace-normal leading-normal" title={l.adminNotes}>
+                                      Remarks: {l.adminNotes}
+                                    </div>
+                                  )}
+                                </td>
+                                <td className="py-2.5 px-3">
+                                  <span className="inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-semibold" style={{ background: s.bg, color: s.color }}>
+                                    {l.status === 'approved' ? <CheckCircle size={11} /> : l.status === 'rejected' ? <XCircle size={11} /> : <Clock size={11} />}
+                                    {s.label}
+                                  </span>
+                                </td>
+                                <td className="py-2.5 px-3 text-slate-600 text-xs">{new Date(l.createdAt).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}</td>
+                                <td className="py-2.5 px-3">
+                                  <div className="flex items-center gap-1.5">
+                                    {isApproved && remaining > 0 && (
+                                      <button
+                                        onClick={() => openPaybackModal(l)}
+                                        className="flex items-center gap-1 px-2 py-1 rounded-lg text-xs font-semibold cursor-pointer border-0 text-white transition-all"
+                                        style={{ background: 'linear-gradient(135deg, #6366f1, #4f46e5)' }}
+                                      >
+                                        Payback
+                                      </button>
+                                    )}
+                                    <button onClick={() => handleDeleteLoan(l.id)} disabled={deleteProcessing === l.id}
+                                      className="flex items-center gap-1 px-1.5 py-1 rounded-lg text-xs font-semibold cursor-pointer border-0 text-white disabled:opacity-50 transition-all"
+                                      style={{ background: 'linear-gradient(135deg, #ef4444, #dc2626)' }}>
+                                      <Trash2 size={11} />
+                                    </button>
+                                  </div>
+                                </td>
+                              </tr>
+                            )
+                          })}
+                        </tbody>
+                      </table>
+                      {loanHistory.totalPages > 1 && (
+                        <div className="flex items-center justify-between px-3 py-3" style={{ borderTop: '1px solid #f1f5f9' }}>
+                          <p className="text-xs text-slate-400">{loanHistory.total} total</p>
+                          <div className="flex items-center gap-2">
+                            <button disabled={loanHistory.page <= 1} onClick={() => loadLoanHistory(loanHistory.page - 1)} className="p-1.5 rounded-lg border border-slate-200 bg-white cursor-pointer disabled:opacity-40"><ChevronLeft size={14} /></button>
+                            <span className="text-xs font-semibold text-slate-500">{loanHistory.page} / {loanHistory.totalPages}</span>
+                            <button disabled={loanHistory.page >= loanHistory.totalPages} onClick={() => loadLoanHistory(loanHistory.page + 1)} className="p-1.5 rounded-lg border border-slate-200 bg-white cursor-pointer disabled:opacity-40"><ChevronRight size={14} /></button>
+                          </div>
+                        </div>
+                      )}
+                    </>
+                  )}
+                </div>
+              </div>
+            </TabsContent>
+          </Tabs>
         </div>
       </div>
 
