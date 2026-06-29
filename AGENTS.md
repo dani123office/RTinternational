@@ -97,16 +97,19 @@ Fix 500 errors (local and Vercel) in the RT International call center FastAPI ap
 
 34. **Merged Staff Management page** — `/admin/managers` and `/admin/agents` merged into single `/admin/staff` with Managers + Agents tabs. Sidebar updated to single "Staff Management" entry with redirects from old routes.
 
+35. **Prevented duplicate customer registrations by postcode** — added a postcode duplicate validation check to `create_customer` inside `routers/customers.py`. If a customer with the same postcode already exists, it verifies that the current user owns it (or is their manager/admin); otherwise, it raises an HTTP 400 Bad Request error `This customer belongs to agent: {creator_name}`. Added corresponding automated tests in `testsprite_tests/run_backend_tests.py`.
+
 ## Root Causes (continued)
 - **Activity logging never worked**: `log_activity()` function was defined in `utils/logger.py` but never imported or called from any router. Activity logs table was always empty. No audit trail existed despite the schema being fully set up. → Fixed by adding `log_activity()` calls after all create/update/delete endpoints across all 10 routers.
 - **No containerized development**: No Dockerfile or docker-compose.yml existed, making it harder for new developers to set up a consistent local environment. → Fixed by adding Dockerfile (Python 3.12-slim) and docker-compose.yml (API + frontend).
 - **No CI/CD automation**: Tests were never run automatically on push, allowing regressions to go undetected until manual testing. → Fixed by adding a GitHub Actions workflow that runs lint + tests on push/PR.
 - **Salary slip PDF had incorrect layout**: Commission showed "If any" instead of actual value, daily deduction rate incorrectly included commission, NET SALARY showed gross minus deductions instead of full gross, divider lines were positioned below bold rows instead of above them, and there was no gap between section divider and first data row. → Fixed by rewriting `build_slip()` with proper 3-column table, correct commission handling, and proper divider positioning.
 - **No agent attendance history view**: Managers/admin could see today's attendance but had no way to view an agent's historical attendance records. → Fixed by adding a clickable row that opens a modal with paginated attendance history via `endpoints.attendance.agentHistory(id)`.
+- **Customer duplication by postcode allowed**: Previously, if two different agents entered a customer with the same postcode, the backend would simply update the existing customer profile and return it without warning, causing agent conflict and data leakage. → Fixed by raising a 400 Bad Request if the existing postcode customer belongs to another agent.
 
 ## Verification
 1. Push to GitHub → Vercel auto-deploys
 2. Check `https://rt-international.vercel.app/` for frontend (should load SPA)
 3. Check `https://rt-international.vercel.app/api/auth/users` (should 401 with JSON body, not 500)
 4. Check `https://rt-international.vercel.app/api/admin/audit-log` (should show activity entries, not empty array)
-5. GitHub Actions CI should run on push (`.github/workflows/ci.yml`)
+5. GitHub Actions CI should run on push (`.github/workflows/ci.yml`) and verify `test_BT033_customer_duplication_prevented_by_postcode` passes.
