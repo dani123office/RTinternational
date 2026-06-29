@@ -100,6 +100,21 @@ def create_customer(dto: CustomerCreate, request: Request, current_user: User = 
                 func.lower(Customer.postcode) == func.lower(dto.postcode.strip())
             ).first()
             if existing:
+                is_auth = (existing.created_by == current_user.id)
+                if not is_auth and current_user.role == "manager":
+                    creator = db.query(User).filter(User.id == existing.created_by).first()
+                    if creator and creator.manager_id == current_user.id:
+                        is_auth = True
+                if not is_auth and current_user.role == "admin":
+                    is_auth = True
+                
+                if not is_auth:
+                    creator_name = existing.creator.name if existing.creator else "another agent"
+                    raise HTTPException(
+                        status_code=400,
+                        detail=f"This customer belongs to agent: {creator_name}"
+                    )
+
                 if dto.businessName:
                     existing.business_name = dto.businessName
                 if dto.ownerName:

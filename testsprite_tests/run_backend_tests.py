@@ -770,6 +770,36 @@ class RTInternationalBackendTests(unittest.TestCase):
         self.assertIn("Access-Control-Allow-Origin", r.headers)
         self.assertEqual(r.headers.get("Access-Control-Allow-Origin"), "http://localhost:5173")
 
+    def test_BT033_customer_duplication_prevented_by_postcode(self):
+        headers_agent = self.get_auth_header(self.agent_token)
+        headers_other = self.get_auth_header(self.other_agent_token)
+        postcode = get_unique_postcode()
+        
+        # Agent A registers customer with postcode
+        c_payload1 = {
+            "businessName": f"Agent A Cust {rand_string()}",
+            "ownerName": "Agent A Owner",
+            "businessPhone": "07111111111",
+            "businessAddress": "Agent A St",
+            "postcode": postcode,
+            "utilityType": "electricity"
+        }
+        r1 = requests.post(f"{BASE_URL}/api/customers", json=c_payload1, headers=headers_agent, timeout=5.0)
+        self.assertEqual(r1.status_code, 200, r1.text)
+        
+        # Agent B (other agent) attempts to register customer with same postcode
+        c_payload2 = {
+            "businessName": f"Agent B Cust {rand_string()}",
+            "ownerName": "Agent B Owner",
+            "businessPhone": "07222222222",
+            "businessAddress": "Agent B St",
+            "postcode": postcode,
+            "utilityType": "gas"
+        }
+        r2 = requests.post(f"{BASE_URL}/api/customers", json=c_payload2, headers=headers_other, timeout=5.0)
+        self.assertEqual(r2.status_code, 400, r2.text)
+        self.assertIn("belongs to agent:", r2.json().get("detail", ""))
+
     # ==========================================
     # RATE LIMITING (BT024) - Executed LAST to avoid blocking and limiting other tests!
     # ==========================================
