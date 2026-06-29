@@ -99,6 +99,10 @@ Fix 500 errors (local and Vercel) in the RT International call center FastAPI ap
 
 35. **Prevented duplicate customer registrations by postcode** — added a postcode duplicate validation check to `create_customer` inside `routers/customers.py`. If a customer with the same postcode already exists, it verifies that the current user owns it (or is their manager/admin); otherwise, it raises an HTTP 400 Bad Request error `This customer belongs to agent: {creator_name}`. Added corresponding automated tests in `testsprite_tests/run_backend_tests.py`.
 
+36. **Whitelisted custom duplicate error prefix** — added `'This customer belongs to'` to the `safe_prefixes` list in the exception details sanitizer in `main.py`. This prevents the middleware from rewriting the duplicate customer message to a generic error message due to the presence of a colon.
+
+37. **Fixed SQLite activity_logs autoincrement issue** — changed `ActivityLog.id` type from `BigInteger` to `Integer` in `models.py` and recreated the table in the git-tracked `callcenter.db`. Also populated email verification records for the default test users to allow login on clean checkouts.
+
 ## Root Causes (continued)
 - **Activity logging never worked**: `log_activity()` function was defined in `utils/logger.py` but never imported or called from any router. Activity logs table was always empty. No audit trail existed despite the schema being fully set up. → Fixed by adding `log_activity()` calls after all create/update/delete endpoints across all 10 routers.
 - **No containerized development**: No Dockerfile or docker-compose.yml existed, making it harder for new developers to set up a consistent local environment. → Fixed by adding Dockerfile (Python 3.12-slim) and docker-compose.yml (API + frontend).
@@ -106,6 +110,8 @@ Fix 500 errors (local and Vercel) in the RT International call center FastAPI ap
 - **Salary slip PDF had incorrect layout**: Commission showed "If any" instead of actual value, daily deduction rate incorrectly included commission, NET SALARY showed gross minus deductions instead of full gross, divider lines were positioned below bold rows instead of above them, and there was no gap between section divider and first data row. → Fixed by rewriting `build_slip()` with proper 3-column table, correct commission handling, and proper divider positioning.
 - **No agent attendance history view**: Managers/admin could see today's attendance but had no way to view an agent's historical attendance records. → Fixed by adding a clickable row that opens a modal with paginated attendance history via `endpoints.attendance.agentHistory(id)`.
 - **Customer duplication by postcode allowed**: Previously, if two different agents entered a customer with the same postcode, the backend would simply update the existing customer profile and return it without warning, causing agent conflict and data leakage. → Fixed by raising a 400 Bad Request if the existing postcode customer belongs to another agent.
+- **Duplicate postcode error sanitized**: The exception details sanitizer rewrote the validation error `This customer belongs to agent: name` to a generic error `We could not complete your request` because it contained a colon and was not in the `safe_prefixes` whitelist. → Fixed by adding it to `safe_prefixes`.
+- **IntegrityError on activity logging (SQLite)**: SQLite does not auto-increment columns defined as `BIGINT PRIMARY KEY`, causing `NOT NULL constraint failed: activity_logs.id` on server database insertions. → Fixed by changing datatype to `Integer` and dropping the old table so uvicorn can recreate it with standard autoincrement.
 
 ## Verification
 1. Push to GitHub → Vercel auto-deploys
