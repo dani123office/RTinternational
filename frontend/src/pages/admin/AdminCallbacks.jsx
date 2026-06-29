@@ -81,7 +81,7 @@ export default function AdminCallbacks() {
   const q = searchQuery.toLowerCase().trim()
   const filteredItems = q
     ? data.items.filter((cb) =>
-        [cb.customer?.businessName, cb.customer?.ownerName, cb.employeeName, cb.notes, cb.utilityType]
+        [cb.customer?.businessName, cb.customer?.ownerName, cb.agentName, cb.notes, cb.utilityType]
           .some((f) => f && f.toLowerCase().includes(q))
       )
     : data.items
@@ -212,7 +212,7 @@ export default function AdminCallbacks() {
                             <div className="font-semibold text-slate-900">{cb.customer?.businessName || cb.customer?.ownerName || 'Unknown'}</div>
                             <div className="text-xs text-slate-500 truncate">{cb.customer?.ownerName ? `Owner: ${cb.customer.ownerName}` : ''}</div>
                           </td>
-                          <td className="px-4 py-3.5 text-slate-700">{cb.employeeName || '-'}</td>
+                          <td className="px-4 py-3.5 text-slate-700">{cb.agentName || '-'}</td>
                           <td className="px-4 py-3.5">
                             <StatusBadge status={cb.status} type="callback" />
                           </td>
