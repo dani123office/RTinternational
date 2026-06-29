@@ -798,7 +798,7 @@ class RTInternationalBackendTests(unittest.TestCase):
         }
         r2 = requests.post(f"{BASE_URL}/api/customers", json=c_payload2, headers=headers_other, timeout=5.0)
         self.assertEqual(r2.status_code, 400, r2.text)
-        self.assertIn("belongs to agent:", r2.json().get("detail", ""))
+        self.assertIn("belongs to agent", r2.json().get("detail", ""))
 
     # ==========================================
     # RATE LIMITING (BT024) - Executed LAST to avoid blocking and limiting other tests!

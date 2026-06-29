@@ -241,7 +241,7 @@ class Sale(Base):
 class ActivityLog(Base):
     __tablename__ = "activity_logs"
 
-    id = Column(BigInteger, primary_key=True, index=True)
+    id = Column(Integer, primary_key=True, index=True)
     user_id = Column(Integer, ForeignKey("users.id", ondelete="NO ACTION"), nullable=False, index=True)
     action = Column(String(100), nullable=False)
     entity_type = Column(String(50), nullable=True)

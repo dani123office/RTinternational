@@ -131,6 +131,7 @@ def _clean_http_exception_detail(detail, status_code):
             'Waiting for admin approval',
             'pending admin approval',
             'No manager assigned yet',
+            'This customer belongs to',
         ]
         for prefix in safe_prefixes:
             if normalized.startswith(prefix):
