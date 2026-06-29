@@ -322,6 +322,7 @@ class LoanRequest(Base):
     id = Column(Integer, primary_key=True, index=True)
     user_id = Column(Integer, ForeignKey("users.id", ondelete="CASCADE"), nullable=False, index=True)
     amount = Column(Float, nullable=False)
+    paid_amount = Column(Float, nullable=False, default=0.0, server_default="0.0")
     reason = Column(Text, nullable=True)
     status = Column(String(20), nullable=False, default="pending")  # pending, approved, rejected
     admin_id = Column(Integer, ForeignKey("users.id", ondelete="SET NULL"), nullable=True)

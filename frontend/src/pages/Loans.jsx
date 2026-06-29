@@ -56,7 +56,7 @@ export default function Loans() {
     <>
       <style>{APP_STYLES}</style>
       <div className="rt-page">
-        <div style={{ maxWidth: '720px', margin: '0 auto' }}>
+        <div style={{ maxWidth: '760px', margin: '0 auto' }}>
           <div className="rt-fade flex items-center justify-between mb-6">
             <div className="flex items-center gap-3">
               <div className="w-10 h-10 rounded-xl flex items-center justify-center" style={{ background: '#ecfdf5' }}>
@@ -77,6 +77,30 @@ export default function Loans() {
               </button>
             )}
           </div>
+
+          {/* Stats Summary Box */}
+          {!loading && data.items?.length > 0 && (
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6 rt-fade">
+              <div className="rt-card p-4 flex flex-col justify-between" style={{ borderLeft: '4px solid #94a3b8' }}>
+                <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Total Approved</span>
+                <span className="text-lg font-extrabold text-slate-900 mt-2">
+                  Rs. {data.items.filter(r => r.status === 'approved').reduce((sum, r) => sum + r.amount, 0).toLocaleString()}
+                </span>
+              </div>
+              <div className="rt-card p-4 flex flex-col justify-between" style={{ borderLeft: '4px solid #16a34a' }}>
+                <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Total Paid Back</span>
+                <span className="text-lg font-extrabold text-green-600 mt-2">
+                  Rs. {data.items.filter(r => r.status === 'approved').reduce((sum, r) => sum + (r.paidAmount || 0), 0).toLocaleString()}
+                </span>
+              </div>
+              <div className="rt-card p-4 flex flex-col justify-between" style={{ borderLeft: '4px solid #6366f1' }}>
+                <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Pending Balance</span>
+                <span className="text-lg font-extrabold text-indigo-600 mt-2">
+                  Rs. {data.items.filter(r => r.status === 'approved').reduce((sum, r) => sum + (r.amount - (r.paidAmount || 0)), 0).toLocaleString()}
+                </span>
+              </div>
+            </div>
+          )}
 
           {showForm && (
             <div className="rt-card rt-fade mb-6">
@@ -150,11 +174,13 @@ export default function Loans() {
                   <p className="text-sm font-semibold text-slate-500 mt-3">No loan requests yet</p>
                 </div>
               ) : (
-                <table className="w-full min-w-[550px] text-sm border-separate border-spacing-0">
+                <table className="w-full min-w-[650px] text-sm border-separate border-spacing-0">
                   <thead>
                     <tr className="bg-slate-50 text-slate-500 uppercase text-xs tracking-[0.16em]">
                       <th className="text-left px-4 py-3">Date</th>
-                      <th className="text-left px-4 py-3">Amount</th>
+                      <th className="text-left px-4 py-3">Total</th>
+                      <th className="text-left px-4 py-3">Paid Back</th>
+                      <th className="text-left px-4 py-3">Pending</th>
                       <th className="text-left px-4 py-3">Reason</th>
                       <th className="text-left px-4 py-3">Status</th>
                     </tr>
@@ -162,15 +188,23 @@ export default function Loans() {
                   <tbody>
                     {data.items.map((r) => {
                       const s = statusStyle[r.status] || statusStyle.pending
+                      const isApproved = r.status === 'approved'
+                      const remaining = isApproved ? (r.amount - (r.paidAmount || 0)) : 0
                       return (
                         <tr key={r.id} className="border-b border-slate-100 hover:bg-slate-50 transition-colors">
                           <td className="px-4 py-3.5 font-semibold text-slate-800 text-xs">
                             {new Date(r.createdAt).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}
                           </td>
-                          <td className="px-4 py-3.5">
-                            <span className="font-bold text-slate-900">Rs. {Number(r.amount).toLocaleString()}</span>
+                          <td className="px-4 py-3.5 font-semibold text-slate-900">
+                            Rs. {Number(r.amount).toLocaleString()}
                           </td>
-                          <td className="px-4 py-3.5 text-slate-500 text-xs max-w-[200px] truncate" title={r.reason || ''}>
+                          <td className="px-4 py-3.5 text-xs text-green-600 font-medium">
+                            {isApproved ? `Rs. ${Number(r.paidAmount || 0).toLocaleString()}` : '-'}
+                          </td>
+                          <td className="px-4 py-3.5 text-xs text-indigo-600 font-bold">
+                            {isApproved ? `Rs. ${Number(remaining).toLocaleString()}` : '-'}
+                          </td>
+                          <td className="px-4 py-3.5 text-slate-500 text-xs max-w-[150px] truncate" title={r.reason || ''}>
                             {r.reason || '-'}
                           </td>
                           <td className="px-4 py-3.5">

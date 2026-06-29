@@ -6,7 +6,7 @@ from typing import Optional
 from ..database import get_db
 from ..models import User, LoanRequest
 from .auth import get_current_user
-from ..schemas import LoanCreate, LoanReview, LoanOut
+from ..schemas import LoanCreate, LoanReview, LoanOut, LoanPayback
 from ..utils.logger import log_activity, get_client_ip
 
 router = APIRouter(prefix="/api/loans", tags=["loans"])
@@ -18,6 +18,7 @@ def _loan_to_out(l: LoanRequest) -> LoanOut:
         userId=l.user_id,
         userName=l.user.name if l.user else None,
         amount=l.amount,
+        paidAmount=l.paid_amount if l.paid_amount is not None else 0.0,
         reason=l.reason,
         status=l.status,
         adminId=l.admin_id,
@@ -162,3 +163,39 @@ def delete_loan(
                  f"Deleted loan request #{loan_id}",
                  get_client_ip(request))
     return {"detail": "Loan request deleted"}
+
+
+@router.put("/{loan_id}/payback")
+def record_payback(
+    loan_id: int,
+    dto: LoanPayback,
+    request: Request,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    if current_user.role != "admin":
+        raise HTTPException(status_code=403, detail="Only admins can record paybacks")
+    record = db.query(LoanRequest).filter(LoanRequest.id == loan_id).first()
+    if not record:
+        raise HTTPException(status_code=404, detail="Loan request not found")
+    if record.status != "approved":
+        raise HTTPException(status_code=400, detail="Can only record payback for approved loans")
+
+    remaining_balance = record.amount - record.paid_amount
+    if dto.payback_amount > remaining_balance + 0.01:
+        raise HTTPException(status_code=400, detail=f"Payback amount exceeds remaining balance of Rs. {remaining_balance}")
+
+    record.paid_amount += dto.payback_amount
+    if dto.admin_notes:
+        if record.admin_notes:
+            record.admin_notes += f"\n[Payback: Rs. {dto.payback_amount}] {dto.admin_notes}"
+        else:
+            record.admin_notes = f"[Payback: Rs. {dto.payback_amount}] {dto.admin_notes}"
+    record.updated_at = datetime.now()
+    db.commit()
+    db.refresh(record)
+
+    log_activity(db, current_user.id, "payback", "loan", record.id,
+                 f"Recorded payback of Rs. {dto.payback_amount} for loan #{record.id}",
+                 get_client_ip(request))
+    return _loan_to_out(record)

@@ -1711,11 +1711,17 @@ class LoanReview(BaseModel):
     admin_notes: Optional[str] = Field(None, max_length=500)
 
 
+class LoanPayback(BaseModel):
+    payback_amount: float = Field(..., gt=0, description="Amount paid back")
+    admin_notes: Optional[str] = Field(None, max_length=500)
+
+
 class LoanOut(BaseModel):
     id: int
     userId: int
     userName: Optional[str] = None
     amount: float
+    paidAmount: float
     reason: Optional[str] = None
     status: str
     adminId: Optional[int] = None

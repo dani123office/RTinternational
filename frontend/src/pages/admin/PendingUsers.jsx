@@ -24,6 +24,10 @@ export default function PendingUsers() {
   const [leaveHistory, setLeaveHistory] = useState({ items: [], total: 0, page: 1, totalPages: 0 })
   const [leaveHistoryLoading, setLeaveHistoryLoading] = useState(false)
   const [deleteProcessing, setDeleteProcessing] = useState(null)
+  const [selectedLoanForPayback, setSelectedLoanForPayback] = useState(null)
+  const [paybackAmount, setPaybackAmount] = useState('')
+  const [paybackNotes, setPaybackNotes] = useState('')
+  const [recordingPayback, setRecordingPayback] = useState(false)
 
   const [selectedUser, setSelectedUser] = useState(null)
   const [editForm, setEditForm] = useState({})
@@ -110,9 +114,49 @@ export default function PendingUsers() {
     try {
       await api.put(endpoints.loans.review(loanId), { status })
       setPendingLoans((prev) => prev.filter((l) => l.id !== loanId))
+      loadLoanHistory(1) // Refresh loan history when review occurs
     } catch (err) {
       alert(err?.response?.data?.detail || 'Failed to review loan')
     } finally { setLoanReviewProcessing(null) }
+  }
+
+  const openPaybackModal = (loan) => {
+    setSelectedLoanForPayback(loan)
+    setPaybackAmount('')
+    setPaybackNotes('')
+    setError('')
+  }
+
+  const handlePaybackSubmit = async () => {
+    const amt = parseFloat(paybackAmount)
+    if (!amt || amt <= 0) {
+      setError('Please enter a valid payback amount')
+      return
+    }
+    const maxPayback = selectedLoanForPayback.amount - (selectedLoanForPayback.paidAmount || 0)
+    if (amt > maxPayback + 0.01) {
+      setError(`Amount cannot exceed the remaining balance of Rs. ${maxPayback.toLocaleString()}`)
+      return
+    }
+
+    setRecordingPayback(true)
+    setError('')
+    try {
+      const res = await api.put(endpoints.loans.payback(selectedLoanForPayback.id), {
+        payback_amount: amt,
+        admin_notes: paybackNotes.trim() || undefined
+      })
+      // Update in loanHistory list
+      setLoanHistory((prev) => ({
+        ...prev,
+        items: prev.items.map((item) => item.id === selectedLoanForPayback.id ? res.data : item)
+      }))
+      setSelectedLoanForPayback(null)
+    } catch (err) {
+      setError(err?.response?.data?.detail || 'Failed to record payback')
+    } finally {
+      setRecordingPayback(false)
+    }
   }
 
   const openEditModal = (user) => {
@@ -473,7 +517,9 @@ export default function PendingUsers() {
                     <thead>
                       <tr style={{ borderBottom: '1px solid #f1f5f9' }}>
                         <th className="text-left py-2.5 px-3 font-semibold text-slate-500 text-xs uppercase">Agent</th>
-                        <th className="text-left py-2.5 px-3 font-semibold text-slate-500 text-xs uppercase">Amount</th>
+                        <th className="text-left py-2.5 px-3 font-semibold text-slate-500 text-xs uppercase">Total</th>
+                        <th className="text-left py-2.5 px-3 font-semibold text-slate-500 text-xs uppercase">Paid Back</th>
+                        <th className="text-left py-2.5 px-3 font-semibold text-slate-500 text-xs uppercase">Pending</th>
                         <th className="text-left py-2.5 px-3 font-semibold text-slate-500 text-xs uppercase">Reason</th>
                         <th className="text-left py-2.5 px-3 font-semibold text-slate-500 text-xs uppercase">Status</th>
                         <th className="text-left py-2.5 px-3 font-semibold text-slate-500 text-xs uppercase">Date</th>
@@ -487,11 +533,15 @@ export default function PendingUsers() {
                           : l.status === 'rejected'
                           ? { bg: '#fee2e2', color: '#dc2626', label: 'Rejected' }
                           : { bg: '#fef3c7', color: '#d97706', label: 'Pending' }
+                        const isApproved = l.status === 'approved'
+                        const remaining = isApproved ? (l.amount - (l.paidAmount || 0)) : 0
                         return (
                           <tr key={l.id} className="hover:bg-slate-50 transition-colors" style={{ borderBottom: '1px solid #f8fafc' }}>
                             <td className="py-2.5 px-3 font-semibold text-slate-800 text-xs">{l.userName || `User #${l.userId}`}</td>
-                            <td className="py-2.5 px-3 font-bold text-slate-900 text-sm">Rs. {Number(l.amount).toLocaleString()}</td>
-                            <td className="py-2.5 px-3 text-slate-500 text-xs max-w-[160px] truncate">{l.reason || '-'}</td>
+                            <td className="py-2.5 px-3 font-bold text-slate-900 text-xs">Rs. {Number(l.amount).toLocaleString()}</td>
+                            <td className="py-2.5 px-3 text-xs text-green-600 font-semibold">{isApproved ? `Rs. ${Number(l.paidAmount || 0).toLocaleString()}` : '-'}</td>
+                            <td className="py-2.5 px-3 text-xs text-indigo-600 font-bold">{isApproved ? `Rs. ${Number(remaining).toLocaleString()}` : '-'}</td>
+                            <td className="py-2.5 px-3 text-slate-500 text-xs max-w-[120px] truncate" title={l.reason || ''}>{l.reason || '-'}</td>
                             <td className="py-2.5 px-3">
                               <span className="inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-semibold" style={{ background: s.bg, color: s.color }}>
                                 {l.status === 'approved' ? <CheckCircle size={11} /> : l.status === 'rejected' ? <XCircle size={11} /> : <Clock size={11} />}
@@ -500,11 +550,22 @@ export default function PendingUsers() {
                             </td>
                             <td className="py-2.5 px-3 text-slate-600 text-xs">{new Date(l.createdAt).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}</td>
                             <td className="py-2.5 px-3">
-                              <button onClick={() => handleDeleteLoan(l.id)} disabled={deleteProcessing === l.id}
-                                className="flex items-center gap-1 px-2 py-1 rounded-lg text-xs font-semibold cursor-pointer border-0 text-white disabled:opacity-50 transition-all"
-                                style={{ background: 'linear-gradient(135deg, #ef4444, #dc2626)' }}>
-                                <X size={10} /> Delete
-                              </button>
+                              <div className="flex items-center gap-1.5">
+                                {isApproved && remaining > 0 && (
+                                  <button
+                                    onClick={() => openPaybackModal(l)}
+                                    className="flex items-center gap-1 px-2 py-1 rounded-lg text-xs font-semibold cursor-pointer border-0 text-white transition-all"
+                                    style={{ background: 'linear-gradient(135deg, #6366f1, #4f46e5)' }}
+                                  >
+                                    Payback
+                                  </button>
+                                )}
+                                <button onClick={() => handleDeleteLoan(l.id)} disabled={deleteProcessing === l.id}
+                                  className="flex items-center gap-1 px-1.5 py-1 rounded-lg text-xs font-semibold cursor-pointer border-0 text-white disabled:opacity-50 transition-all"
+                                  style={{ background: 'linear-gradient(135deg, #ef4444, #dc2626)' }}>
+                                  <Trash2 size={11} />
+                                </button>
+                              </div>
                             </td>
                           </tr>
                         )
@@ -722,6 +783,73 @@ export default function PendingUsers() {
               >
                 {savingEdit ? <Loader2 size={16} className="animate-spin" /> : <CheckCircle size={16} />}
                 {savingEdit ? 'Approving...' : 'Approve & Save'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {selectedLoanForPayback && (
+        <div style={{ position: 'fixed', inset: 0, background: 'rgba(15,23,42,0.3)', backdropFilter: 'blur(4px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 100, padding: 20 }}>
+          <div className="rt-card rt-fade" style={{ width: '100%', maxWidth: '440px', background: '#fff', borderRadius: '16px', boxShadow: '0 20px 25px -5px rgba(0,0,0,0.1)', padding: '24px 28px' }}>
+            <div className="flex items-center gap-2 mb-4" style={{ borderBottom: '1px solid #f1f5f9', paddingBottom: '12px' }}>
+              <div className="w-8 h-8 rounded-lg flex items-center justify-center" style={{ background: '#eef2ff' }}>
+                <Wallet size={16} color="#6366f1" />
+              </div>
+              <h3 className="font-bold text-slate-900 text-lg">Record Payback</h3>
+            </div>
+            
+            <div className="text-xs text-slate-500 mb-4 leading-relaxed">
+              Recording payback for <strong>{selectedLoanForPayback.userName}</strong>'s loan.
+              <div className="mt-2 p-2 bg-slate-50 rounded-lg">
+                <div>Total Amount: <strong>Rs. {Number(selectedLoanForPayback.amount).toLocaleString()}</strong></div>
+                <div>Already Paid: <strong className="text-green-600">Rs. {Number(selectedLoanForPayback.paidAmount || 0).toLocaleString()}</strong></div>
+                <div>Remaining: <strong className="text-indigo-600">Rs. {Number(selectedLoanForPayback.amount - (selectedLoanForPayback.paidAmount || 0)).toLocaleString()}</strong></div>
+              </div>
+            </div>
+
+            {error && (
+              <div className="p-2 mb-3 bg-red-50 border border-red-100 rounded-lg text-xs text-red-600 flex items-center gap-1.5">
+                <XCircle size={14} />
+                {error}
+              </div>
+            )}
+
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                <label style={labelStyle}>Payback Amount (Rs.)</label>
+                <input
+                  style={inputStyle}
+                  type="number"
+                  placeholder="e.g. 5000"
+                  value={paybackAmount}
+                  onChange={(e) => setPaybackAmount(e.target.value)}
+                />
+              </div>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                <label style={labelStyle}>Admin Notes / Remarks</label>
+                <textarea
+                  style={{ ...inputStyle, fontFamily: 'inherit', resize: 'vertical' }}
+                  rows={3}
+                  placeholder="e.g. Deducted from June salary"
+                  value={paybackNotes}
+                  onChange={(e) => setPaybackNotes(e.target.value)}
+                />
+              </div>
+            </div>
+
+            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px', marginTop: '24px', paddingTop: '16px', borderTop: '1px solid #f1f5f9' }}>
+              <button onClick={() => setSelectedLoanForPayback(null)} className="flex items-center gap-1.5 px-4 py-2 rounded-lg text-sm font-semibold cursor-pointer border" style={{ background: '#fff', borderColor: '#e2e8f0', color: '#64748b' }}>
+                Cancel
+              </button>
+              <button
+                onClick={handlePaybackSubmit}
+                disabled={recordingPayback || !paybackAmount || parseFloat(paybackAmount) <= 0}
+                className="flex items-center gap-1.5 px-4 py-2 rounded-lg text-sm font-semibold cursor-pointer border-none text-white disabled:opacity-50 transition-all"
+                style={{ background: 'linear-gradient(135deg, #6366f1, #4f46e5)' }}
+              >
+                {recordingPayback ? <Loader2 size={16} className="animate-spin" /> : <CheckCircle size={16} />}
+                Record Payback
               </button>
             </div>
           </div>

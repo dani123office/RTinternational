@@ -178,6 +178,7 @@ export const endpoints = {
     pending: '/api/loans/pending',
     all: '/api/loans/all',
     review: (id) => `/api/loans/${id}/review`,
+    payback: (id) => `/api/loans/${id}/payback`,
     delete: (id) => `/api/loans/${id}`,
   },
   profile: {

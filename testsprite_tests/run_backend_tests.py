@@ -800,6 +800,53 @@ class RTInternationalBackendTests(unittest.TestCase):
         self.assertEqual(r2.status_code, 400, r2.text)
         self.assertIn("belongs to agent", r2.json().get("detail", ""))
 
+    def test_BT034_loan_payback_system(self):
+        # 1. Agent requests a loan
+        headers_agent = self.get_auth_header(self.agent_token)
+        headers_admin = self.get_auth_header(self.admin_token)
+        
+        l_payload = {
+            "amount": 10000.0,
+            "reason": "Need money for home renovation"
+        }
+        r = requests.post(f"{BASE_URL}/api/loans", json=l_payload, headers=headers_agent, timeout=5.0)
+        self.assertEqual(r.status_code, 200, r.text)
+        loan = r.json()
+        loan_id = loan.get("id")
+        self.assertEqual(loan.get("amount"), 10000.0)
+        self.assertEqual(loan.get("paidAmount"), 0.0)
+        self.assertEqual(loan.get("status"), "pending")
+        
+        # 2. Admin approves the loan
+        r_approve = requests.put(f"{BASE_URL}/api/loans/{loan_id}/review", json={
+            "status": "approved",
+            "admin_notes": "Approved by manager request"
+        }, headers=headers_admin, timeout=5.0)
+        self.assertEqual(r_approve.status_code, 200, r_approve.text)
+        self.assertEqual(r_approve.json().get("status"), "approved")
+        
+        # 3. Admin records a payback
+        r_payback = requests.put(f"{BASE_URL}/api/loans/{loan_id}/payback", json={
+            "payback_amount": 4000.0,
+            "admin_notes": "Cash payment received"
+        }, headers=headers_admin, timeout=5.0)
+        self.assertEqual(r_payback.status_code, 200, r_payback.text)
+        updated_loan = r_payback.json()
+        self.assertEqual(updated_loan.get("paidAmount"), 4000.0)
+        
+        # 4. Try paying back more than the remaining balance (remaining = 6000)
+        r_fail = requests.put(f"{BASE_URL}/api/loans/{loan_id}/payback", json={
+            "payback_amount": 7000.0
+        }, headers=headers_admin, timeout=5.0)
+        self.assertEqual(r_fail.status_code, 400)
+        
+        # 5. Admin records remaining payback
+        r_payback2 = requests.put(f"{BASE_URL}/api/loans/{loan_id}/payback", json={
+            "payback_amount": 6000.0
+        }, headers=headers_admin, timeout=5.0)
+        self.assertEqual(r_payback2.status_code, 200, r_payback2.text)
+        self.assertEqual(r_payback2.json().get("paidAmount"), 10000.0)
+
     # ==========================================
     # RATE LIMITING (BT024) - Executed LAST to avoid blocking and limiting other tests!
     # ==========================================
