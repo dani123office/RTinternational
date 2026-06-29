@@ -541,7 +541,14 @@ export default function PendingUsers() {
                             <td className="py-2.5 px-3 font-bold text-slate-900 text-xs">Rs. {Number(l.amount).toLocaleString()}</td>
                             <td className="py-2.5 px-3 text-xs text-green-600 font-semibold">{isApproved ? `Rs. ${Number(l.paidAmount || 0).toLocaleString()}` : '-'}</td>
                             <td className="py-2.5 px-3 text-xs text-indigo-600 font-bold">{isApproved ? `Rs. ${Number(remaining).toLocaleString()}` : '-'}</td>
-                            <td className="py-2.5 px-3 text-slate-500 text-xs max-w-[120px] truncate" title={l.reason || ''}>{l.reason || '-'}</td>
+                            <td className="py-2.5 px-3 text-slate-500 text-xs max-w-[120px] truncate" title={l.reason || ''}>
+                              <div>{l.reason || '-'}</div>
+                              {l.adminNotes && (
+                                <div className="text-[10px] text-amber-600 mt-1 font-semibold whitespace-normal leading-normal" title={l.adminNotes}>
+                                  Remarks: {l.adminNotes}
+                                </div>
+                              )}
+                            </td>
                             <td className="py-2.5 px-3">
                               <span className="inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-semibold" style={{ background: s.bg, color: s.color }}>
                                 {l.status === 'approved' ? <CheckCircle size={11} /> : l.status === 'rejected' ? <XCircle size={11} /> : <Clock size={11} />}

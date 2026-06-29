@@ -205,7 +205,12 @@ export default function Loans() {
                             {isApproved ? `Rs. ${Number(remaining).toLocaleString()}` : '-'}
                           </td>
                           <td className="px-4 py-3.5 text-slate-500 text-xs max-w-[150px] truncate" title={r.reason || ''}>
-                            {r.reason || '-'}
+                            <div>{r.reason || '-'}</div>
+                            {r.adminNotes && (
+                              <div className="text-[10px] text-amber-600 mt-1 font-semibold whitespace-normal leading-normal" title={r.adminNotes}>
+                                Remarks: {r.adminNotes}
+                              </div>
+                            )}
                           </td>
                           <td className="px-4 py-3.5">
                             <span className="inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-xs font-semibold" style={{ background: s.bg, color: s.color }}>
