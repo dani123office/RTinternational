@@ -1,17 +1,24 @@
 import { useEffect, useState, useCallback } from 'react'
 import { useAdminStore } from '@/store/adminStore'
 import api, { endpoints } from '@/lib/api'
-import { UserPlus, CheckCircle, XCircle, Loader2, UserRoundCog, CalendarCheck, Check, X, Wallet, ChevronLeft, ChevronRight, Clock, Eye, Pencil, Save, Trash2 } from 'lucide-react'
+import { UserPlus, CheckCircle, XCircle, Loader2, UserRoundCog, CalendarCheck, Check, X, Wallet, ChevronLeft, ChevronRight, Clock, Eye, Pencil, Save, Trash2, Plus } from 'lucide-react'
 import { APP_STYLES } from '@/lib/styles'
 import DataTable from '@/components/shared/DataTable'
 import LoadingSpinner from '@/components/shared/LoadingSpinner'
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs'
 
 export default function PendingUsers() {
-  const { pendingUsers, managers, loadPendingUsers, loadManagers, approveUser } = useAdminStore()
+  const { pendingUsers, managers, agents, loadPendingUsers, loadManagers, loadAgents, approveUser } = useAdminStore()
   const [loading, setLoading] = useState(true)
   const [processing, setProcessing] = useState(null)
   const [error, setError] = useState('')
+
+  // Create Loan state variables
+  const [showCreateLoan, setShowCreateLoan] = useState(false)
+  const [newLoanUserId, setNewLoanUserId] = useState('')
+  const [newLoanAmount, setNewLoanAmount] = useState('')
+  const [newLoanReason, setNewLoanReason] = useState('')
+  const [newLoanSubmitting, setNewLoanSubmitting] = useState(false)
 
   const [pendingLeaves, setPendingLeaves] = useState([])
   const [leavesLoading, setLeavesLoading] = useState(false)
@@ -97,8 +104,8 @@ export default function PendingUsers() {
   }
 
   useEffect(() => {
-    Promise.all([loadPendingUsers(), loadManagers()]).then(() => setLoading(false))
-  }, [loadPendingUsers, loadManagers])
+    Promise.all([loadPendingUsers(), loadManagers(), loadAgents()]).then(() => setLoading(false))
+  }, [loadPendingUsers, loadManagers, loadAgents])
 
   const handleReview = async (leaveId, status) => {
     setReviewProcessing(leaveId)
@@ -119,6 +126,37 @@ export default function PendingUsers() {
     } catch (err) {
       alert(err?.response?.data?.detail || 'Failed to review loan')
     } finally { setLoanReviewProcessing(null) }
+  }
+
+  const handleCreateLoanSubmit = async () => {
+    const amt = parseFloat(newLoanAmount)
+    if (!newLoanUserId) {
+      alert('Please select a manager or agent')
+      return
+    }
+    if (!amt || amt <= 0) {
+      alert('Please enter a valid loan amount')
+      return
+    }
+    setNewLoanSubmitting(true)
+    try {
+      await api.post(endpoints.loans.create, {
+        amount: amt,
+        reason: newLoanReason,
+        userId: parseInt(newLoanUserId),
+      })
+      // Reset form states and close modal
+      setNewLoanUserId('')
+      setNewLoanAmount('')
+      setNewLoanReason('')
+      setShowCreateLoan(false)
+      // Refresh the loan history to show the newly approved loan request
+      loadLoanHistory(1)
+    } catch (err) {
+      alert(err?.response?.data?.detail || 'Failed to create loan request')
+    } finally {
+      setNewLoanSubmitting(false)
+    }
   }
 
   const openPaybackModal = (loan) => {
@@ -527,13 +565,23 @@ export default function PendingUsers() {
             <TabsContent value="loans">
               {/* Pending Loan Requests */}
               <div className="rt-fade rt-card">
-                <div className="rt-card-header">
+                <div className="rt-card-header flex items-center justify-between flex-wrap gap-2">
                   <div className="flex items-center gap-2.5">
                     <div className="rt-card-icon" style={{ background: '#ecfdf5' }}>
                       <Wallet size={16} color="#16a34a" />
                     </div>
                     <h2 className="rt-card-title">Pending Loan Requests ({pendingLoans.length})</h2>
                   </div>
+                  <button
+                    onClick={() => setShowCreateLoan(true)}
+                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold cursor-pointer border-none text-white transition-all duration-200"
+                    style={{
+                      background: 'linear-gradient(135deg, #10b981, #059669)',
+                      boxShadow: '0 4px 12px rgba(16,185,129,0.25)',
+                    }}
+                  >
+                    <Plus size={13} /> Add Loan Request
+                  </button>
                 </div>
                 <div className="rt-card-body">
                   {loansLoading ? (
@@ -880,6 +928,88 @@ export default function PendingUsers() {
               >
                 {recordingPayback ? <Loader2 size={16} className="animate-spin" /> : <CheckCircle size={16} />}
                 Record Payback
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {showCreateLoan && (
+        <div style={{ position: 'fixed', inset: 0, background: 'rgba(15,23,42,0.3)', backdropFilter: 'blur(4px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 100, padding: 20 }}>
+          <div className="rt-card rt-fade" style={{ width: '100%', maxWidth: '460px', background: '#fff', borderRadius: '16px', boxShadow: '0 20px 25px -5px rgba(0,0,0,0.1)', padding: '24px 28px' }}>
+            <div className="flex items-center gap-2 mb-4" style={{ borderBottom: '1px solid #f1f5f9', paddingBottom: '12px' }}>
+              <div className="w-8 h-8 rounded-lg flex items-center justify-center" style={{ background: '#ecfdf5' }}>
+                <Wallet size={16} color="#16a34a" />
+              </div>
+              <h3 className="font-bold text-slate-900 text-lg">Add Loan Request</h3>
+            </div>
+
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                <label style={labelStyle}>Select Staff / Agent</label>
+                <select
+                  style={inputStyle}
+                  value={newLoanUserId}
+                  onChange={(e) => setNewLoanUserId(e.target.value)}
+                >
+                  <option value="">Choose staff member...</option>
+                  {managers.length > 0 && <optgroup label="Managers">
+                    {managers.map((m) => (
+                      <option key={m.id} value={m.id}>{m.name} ({m.email})</option>
+                    ))}
+                  </optgroup>}
+                  {agents.length > 0 && <optgroup label="Agents">
+                    {agents.map((a) => (
+                      <option key={a.id} value={a.id}>{a.name} ({a.email})</option>
+                    ))}
+                  </optgroup>}
+                </select>
+              </div>
+
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                <label style={labelStyle}>Loan Amount (Rs.)</label>
+                <input
+                  style={inputStyle}
+                  type="number"
+                  placeholder="e.g. 15000"
+                  value={newLoanAmount}
+                  onChange={(e) => setNewLoanAmount(e.target.value)}
+                />
+              </div>
+
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                <label style={labelStyle}>Reason / Remarks</label>
+                <textarea
+                  style={{ ...inputStyle, fontFamily: 'inherit', resize: 'vertical' }}
+                  rows={3}
+                  placeholder="e.g. Advance salary request"
+                  value={newLoanReason}
+                  onChange={(e) => setNewLoanReason(e.target.value)}
+                />
+              </div>
+            </div>
+
+            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px', marginTop: '24px', paddingTop: '16px', borderTop: '1px solid #f1f5f9' }}>
+              <button
+                onClick={() => {
+                  setShowCreateLoan(false)
+                  setNewLoanUserId('')
+                  setNewLoanAmount('')
+                  setNewLoanReason('')
+                }}
+                className="flex items-center gap-1.5 px-4 py-2 rounded-lg text-sm font-semibold cursor-pointer border"
+                style={{ background: '#fff', borderColor: '#e2e8f0', color: '#64748b' }}
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleCreateLoanSubmit}
+                disabled={newLoanSubmitting || !newLoanUserId || !newLoanAmount || parseFloat(newLoanAmount) <= 0}
+                className="flex items-center gap-1.5 px-4 py-2 rounded-lg text-sm font-semibold cursor-pointer border-none text-white disabled:opacity-50 transition-all"
+                style={{ background: 'linear-gradient(135deg, #10b981, #059669)' }}
+              >
+                {newLoanSubmitting ? <Loader2 size={16} className="animate-spin" /> : <CheckCircle size={16} />}
+                Add & Approve
               </button>
             </div>
           </div>

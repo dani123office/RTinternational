@@ -1704,6 +1704,7 @@ class LeaveRequestOut(BaseModel):
 class LoanCreate(BaseModel):
     amount: float = Field(..., gt=0, description="Loan amount")
     reason: Optional[str] = Field(None, max_length=1000)
+    userId: Optional[int] = Field(None, description="Target user ID (admin only)")
 
 
 class LoanReview(BaseModel):

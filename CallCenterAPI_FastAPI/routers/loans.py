@@ -35,6 +35,33 @@ def create_loan(
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
+    if current_user.role == "admin":
+        if not dto.userId:
+            raise HTTPException(status_code=400, detail="userId is required for admin-created loans")
+        target_user = db.query(User).filter(User.id == dto.userId).first()
+        if not target_user:
+            raise HTTPException(status_code=404, detail="Target user not found")
+        if target_user.role not in ("agent", "manager"):
+            raise HTTPException(status_code=400, detail="Loans can only be created for agents or managers")
+
+        record = LoanRequest(
+            user_id=target_user.id,
+            amount=dto.amount,
+            reason=dto.reason,
+            status="approved",
+            admin_id=current_user.id,
+            admin_notes="Created directly by admin",
+            created_at=datetime.now(),
+            updated_at=datetime.now(),
+        )
+        db.add(record)
+        db.commit()
+        db.refresh(record)
+        log_activity(db, current_user.id, "created_approved", "loan", record.id,
+                     f"Admin created and approved loan request #{record.id} of Rs. {dto.amount} for {target_user.name}",
+                     get_client_ip(request))
+        return _loan_to_out(record)
+
     if current_user.role not in ("agent", "manager"):
         raise HTTPException(status_code=403, detail="Only agents and managers can request loans")
 

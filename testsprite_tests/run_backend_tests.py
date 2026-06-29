@@ -847,6 +847,39 @@ class RTInternationalBackendTests(unittest.TestCase):
         self.assertEqual(r_payback2.status_code, 200, r_payback2.text)
         self.assertEqual(r_payback2.json().get("paidAmount"), 10000.0)
 
+    def test_BT036_admin_create_loan_for_agent(self):
+        # 1. Admin login
+        headers_admin = self.get_auth_header(self.admin_token)
+        
+        # 2. Get manager ID and Create agent
+        rm = requests.get(f"{BASE_URL}/api/admin/managers", headers=headers_admin, timeout=5.0)
+        self.assertEqual(rm.status_code, 200)
+        mgr_id = rm.json()[0].get("id")
+        
+        agent_email = get_unique_email()
+        r_agent = requests.post(f"{BASE_URL}/api/admin/create-agent", json={
+            "name": "Loan Agent",
+            "email": agent_email,
+            "password": "Password123",
+            "managerId": mgr_id
+        }, headers=headers_admin, timeout=5.0)
+        self.assertEqual(r_agent.status_code, 201, r_agent.text)
+        agent_id = r_agent.json().get("id")
+        
+        # 3. Admin creates loan for the agent
+        r_loan = requests.post(f"{BASE_URL}/api/loans", json={
+            "amount": 15000.0,
+            "reason": "Admin initiated advance",
+            "userId": agent_id
+        }, headers=headers_admin, timeout=5.0)
+        self.assertEqual(r_loan.status_code, 200, r_loan.text)
+        
+        loan_data = r_loan.json()
+        self.assertEqual(loan_data.get("userId"), agent_id)
+        self.assertEqual(loan_data.get("amount"), 15000.0)
+        self.assertEqual(loan_data.get("status"), "approved")
+        self.assertEqual(loan_data.get("adminNotes"), "Created directly by admin")
+
     # ==========================================
     # RATE LIMITING (BT024) - Executed LAST to avoid blocking and limiting other tests!
     # ==========================================
