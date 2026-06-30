@@ -127,7 +127,7 @@ class _SalaryPDF:
         return out
 
     def _load_image_resource(self, path: str):
-        """Loads PNG/JPG, converts to RGB JPEG bytes and returns (bytes, width, height) or None."""
+        """Loads PNG/JPG, converts to RGB JPEG bytes, cleans gray background to white and returns (bytes, width, height) or None."""
         import os
         from PIL import Image
         import io
@@ -136,14 +136,25 @@ class _SalaryPDF:
         try:
             with Image.open(path) as im:
                 w, h = im.size
-                # Convert to RGB mode (stripping alpha channel if PNG)
-                # We fill alpha with white background so transparency looks clean on white paper
-                if im.mode in ('RGBA', 'LA') or (im.mode == 'P' and 'transparency' in im.info):
-                    bg = Image.new('RGB', im.size, (255, 255, 255))
-                    bg.paste(im, mask=im.convert('RGBA').split()[3])
-                    im = bg
-                else:
-                    im = im.convert('RGB')
+                # Convert to RGBA so we can safely edit pixel data
+                im = im.convert('RGBA')
+                
+                # Replace the solid light gray background (230, 230, 230) with pure white
+                datas = im.getdata()
+                new_data = []
+                for item in datas:
+                    r, g, b, a = item
+                    # If pixel color is light gray (near 230, 230, 230), convert it to pure white
+                    if abs(r - 230) < 16 and abs(g - 230) < 16 and abs(b - 230) < 16:
+                        new_data.append((255, 255, 255, 255))
+                    else:
+                        new_data.append(item)
+                im.putdata(new_data)
+                
+                # Convert to RGB mode with a white background for final JPEG saving
+                bg = Image.new('RGB', im.size, (255, 255, 255))
+                bg.paste(im, mask=im.split()[3])
+                im = bg
                 
                 buf = io.BytesIO()
                 im.save(buf, format='JPEG', quality=95)
