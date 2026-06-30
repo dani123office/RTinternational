@@ -126,6 +126,32 @@ class _SalaryPDF:
         )
         return out
 
+    def _load_image_resource(self, path: str):
+        """Loads PNG/JPG, converts to RGB JPEG bytes and returns (bytes, width, height) or None."""
+        import os
+        from PIL import Image
+        import io
+        if not os.path.exists(path):
+            return None
+        try:
+            with Image.open(path) as im:
+                w, h = im.size
+                # Convert to RGB mode (stripping alpha channel if PNG)
+                # We fill alpha with white background so transparency looks clean on white paper
+                if im.mode in ('RGBA', 'LA') or (im.mode == 'P' and 'transparency' in im.info):
+                    bg = Image.new('RGB', im.size, (255, 255, 255))
+                    bg.paste(im, mask=im.convert('RGBA').split()[3])
+                    im = bg
+                else:
+                    im = im.convert('RGB')
+                
+                buf = io.BytesIO()
+                im.save(buf, format='JPEG', quality=95)
+                return buf.getvalue(), w, h
+        except Exception as e:
+            print(f"Error loading image resource: {e}")
+            return None
+
     # ── main build ────────────────────────────────────────────────────────────
     def build_slip(self, **kw):
         buf = []
@@ -142,25 +168,38 @@ class _SalaryPDF:
         buf.append(self._rect(10, 10, PW - 20, PH - 20, fill=False, stroke=True))
 
         # ── header block ─────────────────────────────────────────────────────
-        logo_text = "RT International"
-        text_sz = 20
-        text_w = len(logo_text) * text_sz * 0.52
-        icon_w = 26
-        gap = 8
-        total_w = icon_w + gap + text_w
-        logo_x = (PW - total_w) / 2
+        import os
+        base_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+        logo_path = os.path.join(base_dir, "logort.png")
+        img_data = self._load_image_resource(logo_path)
 
-        # Draw icon
         icon_y = Y(58)
-        buf.append(self._fg(*self.C_BLUE))
-        buf.append(self._rrect(logo_x, icon_y, icon_w, icon_w, r=6, fill=True, stroke=False))
-        # Draw "RT" text inside icon
-        buf.append(self._fg(*self.C_WHITE))
-        buf.append(self._t(logo_x + 6, icon_y + 8, "RT", "Helvetica-Bold", 11))
+        if img_data:
+            img_bytes, img_w, img_h = img_data
+            aspect = img_w / img_h
+            h = 32
+            w = h * aspect
+            logo_x = (PW - w) / 2
+            buf.append(f"q {w:.2f} 0 0 {h:.2f} {logo_x:.2f} {icon_y:.2f} cm /Im1 Do Q\n")
+        else:
+            logo_text = "RT International"
+            text_sz = 20
+            text_w = len(logo_text) * text_sz * 0.52
+            icon_w = 26
+            gap = 8
+            total_w = icon_w + gap + text_w
+            logo_x = (PW - total_w) / 2
 
-        # Draw "RT International" brand name next to the icon
-        buf.append(self._fg(*self.C_DARK))
-        buf.append(self._t(logo_x + icon_w + gap, icon_y + 5, logo_text, "Helvetica-Bold", text_sz))
+            # Draw icon
+            buf.append(self._fg(*self.C_BLUE))
+            buf.append(self._rrect(logo_x, icon_y, icon_w, icon_w, r=6, fill=True, stroke=False))
+            # Draw "RT" text inside icon
+            buf.append(self._fg(*self.C_WHITE))
+            buf.append(self._t(logo_x + 6, icon_y + 8, "RT", "Helvetica-Bold", 11))
+
+            # Draw "RT International" brand name next to the icon
+            buf.append(self._fg(*self.C_DARK))
+            buf.append(self._t(logo_x + icon_w + gap, icon_y + 5, logo_text, "Helvetica-Bold", text_sz))
 
         y = icon_y - 20
         buf.append(self._fg(*self.C_DARK))
@@ -296,9 +335,9 @@ class _SalaryPDF:
         buf.append(self._tc(fy, "Generated on " + kw["generated_at"], "Helvetica-Oblique", 7))
 
         content = "".join(buf)
-        self._build_pdf(content)
+        self._build_pdf(content, img_data=img_data)
 
-    def _build_pdf(self, content: str):
+    def _build_pdf(self, content: str, img_data=None):
         import io
         objects = []
 
@@ -310,7 +349,19 @@ class _SalaryPDF:
         f1 = o("<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>")
         f2 = o("<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica-Bold >>")
         f3 = o("<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica-Oblique >>")
-        res = o(f"<< /Font << /F1 {f1} 0 R /F2 {f2} 0 R /F3 {f3} 0 R >> >>")
+
+        if img_data:
+            img_bytes, w, h = img_data
+            img_head = (
+                f"<< /Type /XObject /Subtype /Image /Width {w} /Height {h} "
+                f"/ColorSpace /DeviceRGB /BitsPerComponent 8 /Filter /DCTDecode "
+                f"/Length {len(img_bytes)} >>\nstream\n"
+            )
+            img_body = img_head.encode("latin-1") + img_bytes + b"\nendstream"
+            im_ref = o(img_body.decode("latin-1"))
+            res = o(f"<< /Font << /F1 {f1} 0 R /F2 {f2} 0 R /F3 {f3} 0 R >> /XObject << /Im1 {im_ref} 0 R >> >>")
+        else:
+            res = o(f"<< /Font << /F1 {f1} 0 R /F2 {f2} 0 R /F3 {f3} 0 R >> >>")
 
         pages_ref = len(objects) + 3
         page  = o(f"<< /Type /Page /Parent {pages_ref} 0 R /MediaBox [0 0 {self.PAGE_W} {self.PAGE_H}] /Contents {con_obj} 0 R /Resources {res} 0 R >>")
