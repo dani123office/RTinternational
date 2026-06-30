@@ -189,15 +189,20 @@ class _SalaryPDF:
             aspect = img_w / img_h
             h = 55
             w = h * aspect
-            logo_x = (PW - w) / 2
+            # Shift logo 12pt to the right for visual balance
+            logo_x = (PW - w) / 2 + 12
             # Translate to bottom-left corner of the logo image (top at Y(30))
             icon_y = Y(30 + h)
             buf.append(f"q {w:.2f} 0 0 {h:.2f} {logo_x:.2f} {icon_y:.2f} cm /Im1 Do Q\n")
 
-            # Draw "RT International" text right below the logo image
+            # Draw "RT International" text right below the logo image, also shifted 12pt
             brand_y = icon_y - 12
             buf.append(self._fg(*self.C_DARK))
-            buf.append(self._tc(brand_y, "RT International", "Helvetica-Bold", 12))
+            brand_text = "RT International"
+            brand_sz = 12
+            approx_brand_w = len(brand_text) * brand_sz * 0.52
+            brand_x = (PW - approx_brand_w) / 2 + 12
+            buf.append(self._t(brand_x, brand_y, brand_text, "Helvetica-Bold", brand_sz))
             y = brand_y - 18
         else:
             icon_y = Y(64)
