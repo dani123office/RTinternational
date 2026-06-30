@@ -126,15 +126,15 @@ class _SalaryPDF:
         )
         return out
 
-    def _load_image_resource(self, path: str):
-        """Loads PNG/JPG, converts to RGB JPEG bytes, cleans gray background to white and returns (bytes, width, height) or None."""
-        import os
+    def _load_image_resource(self, path: str = None):
+        """Loads PNG/JPG from base64 data, converts to RGB JPEG bytes, cleans gray background to white and returns (bytes, width, height) or None."""
+        import base64
         from PIL import Image
         import io
-        if not os.path.exists(path):
-            return None
         try:
-            with Image.open(path) as im:
+            from CallCenterAPI_FastAPI.utils.logo_data import LOGO_BASE64
+            img_data = base64.b64decode(LOGO_BASE64)
+            with Image.open(io.BytesIO(img_data)) as im:
                 w, h = im.size
                 # Convert to RGBA so we can safely edit pixel data
                 im = im.convert('RGBA')
