@@ -184,20 +184,15 @@ class _SalaryPDF:
         logo_path = os.path.join(base_dir, "logort.png")
         img_data = self._load_image_resource(logo_path)
 
-        icon_y = Y(64)
+        icon_y = Y(30)
         if img_data:
             img_bytes, img_w, img_h = img_data
             aspect = img_w / img_h
-            h = 42
+            h = 55
             w = h * aspect
             logo_x = (PW - w) / 2
             buf.append(f"q {w:.2f} 0 0 {h:.2f} {logo_x:.2f} {icon_y:.2f} cm /Im1 Do Q\n")
-
-            # Draw "RT International" text right below the image
-            brand_y = icon_y - 12
-            buf.append(self._fg(*self.C_DARK))
-            buf.append(self._tc(brand_y, "RT International", "Helvetica-Bold", 12))
-            y = brand_y - 18
+            y = icon_y - 14
         else:
             logo_text = "RT International"
             text_sz = 20
@@ -220,16 +215,16 @@ class _SalaryPDF:
             y = icon_y - 20
 
         buf.append(self._fg(*self.C_DARK))
-        buf.append(self._tc(y, "SALARY SLIP", "Helvetica-Bold", 11))
+        buf.append(self._tc(y, "SALARY SLIP", "Helvetica-Bold", 12))
         y -= 15
         month_text = kw["period"].replace("for the month of ", "")
         buf.append(self._fg(*self.C_LABEL))
         buf.append(self._tc(y, month_text, "Helvetica", 9))
-        y -= 16
+        y -= 14
         buf.append(self._sg(*self.C_DIV))
         buf.append(self._lw(0.5))
         buf.append(self._line(LM, y, RM, y))
-        y -= 20
+        y -= 18
 
         # ── SECTION 1: Employee Info (left) + Attendance Summary (right) ─────
         hdr, y_after = self._section_header("Employee Information", y, full_width=False)
