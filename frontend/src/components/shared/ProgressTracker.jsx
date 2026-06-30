@@ -5,13 +5,13 @@ export default function ProgressTracker({ currentStatus, steps }) {
   const active = currentIdx >= 0 ? currentIdx : 0
 
   return (
-    <div className="flex items-center w-full">
+    <div className="flex items-center w-full pr-1 overflow-x-auto sm:overflow-x-visible">
       {steps.map((step, i) => {
         const isCompleted = i < active
         const isCurrent = i === active
         const isLast = i === steps.length - 1
         return (
-          <div key={step.key} className="flex items-center min-w-0" style={{ flex: isLast ? 0 : 1 }}>
+          <div key={step.key} className={`flex items-center min-w-0 ${isLast ? 'shrink-0' : 'flex-1'}`}>
             <div
               className="flex items-center gap-2 px-3 py-1.5 rounded-full whitespace-nowrap shrink-0"
               style={{
@@ -41,7 +41,7 @@ export default function ProgressTracker({ currentStatus, steps }) {
               </span>
             </div>
             {!isLast && (
-              <div className="flex-1 h-0.5 mx-1" style={{ background: isCompleted ? '#22c55e' : '#e2e8f0' }} />
+              <div className="flex-1 h-0.5 mx-1 min-w-[15px]" style={{ background: isCompleted ? '#22c55e' : '#e2e8f0' }} />
             )}
           </div>
         )
