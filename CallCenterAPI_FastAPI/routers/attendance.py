@@ -39,9 +39,9 @@ router = APIRouter(prefix="/api/attendance", tags=["attendance"])
 
 PKT_OFFSET = timedelta(hours=5)
 
-# Weekday-aware thresholds: Mon-Thu -> 14:10, Fri -> 15:10 (PKT)
-LATE_THRESHOLD_MON_THU = (14, 10)
-LATE_THRESHOLD_FRIDAY = (15, 10)
+# Weekday-aware thresholds: Mon-Thu -> 14:15, Fri -> 15:15 (PKT)
+LATE_THRESHOLD_MON_THU = (14, 15)
+LATE_THRESHOLD_FRIDAY = (15, 15)
 
 def _now_pkt():
     return datetime.utcnow() + PKT_OFFSET
