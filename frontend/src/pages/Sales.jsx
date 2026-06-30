@@ -19,6 +19,8 @@ const FILTERS = [
   { key: 'chasing', label: 'Chasing' },
   { key: 'cotInProgress', label: 'COT In Progress' },
   { key: 'cotComplete', label: 'COT Complete' },
+  { key: 'renewal', label: 'Renewal' },
+  { key: 'outOfContract', label: 'Out of Contract' },
   { key: 'done', label: 'Sale Complete' },
 ]
 
@@ -32,6 +34,8 @@ export default function Sales() {
     chasing: sales.filter((s) => s.cotStatus === 'chasing').length,
     cotInProgress: sales.filter((s) => s.cotStatus === 'cotInProgress').length,
     cotComplete: sales.filter((s) => s.cotStatus === 'cotComplete').length,
+    renewal: sales.filter((s) => s.cotStatus === 'renewal').length,
+    outOfContract: sales.filter((s) => s.cotStatus === 'outOfContract').length,
     done: sales.filter((s) => s.cotStatus === 'done').length,
   }), [sales])
 

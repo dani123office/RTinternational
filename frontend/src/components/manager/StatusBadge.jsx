@@ -9,6 +9,8 @@ const statusConfig = {
   overdue: { bg: '#fce7f3', color: '#9d174d', label: 'Overdue' },
   hold: { bg: '#f3e8ff', color: '#6b21a8', label: 'On Hold' },
   success: { bg: '#d1fae5', color: '#065f46', label: 'Success' },
+  renewal: { bg: '#e0f2fe', color: '#0369a1', label: 'Renewal' },
+  outofcontract: { bg: '#ffedd5', color: '#c2410c', label: 'Out of Contract' },
 }
 
 export default function StatusBadge({ status, type }) {

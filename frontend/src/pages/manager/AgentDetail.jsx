@@ -275,6 +275,9 @@ export default function AgentDetail() {
           <select value={formData.cotStatus || 'chasing'} onChange={(e) => upd('cotStatus', e.target.value)} className="rt-input">
             <option value="chasing">Chasing</option>
             <option value="cotInProgress">COT In Progress</option>
+            <option value="cotComplete">COT Complete</option>
+            <option value="renewal">Renewal</option>
+            <option value="outOfContract">Out of Contract</option>
             <option value="done">Sale Complete</option>
             <option value="hold">On Hold</option>
           </select>

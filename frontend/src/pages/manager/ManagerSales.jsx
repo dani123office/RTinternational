@@ -25,6 +25,8 @@ const STATUS_OPTIONS = [
   { value: 'chasing', label: 'Chasing' },
   { value: 'cotInProgress', label: 'COT In Progress' },
   { value: 'cotComplete', label: 'COT Complete' },
+  { value: 'renewal', label: 'Renewal' },
+  { value: 'outOfContract', label: 'Out of Contract' },
   { value: 'done', label: 'Sale Complete' },
   { value: 'hold', label: 'On Hold' },
 ]

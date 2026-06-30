@@ -20,6 +20,9 @@ export const STATUS_CONFIG = {
   approved: { label: 'Approved', bg: '#d1fae5', color: '#065f46' },
   rejected: { label: 'Rejected', bg: '#fee2e2', color: '#991b1b' },
   dispute: { label: 'Dispute', bg: '#fef3c7', color: '#92400e' },
+  renewal: { label: 'Renewal', bg: '#e0f2fe', color: '#0369a1' },
+  outOfContract: { label: 'Out of Contract', bg: '#ffedd5', color: '#c2410c' },
+  outofcontract: { label: 'Out of Contract', bg: '#ffedd5', color: '#c2410c' },
 };
 
 export const COT_STEPS = [
@@ -66,6 +69,8 @@ export const SALE_FILTERS = [
   { key: 'chasing', label: 'Chasing' },
   { key: 'cotInProgress', label: 'COT In Progress' },
   { key: 'cotComplete', label: 'COT Complete' },
+  { key: 'renewal', label: 'Renewal' },
+  { key: 'outOfContract', label: 'Out of Contract' },
   { key: 'done', label: 'Sale Complete' },
 ];
 
