@@ -144,8 +144,8 @@ class _SalaryPDF:
                 new_data = []
                 for item in datas:
                     r, g, b, a = item
-                    # If pixel color is light gray (near 230, 230, 230), convert it to pure white
-                    if abs(r - 230) < 16 and abs(g - 230) < 16 and abs(b - 230) < 16:
+                    # If pixel is light gray / near-white background, convert to pure white
+                    if r > 220 and g > 220 and b > 220:
                         new_data.append((255, 255, 255, 255))
                     else:
                         new_data.append(item)
@@ -184,11 +184,11 @@ class _SalaryPDF:
         logo_path = os.path.join(base_dir, "logort.png")
         img_data = self._load_image_resource(logo_path)
 
-        icon_y = Y(58)
+        icon_y = Y(64)
         if img_data:
             img_bytes, img_w, img_h = img_data
             aspect = img_w / img_h
-            h = 32
+            h = 42
             w = h * aspect
             logo_x = (PW - w) / 2
             buf.append(f"q {w:.2f} 0 0 {h:.2f} {logo_x:.2f} {icon_y:.2f} cm /Im1 Do Q\n")
