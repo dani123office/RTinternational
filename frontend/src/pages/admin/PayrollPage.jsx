@@ -19,6 +19,7 @@ export default function PayrollPage() {
   const [month, setMonth] = useState(String(new Date().getMonth() + 1))
   const [year, setYear] = useState(String(CURRENT_YEAR))
   const [commission, setCommission] = useState('0.00')
+  const [loanDeduction, setLoanDeduction] = useState('0.00')
   const [loading, setLoading] = useState(false)
   const [agentsLoading, setAgentsLoading] = useState(true)
 
@@ -48,6 +49,7 @@ export default function PayrollPage() {
         month,
         year,
         commission,
+        loan_deduction: loanDeduction,
       })
       const res = await fetch(`/api/admin/salary/slip/${selectedAgentId}?${params}`, {
         headers: token ? { Authorization: `Bearer ${token}` } : {},
@@ -83,7 +85,7 @@ export default function PayrollPage() {
                 Generate Salary Slip
               </h2>
 
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-5">
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4 mb-5">
                 <div>
                   <label className="block text-xs font-semibold uppercase tracking-wider mb-1.5" style={{ color: '#64748b' }}>
                     Employee
@@ -149,6 +151,21 @@ export default function PayrollPage() {
                     min="0"
                     value={commission}
                     onChange={e => setCommission(e.target.value)}
+                    className="w-full px-3 py-2.5 rounded-xl text-sm font-medium border"
+                    style={{ background: '#ffffff', borderColor: '#e2e8f0', color: '#0f172a' }}
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-xs font-semibold uppercase tracking-wider mb-1.5" style={{ color: '#64748b' }}>
+                    Loan Deduction <span className="font-normal normal-case" style={{ color: '#94a3b8' }}>(Optional)</span>
+                  </label>
+                  <input
+                    type="number"
+                    step="0.01"
+                    min="0"
+                    value={loanDeduction}
+                    onChange={e => setLoanDeduction(e.target.value)}
                     className="w-full px-3 py-2.5 rounded-xl text-sm font-medium border"
                     style={{ background: '#ffffff', borderColor: '#e2e8f0', color: '#0f172a' }}
                   />

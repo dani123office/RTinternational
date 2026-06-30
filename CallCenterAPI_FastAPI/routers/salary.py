@@ -394,6 +394,7 @@ def download_salary_slip(
     month:      int   = Query(None, ge=1, le=12),
     year:       int   = Query(None, ge=2020, le=2100),
     commission: float = Query(0.0,  ge=0),
+    loan_deduction: float = Query(0.0, ge=0, alias="loan_deduction"),
     current_user: User    = Depends(get_current_user),
     db:           Session = Depends(get_db),
 ):
@@ -410,12 +411,13 @@ def download_salary_slip(
     utility    = int(round(base * 0.30))
     conveyance = int(round(base * 0.05))
     comm       = int(commission)
+    loan_ded   = int(loan_deduction)
     gross      = basic + hra + utility + conveyance + comm
 
     # ── deductions ────────────────────────────────────────────────────────────
     daily_rate        = (basic + hra + utility + conveyance) / working_days if working_days > 0 else 0
     absent_deduction  = int(round(daily_rate * absent_days))
-    total_deductions  = absent_deduction
+    total_deductions  = absent_deduction + loan_ded
     net_salary        = gross
 
     # ── PDF data structures ───────────────────────────────────────────────────
@@ -432,8 +434,10 @@ def download_salary_slip(
 
     deductions_rows = [
         ("Absent Days Deduction", _fmt(absent_deduction), False),
-        ("Total Deductions",      _fmt(total_deductions), True),
     ]
+    if loan_ded:
+        deductions_rows.append(("Loan Deduction", _fmt(loan_ded), False))
+    deductions_rows.append(("Total Deductions", _fmt(total_deductions), True))
 
     pdf = _SalaryPDF()
     pdf.build_slip(
