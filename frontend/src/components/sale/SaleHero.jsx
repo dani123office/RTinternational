@@ -8,9 +8,13 @@ export default function SaleHero({ sale, customer }) {
   if (!sale) return null
   const saleDate = sale.createdAt ? new Date(sale.createdAt) : fallbackDate
 
-  const saleTypeLabel = sale.saleType === 'cot' ? 'COT'
-    : sale.saleType === 'renewal' ? 'Renewal'
-    : sale.saleType === 'out_of_contract' ? 'Out of Contract'
+  const effectiveType = sale.cotStatus === 'renewal' ? 'renewal'
+    : sale.cotStatus === 'outOfContract' ? 'out_of_contract'
+    : sale.saleType || 'cot'
+
+  const saleTypeLabel = effectiveType === 'cot' ? 'COT'
+    : effectiveType === 'renewal' ? 'Renewal'
+    : effectiveType === 'out_of_contract' ? 'Out of Contract'
     : 'COT'
 
   return (

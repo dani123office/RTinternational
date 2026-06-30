@@ -272,7 +272,24 @@ export default function AgentDetail() {
           </FormField>
         </div>
         <FormField label="Status">
-          <select value={formData.cotStatus || 'chasing'} onChange={(e) => upd('cotStatus', e.target.value)} className="rt-input">
+          <select
+            value={formData.cotStatus || 'chasing'}
+            onChange={(e) => {
+              const val = e.target.value;
+              setFormData(p => {
+                const next = { ...p, cotStatus: val };
+                if (val === 'renewal') {
+                  next.saleType = 'renewal';
+                } else if (val === 'outOfContract') {
+                  next.saleType = 'out_of_contract';
+                } else if (['cotInProgress', 'cotComplete', 'chasing'].includes(val)) {
+                  next.saleType = 'cot';
+                }
+                return next;
+              });
+            }}
+            className="rt-input"
+          >
             <option value="chasing">Chasing</option>
             <option value="cotInProgress">COT In Progress</option>
             <option value="cotComplete">COT Complete</option>

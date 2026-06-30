@@ -94,7 +94,15 @@ export function useSaleDetail() {
 
   const handleStatusChange = async (newStatus) => {
     try {
-      await updateSale(saleId, { cotStatus: newStatus })
+      const payload = { cotStatus: newStatus }
+      if (newStatus === 'renewal') {
+        payload.saleType = 'renewal'
+      } else if (newStatus === 'outOfContract') {
+        payload.saleType = 'out_of_contract'
+      } else if (['cotInProgress', 'cotComplete', 'chasing'].includes(newStatus)) {
+        payload.saleType = 'cot'
+      }
+      await updateSale(saleId, payload)
       toast('Status updated', 'success')
     } catch {
       toast('Failed to update status', 'error')
