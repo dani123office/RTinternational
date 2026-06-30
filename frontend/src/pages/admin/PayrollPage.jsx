@@ -142,9 +142,12 @@ export default function PayrollPage() {
                 </div>
 
                 <div>
-                  <label className="block text-xs font-semibold uppercase tracking-wider mb-1.5" style={{ color: '#64748b' }}>
-                    Commission <span className="font-normal normal-case" style={{ color: '#94a3b8' }}>(Optional)</span>
-                  </label>
+                  <div className="flex items-center justify-between mb-1.5">
+                    <label className="block text-xs font-semibold uppercase tracking-wider" style={{ color: '#64748b' }}>
+                      Commission
+                    </label>
+                    <span className="text-[10px] font-normal normal-case" style={{ color: '#94a3b8' }}>(Optional)</span>
+                  </div>
                   <input
                     type="number"
                     step="0.01"
@@ -157,9 +160,12 @@ export default function PayrollPage() {
                 </div>
 
                 <div>
-                  <label className="block text-xs font-semibold uppercase tracking-wider mb-1.5" style={{ color: '#64748b' }}>
-                    Loan Deduction <span className="font-normal normal-case" style={{ color: '#94a3b8' }}>(Optional)</span>
-                  </label>
+                  <div className="flex items-center justify-between mb-1.5">
+                    <label className="block text-xs font-semibold uppercase tracking-wider" style={{ color: '#64748b' }}>
+                      Loan Deduction
+                    </label>
+                    <span className="text-[10px] font-normal normal-case" style={{ color: '#94a3b8' }}>(Optional)</span>
+                  </div>
                   <input
                     type="number"
                     step="0.01"
