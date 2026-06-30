@@ -142,10 +142,27 @@ class _SalaryPDF:
         buf.append(self._rect(10, 10, PW - 20, PH - 20, fill=False, stroke=True))
 
         # ── header block ─────────────────────────────────────────────────────
-        y = Y(52)
+        logo_text = "RT International"
+        text_sz = 20
+        text_w = len(logo_text) * text_sz * 0.52
+        icon_w = 26
+        gap = 8
+        total_w = icon_w + gap + text_w
+        logo_x = (PW - total_w) / 2
+
+        # Draw icon
+        icon_y = Y(58)
+        buf.append(self._fg(*self.C_BLUE))
+        buf.append(self._rrect(logo_x, icon_y, icon_w, icon_w, r=6, fill=True, stroke=False))
+        # Draw "RT" text inside icon
+        buf.append(self._fg(*self.C_WHITE))
+        buf.append(self._t(logo_x + 6, icon_y + 8, "RT", "Helvetica-Bold", 11))
+
+        # Draw "RT International" brand name next to the icon
         buf.append(self._fg(*self.C_DARK))
-        buf.append(self._tc(y, "Rindh Tech International", "Helvetica-Bold", 22))
-        y -= 20
+        buf.append(self._t(logo_x + icon_w + gap, icon_y + 5, logo_text, "Helvetica-Bold", text_sz))
+
+        y = icon_y - 20
         buf.append(self._fg(*self.C_DARK))
         buf.append(self._tc(y, "SALARY SLIP", "Helvetica-Bold", 11))
         y -= 16
