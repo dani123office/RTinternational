@@ -1,3 +1,4 @@
+import { useMemo } from 'react'
 import { APP_STYLES } from '@/lib/styles'
 import { Loader2, ArrowLeft, FileText, Trash2, Activity, CheckCircle, PhoneCall, ArrowLeftRight, Edit, Calendar } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
@@ -15,13 +16,6 @@ import MeterDetailsCard from '@/components/shared/MeterDetailsCard'
 import OfferedRatesCard from '@/components/shared/OfferedRatesCard'
 import ProgressTracker from '@/components/shared/ProgressTracker'
 import { useAuthStore } from '@/store/authStore'
-
-const rateHistorySteps = [
-  { key: 'submitted', label: 'Submitted' },
-  { key: 'chasing', label: 'Chasing' },
-  { key: 'cotInProgress', label: 'COT In Progress' },
-  { key: 'cotComplete', label: 'COT Complete' },
-]
 
 function Card({ icon: Icon, title, headerRight, children, delay }) {
   return (
@@ -76,6 +70,36 @@ export default function SaleDetail() {
   const isManager = user?.role === 'manager'
   const isCotSale = sale?.saleType === 'cot' || !sale?.saleType
 
+  const steps = useMemo(() => {
+    const isRenewal = sale?.saleType === 'renewal' || sale?.cotStatus === 'renewal'
+    const isOutOfContract = sale?.saleType === 'out_of_contract' || sale?.cotStatus === 'outOfContract'
+    
+    const baseSteps = [
+      { key: 'submitted', label: 'Submitted' },
+      { key: 'chasing', label: 'Chasing' },
+    ]
+    
+    if (isRenewal) {
+      return [
+        ...baseSteps,
+        { key: 'renewal', label: 'Renewal' },
+        { key: 'done', label: 'Sale Complete' },
+      ]
+    } else if (isOutOfContract) {
+      return [
+        ...baseSteps,
+        { key: 'outOfContract', label: 'Out of Contract' },
+        { key: 'done', label: 'Sale Complete' },
+      ]
+    } else {
+      return [
+        ...baseSteps,
+        { key: 'cotInProgress', label: 'COT In Progress' },
+        { key: 'cotComplete', label: 'COT Complete' },
+      ]
+    }
+  }, [sale?.cotStatus, sale?.saleType])
+
   if (loading) {
     return (
       <div className="flex justify-center items-center min-h-screen">
@@ -127,11 +151,9 @@ export default function SaleDetail() {
           <div className="rt-section-gap">
             <SaleHero sale={sale} customer={customer} />
 
-            {isCotSale && (
-              <Card icon={Activity} title="Progress" delay="rt-d1">
-                <ProgressTracker currentStatus={sale.cotStatus || 'submitted'} steps={rateHistorySteps} />
-              </Card>
-            )}
+            <Card icon={Activity} title="Progress" delay="rt-d1">
+              <ProgressTracker currentStatus={sale.cotStatus || 'submitted'} steps={steps} />
+            </Card>
 
             <CustomerInfoCard customer={compositeCustomer} />
             <PaymentDetailsCard sale={sale} />
@@ -150,20 +172,14 @@ export default function SaleDetail() {
             )}
 
             <Card icon={CheckCircle} title="Status" delay="rt-d2">
-              {isCotSale ? (
-                <Select value={sale.cotStatus} onChange={(e) => handleStatusChange(e.target.value)} className="rt-input" style={{maxWidth:'280px'}}>
-                  <option value="chasing">Chasing</option>
-                  <option value="cotInProgress">COT In Progress</option>
-                  <option value="cotComplete">COT Complete</option>
-                  <option value="renewal">Renewal</option>
-                  <option value="outOfContract">Out of Contract</option>
-                  <option value="done">Sale Complete</option>
-                </Select>
-              ) : (
-                <div className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-green-50 text-green-700 font-semibold text-sm">
-                  <CheckCircle size={16} /> Sale Complete
-                </div>
-              )}
+              <Select value={sale.cotStatus} onChange={(e) => handleStatusChange(e.target.value)} className="rt-input" style={{maxWidth:'280px'}}>
+                <option value="chasing">Chasing</option>
+                <option value="cotInProgress">COT In Progress</option>
+                <option value="cotComplete">COT Complete</option>
+                <option value="renewal">Renewal</option>
+                <option value="outOfContract">Out of Contract</option>
+                <option value="done">Sale Complete</option>
+              </Select>
             </Card>
 
             {sale.notes && (
