@@ -184,16 +184,23 @@ class _SalaryPDF:
         logo_path = os.path.join(base_dir, "logort.png")
         img_data = self._load_image_resource(logo_path)
 
-        icon_y = Y(30)
         if img_data:
             img_bytes, img_w, img_h = img_data
             aspect = img_w / img_h
             h = 55
             w = h * aspect
             logo_x = (PW - w) / 2
+            # Translate to bottom-left corner of the logo image (top at Y(30))
+            icon_y = Y(30 + h)
             buf.append(f"q {w:.2f} 0 0 {h:.2f} {logo_x:.2f} {icon_y:.2f} cm /Im1 Do Q\n")
-            y = icon_y - 14
+
+            # Draw "RT International" text right below the logo image
+            brand_y = icon_y - 12
+            buf.append(self._fg(*self.C_DARK))
+            buf.append(self._tc(brand_y, "RT International", "Helvetica-Bold", 12))
+            y = brand_y - 18
         else:
+            icon_y = Y(64)
             logo_text = "RT International"
             text_sz = 20
             text_w = len(logo_text) * text_sz * 0.52
