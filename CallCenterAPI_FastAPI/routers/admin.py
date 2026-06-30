@@ -1193,7 +1193,7 @@ def admin_salary_slip(
     daily_rate        = (basic + hra + utility + conveyance) / working_days if working_days > 0 else 0
     absent_deduction  = int(round(daily_rate * absent_days))
     total_deductions  = absent_deduction + loan_ded
-    net_salary        = gross
+    net_salary        = gross - total_deductions
 
     earnings_rows = [
         ("Basic Salary",           _fmt(basic),      False),

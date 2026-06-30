@@ -442,7 +442,7 @@ def download_salary_slip(
     daily_rate        = (basic + hra + utility + conveyance) / working_days if working_days > 0 else 0
     absent_deduction  = int(round(daily_rate * absent_days))
     total_deductions  = absent_deduction + loan_ded
-    net_salary        = gross
+    net_salary        = gross - total_deductions
 
     # ── PDF data structures ───────────────────────────────────────────────────
     # (label, formatted_amount, is_bold_total_row)
