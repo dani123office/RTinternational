@@ -192,6 +192,12 @@ class _SalaryPDF:
             w = h * aspect
             logo_x = (PW - w) / 2
             buf.append(f"q {w:.2f} 0 0 {h:.2f} {logo_x:.2f} {icon_y:.2f} cm /Im1 Do Q\n")
+
+            # Draw "RT International" text right below the image
+            brand_y = icon_y - 12
+            buf.append(self._fg(*self.C_DARK))
+            buf.append(self._tc(brand_y, "RT International", "Helvetica-Bold", 12))
+            y = brand_y - 18
         else:
             logo_text = "RT International"
             text_sz = 20
@@ -211,19 +217,19 @@ class _SalaryPDF:
             # Draw "RT International" brand name next to the icon
             buf.append(self._fg(*self.C_DARK))
             buf.append(self._t(logo_x + icon_w + gap, icon_y + 5, logo_text, "Helvetica-Bold", text_sz))
+            y = icon_y - 20
 
-        y = icon_y - 20
         buf.append(self._fg(*self.C_DARK))
         buf.append(self._tc(y, "SALARY SLIP", "Helvetica-Bold", 11))
-        y -= 16
+        y -= 15
         month_text = kw["period"].replace("for the month of ", "")
         buf.append(self._fg(*self.C_LABEL))
         buf.append(self._tc(y, month_text, "Helvetica", 9))
-        y -= 18
+        y -= 16
         buf.append(self._sg(*self.C_DIV))
         buf.append(self._lw(0.5))
         buf.append(self._line(LM, y, RM, y))
-        y -= 22
+        y -= 20
 
         # ── SECTION 1: Employee Info (left) + Attendance Summary (right) ─────
         hdr, y_after = self._section_header("Employee Information", y, full_width=False)
