@@ -74,7 +74,7 @@ export default function CustomerDetail() {
       <div className="rt-page">
         <div style={{ maxWidth: '900px', margin: '0 auto' }}>
           <div style={{ marginBottom: '20px' }} className="rt-fade">
-            <button className="rt-back-btn" onClick={() => navigate('/customers')}>
+            <button className="rt-back-btn" onClick={() => navigate(-1)}>
               <ArrowLeft size={17} />
             </button>
           </div>
