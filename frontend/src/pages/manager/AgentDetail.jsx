@@ -71,6 +71,27 @@ export default function AgentDetail() {
   const [saving, setSaving]               = useState(false)
   const [viewItem, setViewItem]           = useState(null)
   const [statusFilter, setStatusFilter]   = useState('')
+
+  const [selectedMonth, setSelectedMonth] = useState(() => {
+    const d = new Date()
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`
+  })
+
+  const monthsList = useMemo(() => {
+    const list = []
+    const d = new Date()
+    for (let i = 0; i < 12; i++) {
+      const year = d.getFullYear()
+      const month = d.getMonth() + 1
+      const label = d.toLocaleString('en-US', { month: 'long', year: 'numeric' })
+      const value = `${year}-${String(month).padStart(2, '0')}`
+      list.push({ value, label, year, month })
+      d.setMonth(d.getMonth() - 1)
+    }
+    list.push({ value: 'all', label: 'All Time', year: null, month: null })
+    return list
+  }, [])
+
   const [attendanceHistory, setAttendanceHistory] = useState({ items: [], total: 0, page: 1, totalPages: 0 })
   const [attendancePage, setAttendancePage] = useState(1)
   const [attendanceLoading, setAttendanceLoading] = useState(false)
@@ -91,10 +112,33 @@ export default function AgentDetail() {
   }, [id, loadAgentDetail, loadAttendance])
 
   const agent     = selectedAgent?.agent
-  const stats     = selectedAgent?.stats
   const callbacks = selectedAgent?.callbacks || []
   const transfers = selectedAgent?.transfers || []
   const sales     = selectedAgent?.sales     || []
+
+  const filterByMonth = useCallback((items) => {
+    if (selectedMonth === 'all') return items
+    const [year, month] = selectedMonth.split('-').map(Number)
+    return items.filter(item => {
+      if (!item.createdAt) return false
+      const d = new Date(item.createdAt)
+      return d.getFullYear() === year && (d.getMonth() + 1) === month
+    })
+  }, [selectedMonth])
+
+  const filteredCallbacks = useMemo(() => filterByMonth(callbacks), [callbacks, filterByMonth])
+  const filteredTransfers = useMemo(() => filterByMonth(transfers), [transfers, filterByMonth])
+  const filteredSales     = useMemo(() => filterByMonth(sales), [sales, filterByMonth])
+
+  // Calculated Stats
+  const statsCallbacksCount = filteredCallbacks.length
+  const statsTransfersCount = filteredTransfers.length
+  const statsSalesCount     = filteredSales.length
+  const statsConversion     = useMemo(() => {
+    const total = statsCallbacksCount + statsTransfersCount
+    if (total === 0) return 0
+    return Math.round((statsSalesCount / total) * 100)
+  }, [statsCallbacksCount, statsTransfersCount, statsSalesCount])
 
   const reload   = useCallback(() => loadAgentDetail(Number(id)), [id, loadAgentDetail])
   const upd      = (key, val) => setFormData(p => ({ ...p, [key]: val }))
@@ -339,7 +383,7 @@ export default function AgentDetail() {
     )
   }
 
-  const activeItems = activeTab === 'Callbacks' ? callbacks : activeTab === 'Transfers' ? transfers : activeTab === 'Sales' ? sales : []
+  const activeItems = activeTab === 'Callbacks' ? filteredCallbacks : activeTab === 'Transfers' ? filteredTransfers : activeTab === 'Sales' ? filteredSales : []
   const activeType  = activeTab === 'Callbacks' ? 'callback' : activeTab === 'Transfers' ? 'transfer' : 'sale'
 
   const filteredData = useMemo(() => {
@@ -472,14 +516,30 @@ export default function AgentDetail() {
       <div className="rt-page">
         <div style={{ maxWidth: '960px', margin: '0 auto' }}>
 
-          {/* Back */}
-          <div className="rt-page-header">
+          {/* Back & Month filter */}
+          <div className="rt-page-header flex justify-between items-center" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
             <button
               onClick={() => navigate('/manager')}
               className="flex items-center gap-1.5 border-0 bg-transparent text-sm text-slate-500 cursor-pointer hover:text-slate-800 transition-colors"
             >
               <ArrowLeft size={16} /> Back to Team Dashboard
             </button>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <span style={{ fontSize: '11px', fontWeight: 700, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Month:</span>
+              <select
+                value={selectedMonth}
+                onChange={(e) => setSelectedMonth(e.target.value)}
+                style={{
+                  padding: '6px 12px', border: '1px solid #e2e6ec', borderRadius: '8px',
+                  fontSize: '12px', fontWeight: 600, color: '#0f172a', outline: 'none',
+                  background: 'white', cursor: 'pointer', transition: 'border-color 0.15s',
+                }}
+              >
+                {monthsList.map(m => (
+                  <option key={m.value} value={m.value}>{m.label}</option>
+                ))}
+              </select>
+            </div>
           </div>
 
           {/* Agent hero card */}
@@ -501,9 +561,9 @@ export default function AgentDetail() {
 
           {/* Stats */}
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6 rt-fade rt-d1">
-            <StatCard icon={ArrowLeftRight} label="Transfers"   value={stats?.transfers        || 0}  accent="linear-gradient(135deg,#22c55e,#16a34a)" />
-            <StatCard icon={PoundSterling}     label="Sales"       value={stats?.sales            || 0}  accent="linear-gradient(135deg,#f59e0b,#d97706)" />
-            <StatCard icon={TrendingUp}     label="Conversion"  value={`${stats?.conversionRate || 0}%`} accent="linear-gradient(135deg,#8b5cf6,#7c3aed)" progress={stats?.conversionRate || 0} />
+            <StatCard icon={ArrowLeftRight} label="Transfers"   value={statsTransfersCount}  accent="linear-gradient(135deg,#22c55e,#16a34a)" />
+            <StatCard icon={PoundSterling}     label="Sales"       value={statsSalesCount}  accent="linear-gradient(135deg,#f59e0b,#d97706)" />
+            <StatCard icon={TrendingUp}     label="Conversion"  value={`${statsConversion}%`} accent="linear-gradient(135deg,#8b5cf6,#7c3aed)" progress={statsConversion} />
           </div>
 
           {/* Tabs card */}
@@ -521,7 +581,7 @@ export default function AgentDetail() {
                   {tab !== 'Overview' && (
                     <span className="ml-2 text-xs px-1.5 py-0.5 rounded-full"
                       style={{ background: activeTab === tab ? '#eef2ff' : '#f8fafc', color: activeTab === tab ? '#6366f1' : '#94a3b8' }}>
-                      {tab === 'Callbacks' ? callbacks.length : tab === 'Transfers' ? transfers.length : sales.length}
+                      {tab === 'Callbacks' ? filteredCallbacks.length : tab === 'Transfers' ? filteredTransfers.length : filteredSales.length}
                     </span>
                   )}
                 </button>
@@ -534,8 +594,8 @@ export default function AgentDetail() {
                 <div>
                   <h4 className="text-sm font-semibold text-slate-700 mb-4">Recent Activity</h4>
                   {[
-                    ...transfers.slice(0, 5).map(t => ({ ...t, _type: 'transfer' })),
-                    ...sales.slice(0, 5).map(s => ({ ...s, _type: 'sale' })),
+                    ...filteredTransfers.slice(0, 5).map(t => ({ ...t, _type: 'transfer' })),
+                    ...filteredSales.slice(0, 5).map(s => ({ ...s, _type: 'sale' })),
                   ]
                     .sort((a, b) => new Date(b.createdAt || 0) - new Date(a.createdAt || 0))
                     .slice(0, 10)
@@ -563,7 +623,7 @@ export default function AgentDetail() {
                       )
                     })
                   }
-                  {callbacks.length === 0 && transfers.length === 0 && sales.length === 0 && (
+                  {filteredCallbacks.length === 0 && filteredTransfers.length === 0 && filteredSales.length === 0 && (
                     <p className="text-sm text-slate-400 text-center py-8">No activity yet for this agent.</p>
                   )}
                 </div>

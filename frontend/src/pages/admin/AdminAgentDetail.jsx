@@ -73,6 +73,26 @@ export default function AdminAgentDetail() {
   const [statusFilter, setStatusFilter] = useState('')
   const [showEditModal, setShowEditModal] = useState(false)
 
+  const [selectedMonth, setSelectedMonth] = useState(() => {
+    const d = new Date()
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`
+  })
+
+  const monthsList = useMemo(() => {
+    const list = []
+    const d = new Date()
+    for (let i = 0; i < 12; i++) {
+      const year = d.getFullYear()
+      const month = d.getMonth() + 1
+      const label = d.toLocaleString('en-US', { month: 'long', year: 'numeric' })
+      const value = `${year}-${String(month).padStart(2, '0')}`
+      list.push({ value, label, year, month })
+      d.setMonth(d.getMonth() - 1)
+    }
+    list.push({ value: 'all', label: 'All Time', year: null, month: null })
+    return list
+  }, [])
+
   const [attendanceHistory, setAttendanceHistory] = useState([])
   const [attendanceLoading, setAttendanceLoading] = useState(false)
   const [leaveHistory, setLeaveHistory] = useState([])
@@ -105,28 +125,79 @@ export default function AdminAgentDetail() {
   }, [id])
 
   const agent     = selectedAgent?.agent
-  const stats     = selectedAgent?.stats
   const callbacks = selectedAgent?.callbacks || []
   const transfers = selectedAgent?.transfers || []
   const sales     = selectedAgent?.sales || []
 
-  const activeItems = activeTab === 'Callbacks' ? callbacks : activeTab === 'Transfers' ? transfers : sales
+  const filterByMonth = useCallback((items) => {
+    if (selectedMonth === 'all') return items
+    const [year, month] = selectedMonth.split('-').map(Number)
+    return items.filter(item => {
+      if (!item.createdAt) return false
+      const d = new Date(item.createdAt)
+      return d.getFullYear() === year && (d.getMonth() + 1) === month
+    })
+  }, [selectedMonth])
+
+  const filteredCallbacks = useMemo(() => filterByMonth(callbacks), [callbacks, filterByMonth])
+  const filteredTransfers = useMemo(() => filterByMonth(transfers), [transfers, filterByMonth])
+  const filteredSales     = useMemo(() => filterByMonth(sales), [sales, filterByMonth])
+
+  const activeItems = activeTab === 'Callbacks' ? filteredCallbacks : activeTab === 'Transfers' ? filteredTransfers : filteredSales
+
+  const filteredAttendanceByMonth = useMemo(() => {
+    if (selectedMonth === 'all') return attendanceHistory
+    const [year, month] = selectedMonth.split('-').map(Number)
+    return attendanceHistory.filter(r => {
+      const d = r.date ? new Date(r.date) : (r.createdAt ? new Date(r.createdAt) : null)
+      if (!d) return false
+      return d.getFullYear() === year && (d.getMonth() + 1) === month
+    })
+  }, [attendanceHistory, selectedMonth])
 
   const filteredAttendance = useMemo(() => {
-    if (!statusFilter) return attendanceHistory
-    return attendanceHistory.filter((r) => r.status === statusFilter)
-  }, [attendanceHistory, statusFilter])
+    if (!statusFilter) return filteredAttendanceByMonth
+    return filteredAttendanceByMonth.filter((r) => r.status === statusFilter)
+  }, [filteredAttendanceByMonth, statusFilter])
+
+  const filteredLeavesByMonth = useMemo(() => {
+    if (selectedMonth === 'all') return leaveHistory
+    const [year, month] = selectedMonth.split('-').map(Number)
+    return leaveHistory.filter(l => {
+      const d = l.startDate ? new Date(l.startDate) : (l.createdAt ? new Date(l.createdAt) : null)
+      if (!d) return false
+      return d.getFullYear() === year && (d.getMonth() + 1) === month
+    })
+  }, [leaveHistory, selectedMonth])
 
   const filteredLeaves = useMemo(() => {
-    if (!statusFilter) return leaveHistory
-    return leaveHistory.filter((l) => l.status === statusFilter)
-  }, [leaveHistory, statusFilter])
+    if (!statusFilter) return filteredLeavesByMonth
+    return filteredLeavesByMonth.filter((l) => l.status === statusFilter)
+  }, [filteredLeavesByMonth, statusFilter])
 
   const filteredData = useMemo(() => {
     if (activeTab === 'Attendance' || activeTab === 'Leaves') return []
     if (!statusFilter) return activeItems
     return activeItems.filter(item => (item.status || item.cotStatus) === statusFilter)
   }, [activeItems, statusFilter, activeTab])
+
+  // Calculated Stats
+  const statsCallbacksCount = filteredCallbacks.length
+  const statsTransfersCount = filteredTransfers.length
+  const statsSalesCount     = filteredSales.length
+  const statsConversion     = useMemo(() => {
+    const total = statsCallbacksCount + statsTransfersCount
+    if (total === 0) return 0
+    return Math.round((statsSalesCount / total) * 100)
+  }, [statsCallbacksCount, statsTransfersCount, statsSalesCount])
+
+  const statsPresentCount = useMemo(() => {
+    return filteredAttendanceByMonth.filter(r => r.status === 'present' || r.status === 'late').length
+  }, [filteredAttendanceByMonth])
+
+  const statsApprovedLeavesCount = useMemo(() => {
+    return filteredLeavesByMonth.filter(l => l.status === 'approved').length
+  }, [filteredLeavesByMonth])
 
   const loadAttendance = useCallback(async () => {
     if (activeTab !== 'Attendance' || !id) return
@@ -226,10 +297,26 @@ export default function AdminAgentDetail() {
       <div className="rt-page">
         <div style={{ maxWidth: '960px', margin: '0 auto' }}>
 
-          <div className="rt-page-header">
-            <Link to="/admin/agents" className="flex items-center gap-1.5 text-sm text-slate-500 no-underline hover:text-slate-800 transition-colors">
+          <div className="rt-page-header flex justify-between items-center" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
+            <Link to="/admin/staff" className="flex items-center gap-1.5 text-sm text-slate-500 no-underline hover:text-slate-800 transition-colors">
               <ArrowLeft size={16} /> Back to Staff
             </Link>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <span style={{ fontSize: '11px', fontWeight: 700, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Month:</span>
+              <select
+                value={selectedMonth}
+                onChange={(e) => setSelectedMonth(e.target.value)}
+                style={{
+                  padding: '6px 12px', border: '1px solid #e2e6ec', borderRadius: '8px',
+                  fontSize: '12px', fontWeight: 600, color: '#0f172a', outline: 'none',
+                  background: 'white', cursor: 'pointer', transition: 'border-color 0.15s',
+                }}
+              >
+                {monthsList.map(m => (
+                  <option key={m.value} value={m.value}>{m.label}</option>
+                ))}
+              </select>
+            </div>
           </div>
 
           <div className="rt-card rt-fade" style={{ marginBottom: '20px' }}>
@@ -345,62 +432,62 @@ export default function AdminAgentDetail() {
               </div>
             </div>
 
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6 rt-fade rt-d1">
-              <div className="rt-card p-5 flex items-center gap-4">
-                <div className="w-10 h-10 rounded-xl flex items-center justify-center" style={{ background: '#eef2ff' }}>
-                  <Calendar size={18} color="#6366f1" />
-                </div>
-                <div>
-                  <p className="text-xs font-semibold text-slate-400 uppercase tracking-wide">Callbacks</p>
-                  <p className="text-2xl font-extrabold text-slate-900">{stats?.callbacks || 0}</p>
-                </div>
-              </div>
-              <div className="rt-card p-5 flex items-center gap-4">
-                <div className="w-10 h-10 rounded-xl flex items-center justify-center" style={{ background: '#f0fdf4' }}>
-                  <ArrowLeftRight size={18} color="#16a34a" />
-                </div>
-                <div>
-                  <p className="text-xs font-semibold text-slate-400 uppercase tracking-wide">Transfers</p>
-                  <p className="text-2xl font-extrabold text-slate-900">{stats?.transfers || 0}</p>
-                </div>
-              </div>
-              <div className="rt-card p-5 flex items-center gap-4">
-                <div className="w-10 h-10 rounded-xl flex items-center justify-center" style={{ background: '#fffbeb' }}>
-                  <PoundSterling size={18} color="#d97706" />
-                </div>
-                <div>
-                  <p className="text-xs font-semibold text-slate-400 uppercase tracking-wide">Sales</p>
-                  <p className="text-2xl font-extrabold text-slate-900">{stats?.sales || 0}</p>
-                </div>
-              </div>
-              <div className="rt-card p-5 flex items-center gap-4">
-                <div className="w-10 h-10 rounded-xl flex items-center justify-center" style={{ background: '#f5f3ff' }}>
-                  <TrendingUp size={18} color="#8b5cf6" />
-                </div>
-                <div>
-                  <p className="text-xs font-semibold text-slate-400 uppercase tracking-wide">Conversion</p>
-                  <p className="text-2xl font-extrabold text-slate-900">{stats?.conversionRate || 0}%</p>
-                </div>
-              </div>
-              <div className="rt-card p-5 flex items-center gap-4">
-                <div className="w-10 h-10 rounded-xl flex items-center justify-center" style={{ background: '#fef2f2' }}>
-                  <Clock size={18} color="#ef4444" />
-                </div>
-                <div>
-                  <p className="text-xs font-semibold text-slate-400 uppercase tracking-wide">Present</p>
-                  <p className="text-2xl font-extrabold text-slate-900">{attendanceStats.present}</p>
-                </div>
-              </div>
-              <div className="rt-card p-5 flex items-center gap-4">
-                <div className="w-10 h-10 rounded-xl flex items-center justify-center" style={{ background: '#fffbeb' }}>
-                  <CalendarCheck size={18} color="#d97706" />
-                </div>
-                <div>
-                  <p className="text-xs font-semibold text-slate-400 uppercase tracking-wide">Approved Leaves</p>
-                  <p className="text-2xl font-extrabold text-slate-900">{approvedLeaves}</p>
-                </div>
-              </div>
-            </div>
+             <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6 rt-fade rt-d1">
+               <div className="rt-card p-5 flex items-center gap-4">
+                 <div className="w-10 h-10 rounded-xl flex items-center justify-center" style={{ background: '#eef2ff' }}>
+                   <Calendar size={18} color="#6366f1" />
+                 </div>
+                 <div>
+                   <p className="text-xs font-semibold text-slate-400 uppercase tracking-wide">Callbacks</p>
+                   <p className="text-2xl font-extrabold text-slate-900">{statsCallbacksCount}</p>
+                 </div>
+               </div>
+               <div className="rt-card p-5 flex items-center gap-4">
+                 <div className="w-10 h-10 rounded-xl flex items-center justify-center" style={{ background: '#f0fdf4' }}>
+                   <ArrowLeftRight size={18} color="#16a34a" />
+                 </div>
+                 <div>
+                   <p className="text-xs font-semibold text-slate-400 uppercase tracking-wide">Transfers</p>
+                   <p className="text-2xl font-extrabold text-slate-900">{statsTransfersCount}</p>
+                 </div>
+               </div>
+               <div className="rt-card p-5 flex items-center gap-4">
+                 <div className="w-10 h-10 rounded-xl flex items-center justify-center" style={{ background: '#fffbeb' }}>
+                   <PoundSterling size={18} color="#d97706" />
+                 </div>
+                 <div>
+                   <p className="text-xs font-semibold text-slate-400 uppercase tracking-wide">Sales</p>
+                   <p className="text-2xl font-extrabold text-slate-900">{statsSalesCount}</p>
+                 </div>
+               </div>
+               <div className="rt-card p-5 flex items-center gap-4">
+                 <div className="w-10 h-10 rounded-xl flex items-center justify-center" style={{ background: '#f5f3ff' }}>
+                   <TrendingUp size={18} color="#8b5cf6" />
+                 </div>
+                 <div>
+                   <p className="text-xs font-semibold text-slate-400 uppercase tracking-wide">Conversion</p>
+                   <p className="text-2xl font-extrabold text-slate-900">{statsConversion}%</p>
+                 </div>
+               </div>
+               <div className="rt-card p-5 flex items-center gap-4">
+                 <div className="w-10 h-10 rounded-xl flex items-center justify-center" style={{ background: '#fef2f2' }}>
+                   <Clock size={18} color="#ef4444" />
+                 </div>
+                 <div>
+                   <p className="text-xs font-semibold text-slate-400 uppercase tracking-wide">Present</p>
+                   <p className="text-2xl font-extrabold text-slate-900">{statsPresentCount}</p>
+                 </div>
+               </div>
+               <div className="rt-card p-5 flex items-center gap-4">
+                 <div className="w-10 h-10 rounded-xl flex items-center justify-center" style={{ background: '#fffbeb' }}>
+                   <CalendarCheck size={18} color="#d97706" />
+                 </div>
+                 <div>
+                   <p className="text-xs font-semibold text-slate-400 uppercase tracking-wide">Approved Leaves</p>
+                   <p className="text-2xl font-extrabold text-slate-900">{statsApprovedLeavesCount}</p>
+                 </div>
+               </div>
+             </div>
 
           <div className="rt-card rt-fade">
             <div className="flex border-b gap-1 px-4" style={{ borderColor: '#f1f5f9' }}>
