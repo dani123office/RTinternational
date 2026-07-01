@@ -181,9 +181,9 @@ export default function AdminTransfers() {
                       <th className="text-left px-4 py-3">Date</th>
                       <th className="text-left px-4 py-3">Customer</th>
                       <th className="text-left px-4 py-3">Employee</th>
-                      <th className="text-left px-4 py-3">Status</th>
+                      <th className="text-left px-4 py-3">Supplier</th>
                       <th className="text-left px-4 py-3">Utility</th>
-                      <th className="text-left px-4 py-3">Notes</th>
+                      <th className="text-left px-4 py-3">Status</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -199,12 +199,10 @@ export default function AdminTransfers() {
                           <div className="text-xs text-slate-500 truncate">{t.customer?.ownerName ? `Owner: ${t.customer.ownerName}` : ''}</div>
                         </td>
                         <td className="px-4 py-3.5 text-slate-700">{t.agentName || '-'}</td>
+                        <td className="px-4 py-3.5 text-slate-700 capitalize">{t.supplier || '-'}</td>
+                        <td className="px-4 py-3.5 text-slate-600 text-xs capitalize">{t.utilityType || '-'}</td>
                         <td className="px-4 py-3.5">
                           <StatusBadge status={t.status} type="transfer" />
-                        </td>
-                        <td className="px-4 py-3.5 text-slate-600 text-xs">{t.utilityType || '-'}</td>
-                        <td className="px-4 py-3.5 text-slate-500 text-xs max-w-[140px] truncate" title={t.notes || ''}>
-                          {t.notes || '-'}
                         </td>
                       </tr>
                     ))}
