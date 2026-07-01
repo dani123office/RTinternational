@@ -83,7 +83,7 @@ def _transfer_out(t: Transfer, customer: Customer = None) -> TransferOut:
         customerId=t.customer_id,
         callBackId=t.call_back_id,
         utilityType=t.utility_type,
-        supplier=t.elec_offer_supplier,
+        supplier=t.gas_offer_supplier if t.utility_type == "gas" else (t.elec_offer_supplier or t.gas_offer_supplier),
         status=t.status,
         outcome=t.outcome,
         notInterestedReason=t.not_interested_reason,
@@ -156,7 +156,13 @@ def create_transfer(dto: TransferCreate, request: Request, current_user: User = 
             notes=dto.notes,
         )
         if dto.supplier:
-            transfer.elec_offer_supplier = dto.supplier
+            if dto.utilityType == "gas":
+                transfer.gas_offer_supplier = dto.supplier
+            elif dto.utilityType == "both":
+                transfer.elec_offer_supplier = dto.supplier
+                transfer.gas_offer_supplier = dto.supplier
+            else:
+                transfer.elec_offer_supplier = dto.supplier
         if dto.offeredElectricityRates:
             r = dto.offeredElectricityRates[0]
             transfer.elec_offer_contract_length = r.contractLength
@@ -241,7 +247,14 @@ def update_transfer(id: int, dto: TransferUpdate, request: Request, current_user
         if dto.utilityType is not None:
             transfer.utility_type = dto.utilityType
         if dto.supplier is not None:
-            transfer.elec_offer_supplier = dto.supplier
+            utype = dto.utilityType or transfer.utility_type
+            if utype == "gas":
+                transfer.gas_offer_supplier = dto.supplier
+            elif utype == "both":
+                transfer.elec_offer_supplier = dto.supplier
+                transfer.gas_offer_supplier = dto.supplier
+            else:
+                transfer.elec_offer_supplier = dto.supplier
         if dto.status is not None:
             transfer.status = dto.status
         if dto.outcome is not None:
