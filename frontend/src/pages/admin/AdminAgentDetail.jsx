@@ -200,7 +200,9 @@ export default function AdminAgentDetail() {
           const d = row.scheduledDateTime || row.scheduledDate
           return d ? new Date(d).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' }) : '-'
         }
-        const val = isTransfers ? row.supplier : row.paymentMethod
+        const val = isTransfers
+          ? (row.supplier || row.customer?.electricityMeters?.[0]?.currentSupplier || row.customer?.gasMeters?.[0]?.currentSupplier)
+          : row.paymentMethod
         return <span className="text-slate-700 text-[0.78rem]">{val || '-'}</span>
       },
     },

@@ -77,13 +77,29 @@ def _gas_rates_out(t):
 
 def _transfer_out(t: Transfer, customer: Customer = None) -> TransferOut:
     customer_out = _customer_out(customer) if customer else None
+    cust = customer or t.customer
+    meter_supplier = None
+    if cust:
+        if t.utility_type == "electricity" and cust.electricity_meters:
+            meter_supplier = cust.electricity_meters[0].current_supplier
+        elif t.utility_type == "gas" and cust.gas_meters:
+            meter_supplier = cust.gas_meters[0].current_supplier
+        else:
+            meter_supplier = (
+                (cust.electricity_meters[0].current_supplier if cust.electricity_meters else None) or
+                (cust.gas_meters[0].current_supplier if cust.gas_meters else None)
+            )
+    
+    top_supplier = t.gas_offer_supplier if t.utility_type == "gas" else (t.elec_offer_supplier or t.gas_offer_supplier)
+    final_supplier = top_supplier or meter_supplier
+
     return TransferOut(
         id=t.id,
         employeeId=t.employee_id,
         customerId=t.customer_id,
         callBackId=t.call_back_id,
         utilityType=t.utility_type,
-        supplier=t.gas_offer_supplier if t.utility_type == "gas" else (t.elec_offer_supplier or t.gas_offer_supplier),
+        supplier=final_supplier,
         status=t.status,
         outcome=t.outcome,
         notInterestedReason=t.not_interested_reason,
