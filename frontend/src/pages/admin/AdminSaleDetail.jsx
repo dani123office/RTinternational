@@ -9,6 +9,8 @@ import { Button } from '@/components/ui/button'
 import { formatPaymentMethod } from '@/lib/formatters'
 import StatusBadge from '@/components/shared/StatusBadge'
 import LoadingSpinner from '@/components/shared/LoadingSpinner'
+import AccountDetailsCard from '@/components/shared/AccountDetailsCard'
+import MeterDetailsCard from '@/components/shared/MeterDetailsCard'
 
 function Field({ label, children }) {
   return (
@@ -153,6 +155,24 @@ export default function AdminSaleDetail() {
               </div>
             </div>
           </div>
+
+          {s.transfer && (s.transfer.accountNumber || s.transfer.mpan || s.transfer.mprn || s.transfer.msn) && (
+            <div className="rt-fade mt-4">
+              <AccountDetailsCard transfer={s.transfer} />
+            </div>
+          )}
+
+          {c?.electricityMeters?.length > 0 && (
+            <div className="rt-fade mt-4">
+              <MeterDetailsCard utilityType="electricity" meters={c.electricityMeters} />
+            </div>
+          )}
+
+          {c?.gasMeters?.length > 0 && (
+            <div className="rt-fade mt-4">
+              <MeterDetailsCard utilityType="gas" meters={c.gasMeters} />
+            </div>
+          )}
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
             {s.notes && (

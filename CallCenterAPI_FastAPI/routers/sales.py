@@ -39,6 +39,10 @@ def _sale_out(s: Sale, customer: Customer = None) -> SaleOut:
                 contractEndDate=m.contract_end_date,
             ) for m in customer.gas_meters],
         )
+    transfer_out = None
+    if s.transfer:
+        transfer_out = _transfer_out(s.transfer)
+
     return SaleOut(
         id=s.id,
         transferId=s.transfer_id,
@@ -62,6 +66,7 @@ def _sale_out(s: Sale, customer: Customer = None) -> SaleOut:
         notes=s.notes,
         createdAt=s.created_at,
         customer=customer_out,
+        transfer=transfer_out,
     )
 
 

@@ -1449,6 +1449,7 @@ class SaleOut(BaseModel):
     notes: Optional[str] = None
     createdAt: datetime
     customer: Optional[CustomerOut] = None
+    transfer: Optional[TransferOut] = None
 
 
 
