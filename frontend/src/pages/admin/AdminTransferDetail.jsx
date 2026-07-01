@@ -135,13 +135,9 @@ export default function AdminTransferDetail() {
               <div className="rt-card-header"><div className="rt-card-header-left"><div className="rt-card-icon"><Tag size={15} /></div><span className="rt-card-title">Transfer Details</span></div></div>
               <div className="rt-card-body">
                 <Field label="Agent">{t.agentName}</Field>
-                <Field label="Supplier">{t.supplier}</Field>
+                <Field label="Supplier">{t.supplier || t.offeredElectricityRates?.[0]?.supplier || t.offeredGasRates?.[0]?.supplier}</Field>
                 <Field label="Status"><StatusBadge status={t.status} type="transfer" /></Field>
                 <Field label="Outcome">{t.outcome}</Field>
-                <Field label="Account No.">{t.accountNumber}</Field>
-                <Field label="MPAN">{t.mpan}</Field>
-                <Field label="MPRN">{t.mprn}</Field>
-                <Field label="Meter Serial">{t.msn}</Field>
                 <Field label="Scheduled">{t.scheduledDateTime ? new Date(t.scheduledDateTime).toLocaleString('en-GB') : ''}</Field>
               </div>
             </div>
