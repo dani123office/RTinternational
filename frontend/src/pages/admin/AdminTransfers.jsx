@@ -187,7 +187,9 @@ export default function AdminTransfers() {
                     </tr>
                   </thead>
                   <tbody>
-                    {filteredItems.map((t) => (
+                    {filteredItems.map((t) => {
+                      const supplier = t.customer?.electricityMeters?.[0]?.currentSupplier || t.customer?.gasMeters?.[0]?.currentSupplier || '-'
+                      return (
                       <tr
                         key={t.id}
                         className="border-b border-slate-100 hover:bg-slate-50 transition-colors cursor-pointer"
@@ -199,13 +201,13 @@ export default function AdminTransfers() {
                           <div className="text-xs text-slate-500 truncate">{t.customer?.ownerName ? `Owner: ${t.customer.ownerName}` : ''}</div>
                         </td>
                         <td className="px-4 py-3.5 text-slate-700">{t.agentName || '-'}</td>
-                        <td className="px-4 py-3.5 text-slate-700 capitalize">{t.supplier || '-'}</td>
+                        <td className="px-4 py-3.5 text-slate-700 capitalize">{supplier}</td>
                         <td className="px-4 py-3.5 text-slate-600 text-xs capitalize">{t.utilityType || '-'}</td>
                         <td className="px-4 py-3.5">
                           <StatusBadge status={t.status} type="transfer" />
                         </td>
                       </tr>
-                    ))}
+                    )})}
                   </tbody>
                 </table>
               )}
