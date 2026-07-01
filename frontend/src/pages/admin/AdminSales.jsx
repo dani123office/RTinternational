@@ -175,19 +175,24 @@ export default function AdminSales() {
               ) : filteredItems.length === 0 ? (
                 <p className="text-sm text-slate-400 text-center py-8">No records found for the selected filters.</p>
               ) : (
-                <table className="w-full min-w-[750px] text-sm border-separate border-spacing-0">
+                <table className="w-full min-w-[850px] text-sm border-separate border-spacing-0">
                   <thead>
                     <tr className="bg-slate-50 text-slate-500 uppercase text-xs tracking-[0.16em]">
                       <th className="text-left px-4 py-3">Date</th>
                       <th className="text-left px-4 py-3">Customer</th>
                       <th className="text-left px-4 py-3">Employee</th>
+                      <th className="text-left px-4 py-3">Supplier</th>
+                      <th className="text-left px-4 py-3">Utility</th>
+                      <th className="text-left px-4 py-3">MPAN / MPRN</th>
                       <th className="text-left px-4 py-3">Status</th>
-                      <th className="text-left px-4 py-3">Commission</th>
-                      <th className="text-left px-4 py-3">Notes</th>
                     </tr>
                   </thead>
                   <tbody>
-                    {filteredItems.map((s) => (
+                    {filteredItems.map((s) => {
+                      const supplier = s.transfer?.supplier || s.transfer?.offeredElectricityRates?.[0]?.supplier || s.transfer?.offeredGasRates?.[0]?.supplier || '-'
+                      const utility = s.customer?.utilityType || s.transfer?.utilityType || '-'
+                      const mpanMprn = s.transfer?.mpan || s.transfer?.mprn || '-'
+                      return (
                       <tr
                         key={s.id}
                         className="border-b border-slate-100 hover:bg-slate-50 transition-colors cursor-pointer"
@@ -199,15 +204,21 @@ export default function AdminSales() {
                           <div className="text-xs text-slate-500 truncate">{s.customer?.ownerName ? `Owner: ${s.customer.ownerName}` : ''}</div>
                         </td>
                         <td className="px-4 py-3.5 text-slate-700">{s.agentName || '-'}</td>
+                        <td className="px-4 py-3.5 text-slate-700 capitalize">{supplier}</td>
+                        <td className="px-4 py-3.5">
+                          <span className={`text-xs font-semibold px-2.5 py-1 rounded-full capitalize ${
+                            utility === 'electricity' ? 'bg-amber-50 text-amber-700' :
+                            utility === 'gas' ? 'bg-blue-50 text-blue-700' :
+                            utility === 'both' ? 'bg-purple-50 text-purple-700' :
+                            'bg-slate-50 text-slate-500'
+                          }`}>{utility}</span>
+                        </td>
+                        <td className="px-4 py-3.5 text-slate-600 font-mono text-xs">{mpanMprn}</td>
                         <td className="px-4 py-3.5">
                           <StatusBadge status={s.cotStatus || s.status} type="sale" />
                         </td>
-                        <td className="px-4 py-3.5 text-slate-600">£{(s.commissionAmount || 0).toFixed(2)}</td>
-                        <td className="px-4 py-3.5 text-slate-500 text-xs max-w-[140px] truncate" title={s.notes || ''}>
-                          {s.notes || '-'}
-                        </td>
                       </tr>
-                    ))}
+                    )})}
                   </tbody>
                 </table>
               )}
