@@ -68,7 +68,7 @@ def _sale_out(s: Sale, customer: Customer = None) -> SaleOut:
         createdAt=s.created_at,
         customer=customer_out,
         transfer=transfer_out,
-        commissionStatus=s.commission_status,
+        commissionStatus=s.commission_status or "unpaid",
     )
 
 
