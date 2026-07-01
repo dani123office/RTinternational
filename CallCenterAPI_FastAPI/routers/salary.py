@@ -246,7 +246,7 @@ class _SalaryPDF:
             h = 60
             w = h * aspect
             logo_x = 50
-            icon_y = Y(30 + h)
+            icon_y = Y(15 + h)
             buf.append(f"q {w:.2f} 0 0 {h:.2f} {logo_x:.2f} {icon_y:.2f} cm /Im1 Do Q\n")
 
             # Company name below logo
@@ -257,18 +257,18 @@ class _SalaryPDF:
         else:
             # Fallback: draw text logo
             buf.append(self._fg(*C_TEAL))
-            buf.append(self._t(50, Y(50), "RT International", "Helvetica-Bold", 18))
+            buf.append(self._t(50, Y(35), "RT International", "Helvetica-Bold", 18))
 
         # ── Date and Reference on top right ──────────────────────────────────
         now_str = kw.get("generated_at", "")
         buf.append(self._fg(*C_BLACK))
-        buf.append(self._tr(RM, Y(60), now_str.split(" at ")[0] if " at " in now_str else now_str, "Helvetica", 9))
+        buf.append(self._tr(RM, Y(45), now_str.split(" at ")[0] if " at " in now_str else now_str, "Helvetica", 9))
         # Reference number
         ref = f"HRG/RTL/{kw.get('slip_year', '')}"
-        buf.append(self._tr(RM, Y(72), ref, "Helvetica", 8))
+        buf.append(self._tr(RM, Y(57), ref, "Helvetica", 8))
 
         # ── decorative triangles row ─────────────────────────────────────────
-        tri_y = Y(42)
+        tri_y = Y(32)
         tri_x = 280
         buf.append(self._fg(*C_LGREY))
         for i in range(8):
