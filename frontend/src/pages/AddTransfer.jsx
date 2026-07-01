@@ -125,56 +125,18 @@ export default function AddTransfer() {
 
             <Card icon={FileText} iconColor="#0891b2" iconBg="rgba(8,145,178,0.15)" title="Additional Meter Details" delay="rt-d3">
               <div className="rt-grid2">
+                {(form.utilityType === 'electricity' || form.utilityType === 'both') && (
+                  <div>
+                    <Field label="MSN (Meter Serial No)">
+                      <input className="rt-input" placeholder="e.g. 12A3456789" value={form.msn} onChange={(e) => setField('msn', e.target.value)} />
+                    </Field>
+                  </div>
+                )}
                 <div>
                   <Field label="Account Number">
                     <input className="rt-input" placeholder="e.g. AC12345678" value={form.accountNumber || ''} onChange={(e) => setField('accountNumber', e.target.value)} />
                   </Field>
                 </div>
-                <div>
-                  <Field label="MSN (Meter Serial No)">
-                    <input className="rt-input" placeholder="e.g. 12A3456789" value={form.msn || ''} onChange={(e) => setField('msn', e.target.value)} />
-                  </Field>
-                </div>
-                {(form.utilityType === 'electricity' || form.utilityType === 'both') && (
-                  <div>
-                    <Field label="MPAN">
-                      <input
-                        className="rt-input"
-                        placeholder="e.g. 0412345678901"
-                        value={form.mpan || ''}
-                        onChange={(e) => {
-                          const val = e.target.value
-                          setField('mpan', val)
-                          if (form.elecMeters?.[0]) {
-                            const updated = [...form.elecMeters]
-                            updated[0] = { ...updated[0], supplyNumber: val }
-                            setField('elecMeters', updated)
-                          }
-                        }}
-                      />
-                    </Field>
-                  </div>
-                )}
-                {(form.utilityType === 'gas' || form.utilityType === 'both') && (
-                  <div>
-                    <Field label="MPRN">
-                      <input
-                        className="rt-input"
-                        placeholder="e.g. 1234567890"
-                        value={form.mprn || ''}
-                        onChange={(e) => {
-                          const val = e.target.value
-                          setField('mprn', val)
-                          if (form.gasMeters?.[0]) {
-                            const updated = [...form.gasMeters]
-                            updated[0] = { ...updated[0], mprn: val }
-                            setField('gasMeters', updated)
-                          }
-                        }}
-                      />
-                    </Field>
-                  </div>
-                )}
               </div>
             </Card>
 
