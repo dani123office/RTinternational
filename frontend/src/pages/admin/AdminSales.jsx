@@ -175,13 +175,12 @@ export default function AdminSales() {
               ) : filteredItems.length === 0 ? (
                 <p className="text-sm text-slate-400 text-center py-8">No records found for the selected filters.</p>
               ) : (
-                <table className="w-full min-w-[950px] text-sm border-separate border-spacing-0">
+                <table className="w-full min-w-[850px] text-sm border-separate border-spacing-0">
                   <thead>
                     <tr className="bg-slate-50 text-slate-500 uppercase text-xs tracking-[0.16em]">
                       <th className="text-left px-4 py-3">Date</th>
                       <th className="text-left px-4 py-3">Customer</th>
                       <th className="text-left px-4 py-3">Employee</th>
-                      <th className="text-left px-4 py-3">Supplier</th>
                       <th className="text-left px-4 py-3">Utility</th>
                       <th className="text-left px-4 py-3">MPAN / MPRN</th>
                       <th className="text-left px-4 py-3">Commission</th>
@@ -190,7 +189,6 @@ export default function AdminSales() {
                   </thead>
                   <tbody>
                     {filteredItems.map((s) => {
-                      const supplier = s.transfer?.supplier || s.transfer?.offeredElectricityRates?.[0]?.supplier || s.transfer?.offeredGasRates?.[0]?.supplier || '-'
                       const utility = s.customer?.utilityType || s.transfer?.utilityType || '-'
                       const mpanMprn = s.transfer?.mpan || s.transfer?.mprn || '-'
                       return (
@@ -205,7 +203,6 @@ export default function AdminSales() {
                           <div className="text-xs text-slate-500 truncate">{s.customer?.ownerName ? `Owner: ${s.customer.ownerName}` : ''}</div>
                         </td>
                         <td className="px-4 py-3.5 text-slate-700">{s.agentName || '-'}</td>
-                        <td className="px-4 py-3.5 text-slate-700 capitalize">{supplier}</td>
                         <td className="px-4 py-3.5">
                           <span className={`text-xs font-semibold px-2.5 py-1 rounded-full capitalize ${
                             utility === 'electricity' ? 'bg-amber-50 text-amber-700' :
