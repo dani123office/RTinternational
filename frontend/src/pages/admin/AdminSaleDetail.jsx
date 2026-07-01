@@ -74,6 +74,17 @@ export default function AdminSaleDetail() {
     }
   }
 
+  const handleCommissionStatusChange = async (e) => {
+    const newStatus = e.target.value
+    try {
+      const res = await api.put(`${endpoints.sales}/${id}`, { commissionStatus: newStatus })
+      setData(res.data)
+      toast('Commission status updated successfully', 'success')
+    } catch (err) {
+      toast(err.response?.data?.detail || 'Failed to update commission status', 'error')
+    }
+  }
+
   if (loading) return (
     <>
       <style>{APP_STYLES}</style>
@@ -152,6 +163,17 @@ export default function AdminSaleDetail() {
                 <Field label="Bill Frequency">{s.billFrequency}</Field>
                 <Field label="Payment Method">{formatPaymentMethod(s.paymentMethod)}</Field>
                 <Field label="COT Date">{s.cotDate ? new Date(s.cotDate).toLocaleDateString('en-GB') : ''}</Field>
+                <Field label="Commission">
+                  <select
+                    value={s.commissionStatus || 'unpaid'}
+                    onChange={handleCommissionStatusChange}
+                    className="rt-input text-xs py-1 px-2"
+                    style={{ maxWidth: '120px', height: '30px' }}
+                  >
+                    <option value="unpaid">Unpaid</option>
+                    <option value="paid">Paid</option>
+                  </select>
+                </Field>
               </div>
             </div>
           </div>

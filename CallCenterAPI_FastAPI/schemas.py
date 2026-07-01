@@ -1450,6 +1450,7 @@ class SaleOut(BaseModel):
     createdAt: datetime
     customer: Optional[CustomerOut] = None
     transfer: Optional[TransferOut] = None
+    commissionStatus: str = "unpaid"
 
 
 
@@ -1564,6 +1565,7 @@ class SaleUpdate(BaseModel):
     cotDate: Optional[date] = None
     saleType: Optional[str] = Field(None, max_length=20, description="Sale type: cot, renewal, out_of_contract")
     notes: Optional[str] = Field(None, max_length=2000)
+    commissionStatus: Optional[str] = Field(None, description="Commission status: paid, unpaid")
 
     @field_validator('ownerFullName')
     @classmethod

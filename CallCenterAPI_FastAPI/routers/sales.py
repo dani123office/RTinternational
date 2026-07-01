@@ -68,6 +68,7 @@ def _sale_out(s: Sale, customer: Customer = None) -> SaleOut:
         createdAt=s.created_at,
         customer=customer_out,
         transfer=transfer_out,
+        commissionStatus=s.commission_status,
     )
 
 
@@ -147,9 +148,21 @@ def create_sale(dto: SaleCreate, request: Request, current_user: User = Depends(
 
 @router.put("/{id}")
 def update_sale(id: int, dto: SaleUpdate, request: Request, current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
-    sale = db.query(Sale).filter(Sale.id == id, Sale.employee_id == current_user.id).first()
+    sale = db.query(Sale).filter(Sale.id == id).first()
     if not sale:
         raise HTTPException(status_code=404, detail="Sale not found")
+        
+    is_auth = (sale.employee_id == current_user.id)
+    if not is_auth and current_user.role == "manager":
+        creator = db.query(User).filter(User.id == sale.employee_id).first()
+        if creator and creator.manager_id == current_user.id:
+            is_auth = True
+    if not is_auth and current_user.role == "admin":
+        is_auth = True
+        
+    if not is_auth:
+        raise HTTPException(status_code=403, detail="Not authorized to update this sale")
+        
     try:
         if dto.ownerFullName is not None:
             sale.owner_full_name = dto.ownerFullName
@@ -183,6 +196,11 @@ def update_sale(id: int, dto: SaleUpdate, request: Request, current_user: User =
                 sale.cot_status = "done"
         if dto.notes is not None:
             sale.notes = dto.notes
+        if dto.commissionStatus is not None:
+            if current_user.role == "admin":
+                sale.commission_status = dto.commissionStatus
+            else:
+                raise HTTPException(status_code=403, detail="Only admins can update commission status")
 
         db.commit()
         db.refresh(sale)

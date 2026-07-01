@@ -175,7 +175,7 @@ export default function AdminSales() {
               ) : filteredItems.length === 0 ? (
                 <p className="text-sm text-slate-400 text-center py-8">No records found for the selected filters.</p>
               ) : (
-                <table className="w-full min-w-[850px] text-sm border-separate border-spacing-0">
+                <table className="w-full min-w-[950px] text-sm border-separate border-spacing-0">
                   <thead>
                     <tr className="bg-slate-50 text-slate-500 uppercase text-xs tracking-[0.16em]">
                       <th className="text-left px-4 py-3">Date</th>
@@ -184,6 +184,7 @@ export default function AdminSales() {
                       <th className="text-left px-4 py-3">Supplier</th>
                       <th className="text-left px-4 py-3">Utility</th>
                       <th className="text-left px-4 py-3">MPAN / MPRN</th>
+                      <th className="text-left px-4 py-3">Commission</th>
                       <th className="text-left px-4 py-3">Status</th>
                     </tr>
                   </thead>
@@ -214,6 +215,11 @@ export default function AdminSales() {
                           }`}>{utility}</span>
                         </td>
                         <td className="px-4 py-3.5 text-slate-600 font-mono text-xs">{mpanMprn}</td>
+                        <td className="px-4 py-3.5">
+                          <span className={`text-xs font-semibold px-2.5 py-1 rounded-full capitalize ${
+                            s.commissionStatus === 'paid' ? 'bg-green-50 text-green-700' : 'bg-slate-100 text-slate-600'
+                          }`}>{s.commissionStatus || 'unpaid'}</span>
+                        </td>
                         <td className="px-4 py-3.5">
                           <StatusBadge status={s.cotStatus || s.status} type="sale" />
                         </td>

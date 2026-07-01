@@ -229,6 +229,7 @@ class Sale(Base):
     cot_notes = Column(Text, nullable=True)
     sale_type = Column(String(20), nullable=False, default="cot")
     commission_amount = Column(Float, nullable=False, default=0.00)
+    commission_status = Column(String(20), nullable=False, server_default="unpaid")
     notes = Column(Text, nullable=True)
     created_at = Column(DateTime, default=datetime.now)
     updated_at = Column(DateTime, default=datetime.now, onupdate=datetime.now)
