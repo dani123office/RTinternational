@@ -44,18 +44,24 @@ export const useAdminStore = create((set, get) => ({
     }
   },
 
-  loadOverallStats: async () => {
+  loadOverallStats: async (year, month) => {
     try {
-      const res = await api.get(endpoints.admin.overallStats)
+      const params = {}
+      if (year != null) params.year = year
+      if (month != null) params.month = month
+      const res = await api.get(endpoints.admin.overallStats, { params })
       set({ overallStats: res.data })
     } catch (err) {
       set({ error: err.response?.data?.detail || 'Failed to load overall stats' })
     }
   },
 
-  loadPerformanceOverview: async () => {
+  loadPerformanceOverview: async (year, month) => {
     try {
-      const res = await api.get(endpoints.admin.performanceOverview)
+      const params = {}
+      if (year != null) params.year = year
+      if (month != null) params.month = month
+      const res = await api.get(endpoints.admin.performanceOverview, { params })
       set({ performanceOverview: res.data })
     } catch (err) {
       set({ error: err.response?.data?.detail || 'Failed to load performance data' })

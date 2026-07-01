@@ -37,25 +37,55 @@ export default function AdminDashboard() {
     return h < 12 ? 'Good morning' : h < 17 ? 'Good afternoon' : 'Good evening'
   }, [])
 
+  const [selectedMonth, setSelectedMonth] = useState(() => {
+    const d = new Date()
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`
+  })
+
+  const monthsList = useMemo(() => {
+    const list = []
+    const d = new Date()
+    for (let i = 0; i < 12; i++) {
+      const year = d.getFullYear()
+      const month = d.getMonth() + 1
+      const label = d.toLocaleString('en-US', { month: 'long', year: 'numeric' })
+      const value = `${year}-${String(month).padStart(2, '0')}`
+      list.push({ value, label, year, month })
+      d.setMonth(d.getMonth() - 1)
+    }
+    list.push({ value: 'all', label: 'All Time', year: null, month: null })
+    return list
+  }, [])
+
+  const { filterYear, filterMonth } = useMemo(() => {
+    if (selectedMonth === 'all') return { filterYear: null, filterMonth: null }
+    const [y, m] = selectedMonth.split('-').map(Number)
+    return { filterYear: y, filterMonth: m }
+  }, [selectedMonth])
+
   const [refreshing, setRefreshing] = useState(false)
 
   const handleRefresh = async () => {
     setRefreshing(true)
-    await Promise.all([loadOverallStats(), loadPerformanceOverview(), loadBusinessFeed()])
+    await Promise.all([
+      loadOverallStats(filterYear, filterMonth),
+      loadPerformanceOverview(filterYear, filterMonth),
+      loadBusinessFeed()
+    ])
     setRefreshing(false)
   }
 
   useEffect(() => {
-    loadOverallStats()
-    loadPerformanceOverview()
+    loadOverallStats(filterYear, filterMonth)
+    loadPerformanceOverview(filterYear, filterMonth)
     loadBusinessFeed()
     const interval = setInterval(() => {
-      loadOverallStats()
-      loadPerformanceOverview()
+      loadOverallStats(filterYear, filterMonth)
+      loadPerformanceOverview(filterYear, filterMonth)
       loadBusinessFeed()
     }, 60000)
     return () => clearInterval(interval)
-  }, [loadOverallStats, loadPerformanceOverview, loadBusinessFeed])
+  }, [loadOverallStats, loadPerformanceOverview, loadBusinessFeed, filterYear, filterMonth])
 
   const stats = overallStats
   const perf = performanceOverview
@@ -106,14 +136,38 @@ export default function AdminDashboard() {
             <h1 className="text-xl sm:text-2xl font-bold text-slate-900 tracking-tight capitalize">
               {greeting}, {user?.name?.split(' ')[0] || 'Admin'}
             </h1>
-            <button
-              onClick={handleRefresh}
-              disabled={refreshing}
-              className="ml-auto flex items-center gap-1.5 text-xs font-bold text-slate-500 bg-slate-100 hover:bg-slate-200 disabled:opacity-50 px-3 py-1.5 rounded-lg border-none cursor-pointer transition-colors"
-            >
-              <RefreshCw size={13} className={refreshing ? 'rt-spin' : ''} />
-              {refreshing ? 'Refreshing...' : 'Refresh'}
-            </button>
+            <div className="ml-auto flex items-center gap-2">
+              <select
+                value={selectedMonth}
+                onChange={(e) => setSelectedMonth(e.target.value)}
+                style={{
+                  padding: '6px 14px',
+                  borderRadius: '10px',
+                  border: '1px solid #e2e8f0',
+                  backgroundColor: '#ffffff',
+                  color: '#334155',
+                  fontWeight: '600',
+                  fontSize: '12.5px',
+                  cursor: 'pointer',
+                  outline: 'none',
+                  boxShadow: '0 1px 2px rgba(0, 0, 0, 0.05)',
+                  transition: 'all 0.2s ease',
+                }}
+                className="hover:border-slate-300 focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500"
+              >
+                {monthsList.map(m => (
+                  <option key={m.value} value={m.value}>{m.label}</option>
+                ))}
+              </select>
+              <button
+                onClick={handleRefresh}
+                disabled={refreshing}
+                className="flex items-center gap-1.5 text-xs font-bold text-slate-500 bg-slate-100 hover:bg-slate-200 disabled:opacity-50 px-3 py-1.5 rounded-lg border-none cursor-pointer transition-colors"
+              >
+                <RefreshCw size={13} className={refreshing ? 'rt-spin' : ''} />
+                {refreshing ? 'Refreshing...' : 'Refresh'}
+              </button>
+            </div>
           </div>
           <p className="text-sm text-slate-400 mt-1">
             {isAnalytics ? 'Detailed comparative charts and statistics metrics' : isActivity ? 'Complete audit trail of system events and actions' : 'Company-wide analytics and performance overview'}

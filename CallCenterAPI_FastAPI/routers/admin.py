@@ -2,10 +2,11 @@ import bcrypt
 import io
 import traceback
 from datetime import datetime, date
+from typing import Optional
 from fastapi import APIRouter, Depends, HTTPException, Query, Request
 from fastapi.responses import Response
 from sqlalchemy.orm import Session
-from sqlalchemy import func
+from sqlalchemy import func, extract
 from ..database import get_db
 from ..models import User, Customer, CallBack, Transfer, Sale, ActivityLog, Attendance, LeaveRequest, LoanRequest, Notification, EmailVerification, StaffOTP
 from .auth import require_admin
@@ -596,12 +597,31 @@ def reset_user_password(
 
 
 @router.get("/overall-stats")
-def overall_stats(admin: User = Depends(require_admin), db: Session = Depends(get_db)):
+def overall_stats(
+    year: Optional[int] = Query(None),
+    month: Optional[int] = Query(None),
+    admin: User = Depends(require_admin),
+    db: Session = Depends(get_db)
+):
     total_agents = db.query(func.count(User.id)).filter(User.role == "agent", User.is_active == True).scalar() or 0
     total_managers = db.query(func.count(User.id)).filter(User.role == "manager", User.is_active == True).scalar() or 0
-    total_cb = db.query(func.count(CallBack.id)).scalar() or 0
-    total_tr = db.query(func.count(Transfer.id)).scalar() or 0
-    total_sa = db.query(func.count(Sale.id)).scalar() or 0
+    
+    cb_q = db.query(func.count(CallBack.id))
+    tr_q = db.query(func.count(Transfer.id))
+    sa_q = db.query(func.count(Sale.id))
+    
+    if year:
+        cb_q = cb_q.filter(extract("year", CallBack.created_at) == year)
+        tr_q = tr_q.filter(extract("year", Transfer.created_at) == year)
+        sa_q = sa_q.filter(extract("year", Sale.created_at) == year)
+    if month:
+        cb_q = cb_q.filter(extract("month", CallBack.created_at) == month)
+        tr_q = tr_q.filter(extract("month", Transfer.created_at) == month)
+        sa_q = sa_q.filter(extract("month", Sale.created_at) == month)
+        
+    total_cb = cb_q.scalar() or 0
+    total_tr = tr_q.scalar() or 0
+    total_sa = sa_q.scalar() or 0
     total_opps = total_tr
     return OverallStats(
         totalAgents=total_agents,
@@ -614,15 +634,31 @@ def overall_stats(admin: User = Depends(require_admin), db: Session = Depends(ge
 
 
 @router.get("/performance-overview")
-def performance_overview(admin: User = Depends(require_admin), db: Session = Depends(get_db)):
+def performance_overview(
+    year: Optional[int] = Query(None),
+    month: Optional[int] = Query(None),
+    admin: User = Depends(require_admin),
+    db: Session = Depends(get_db)
+):
     managers_data = []
     managers = db.query(User).filter(User.role == "manager", User.is_active == True).all()
     for m in managers:
         a_ids = [a.id for a in db.query(User).filter(User.manager_id == m.id, User.is_active == True).all()]
         if a_ids:
-            cb = db.query(func.count(CallBack.id)).filter(CallBack.employee_id.in_(a_ids)).scalar() or 0
-            tr = db.query(func.count(Transfer.id)).filter(Transfer.employee_id.in_(a_ids)).scalar() or 0
-            sa = db.query(func.count(Sale.id)).filter(Sale.employee_id.in_(a_ids)).scalar() or 0
+            cb_q = db.query(func.count(CallBack.id)).filter(CallBack.employee_id.in_(a_ids))
+            tr_q = db.query(func.count(Transfer.id)).filter(Transfer.employee_id.in_(a_ids))
+            sa_q = db.query(func.count(Sale.id)).filter(Sale.employee_id.in_(a_ids))
+            if year:
+                cb_q = cb_q.filter(extract("year", CallBack.created_at) == year)
+                tr_q = tr_q.filter(extract("year", Transfer.created_at) == year)
+                sa_q = sa_q.filter(extract("year", Sale.created_at) == year)
+            if month:
+                cb_q = cb_q.filter(extract("month", CallBack.created_at) == month)
+                tr_q = tr_q.filter(extract("month", Transfer.created_at) == month)
+                sa_q = sa_q.filter(extract("month", Sale.created_at) == month)
+            cb = cb_q.scalar() or 0
+            tr = tr_q.scalar() or 0
+            sa = sa_q.scalar() or 0
         else:
             cb = tr = sa = 0
         managers_data.append(ManagerKpi(
@@ -635,9 +671,20 @@ def performance_overview(admin: User = Depends(require_admin), db: Session = Dep
     agents = db.query(User).filter(User.role == "agent", User.is_active == True).all()
     mgr_names = {m.id: m.name for m in db.query(User).filter(User.role == "manager", User.is_active == True).all()}
     for a in agents:
-        cb = db.query(func.count(CallBack.id)).filter(CallBack.employee_id == a.id).scalar() or 0
-        tr = db.query(func.count(Transfer.id)).filter(Transfer.employee_id == a.id).scalar() or 0
-        sa = db.query(func.count(Sale.id)).filter(Sale.employee_id == a.id).scalar() or 0
+        cb_q = db.query(func.count(CallBack.id)).filter(CallBack.employee_id == a.id)
+        tr_q = db.query(func.count(Transfer.id)).filter(Transfer.employee_id == a.id)
+        sa_q = db.query(func.count(Sale.id)).filter(Sale.employee_id == a.id)
+        if year:
+            cb_q = cb_q.filter(extract("year", CallBack.created_at) == year)
+            tr_q = tr_q.filter(extract("year", Transfer.created_at) == year)
+            sa_q = sa_q.filter(extract("year", Sale.created_at) == year)
+        if month:
+            cb_q = cb_q.filter(extract("month", CallBack.created_at) == month)
+            tr_q = tr_q.filter(extract("month", Transfer.created_at) == month)
+            sa_q = sa_q.filter(extract("month", Sale.created_at) == month)
+        cb = cb_q.scalar() or 0
+        tr = tr_q.scalar() or 0
+        sa = sa_q.scalar() or 0
         agents_data.append(AgentKpi(
             id=a.id, name=a.name,
             managerName=mgr_names.get(a.manager_id, "Unassigned"),
