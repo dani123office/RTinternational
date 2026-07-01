@@ -175,8 +175,8 @@ export function useTransferForm(locationState, navigate) {
         customerId = customer.id
       }
 
-      const firstElectricitySupply = form.utilityType !== 'gas' ? form.elecMeters?.[0]?.supplyNumber || form.mpan : form.mpan
-      const firstGasMprn = form.gasMeters?.[0]?.mprn || form.mprn || null
+      const firstElectricitySupply = form.utilityType !== 'gas' ? form.elecMeters?.[0]?.supplyNumber || form.mpan : null
+      const firstGasMprn = form.utilityType !== 'electricity' ? form.gasMeters?.[0]?.mprn || form.mprn : null
       const transfer = await createTransfer({
         customerId,
         accountNumber: form.accountNumber || null,
