@@ -190,7 +190,7 @@ export default function ManagerTransferDetail() {
         <div style={{maxWidth:'960px',margin:'0 auto',display:'flex',flexDirection:'column',gap:'16px'}}>
 
           <div style={{display:'flex',alignItems:'center',gap:'14px',marginBottom:'4px'}}>
-            <button className="rt-back-btn" onClick={() => navigate('/manager/transfers')}>
+            <button className="rt-back-btn" onClick={() => navigate(-1)}>
               <ArrowLeft size={17}/>
             </button>
           </div>

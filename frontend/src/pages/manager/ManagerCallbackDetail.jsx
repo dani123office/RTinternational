@@ -84,7 +84,7 @@ export default function ManagerCallbackDetail() {
 
           {/* Header Action Button */}
           <div className="rt-page-header mb-2">
-            <button className="rt-back-btn" onClick={() => navigate('/manager/callbacks')} aria-label="Back">
+            <button className="rt-back-btn" onClick={() => navigate(-1)} aria-label="Back">
               <ArrowLeft size={17} />
             </button>
           </div>

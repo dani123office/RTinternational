@@ -99,7 +99,7 @@ export default function AdminCallbackDetail() {
       <style>{APP_STYLES}</style>
       <div className="rt-page">
         <div style={{ maxWidth: '800px', margin: '0 auto' }}>
-          <div onClick={() => navigate('/admin/callbacks', { replace: true })} className="flex items-center gap-1.5 text-sm text-slate-500 no-underline mb-4 hover:text-slate-800 transition-colors" style={{ cursor: 'pointer' }}>
+          <div onClick={() => navigate(-1)} className="flex items-center gap-1.5 text-sm text-slate-500 no-underline mb-4 hover:text-slate-800 transition-colors" style={{ cursor: 'pointer' }}>
             <ArrowLeft size={16} /> Back to Callbacks
           </div>
 
