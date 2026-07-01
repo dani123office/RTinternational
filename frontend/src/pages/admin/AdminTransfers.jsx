@@ -13,9 +13,9 @@ export default function AdminTransfers() {
   const [loading, setLoading] = useState(false)
   const [agents, setAgents] = useState([])
   const [searchQuery, setSearchQuery] = useState('')
-  const [fromDate, setFromDate] = useState('')
-  const [toDate, setToDate] = useState('')
-  const [employeeId, setEmployeeId] = useState('')
+  const [fromDate, setFromDate] = useState(() => sessionStorage.getItem('admin_transfers_from_date') || '')
+  const [toDate, setToDate] = useState(() => sessionStorage.getItem('admin_transfers_to_date') || '')
+  const [employeeId, setEmployeeId] = useState(() => sessionStorage.getItem('admin_transfers_employee_id') || '')
 
   useEffect(() => {
     api.get(endpoints.admin.agents)
@@ -29,6 +29,12 @@ export default function AdminTransfers() {
     if (fromDate) params.from_date = fromDate
     if (toDate) params.to_date = toDate
     if (employeeId) params.employee_id = employeeId
+
+    sessionStorage.setItem('admin_transfers_from_date', fromDate)
+    sessionStorage.setItem('admin_transfers_to_date', toDate)
+    sessionStorage.setItem('admin_transfers_employee_id', employeeId)
+    sessionStorage.setItem('admin_transfers_page', String(p))
+
     api.get(endpoints.admin.transfers, { params })
       .then(res => setData(res.data))
       .catch(() => {})
@@ -38,7 +44,8 @@ export default function AdminTransfers() {
   useEffect(() => {
     if (mounted.current) return
     mounted.current = true
-    loadTransfers()
+    const savedPage = Number(sessionStorage.getItem('admin_transfers_page') || '1')
+    loadTransfers(savedPage)
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
