@@ -50,6 +50,8 @@ function meterToEditForm(m, i) {
     meterNumber: m.meterNumber || i + 1,
     currentSupplier: m.currentSupplier || '',
     supplyNumber: m.supplyNumber || '',
+    meterSerial: m.meterSerial || '',
+    accountNumber: m.accountNumber || '',
     dayUnitRate: m.dayUnitRate?.toString() || '',
     nightUnitRate: m.nightUnitRate?.toString() || '',
     eveningUnitRate: m.eveningUnitRate?.toString() || '',
@@ -63,6 +65,9 @@ function gasMeterToEditForm(m, i) {
   return {
     meterNumber: m.meterNumber || i + 1,
     currentSupplier: m.currentSupplier || '',
+    mprn: m.mprn || '',
+    meterSerial: m.meterSerial || '',
+    accountNumber: m.accountNumber || '',
     unitRate: m.unitRate?.toString() || '',
     standingRate: m.standingRate?.toString() || '',
     monthlyBill: m.monthlyBill?.toString() || '',
@@ -119,11 +124,21 @@ export default function EditTransfer() {
 
     const elecMeters = (cust.electricityMeters || []).length
       ? cust.electricityMeters.map(m => ({ ...meterToEditForm(m), currentSupplier: capitalize(m.currentSupplier) }))
-      : [{ ...DEFAULT_ELEC_METER }]
+      : [{
+          ...DEFAULT_ELEC_METER,
+          supplyNumber: t.mpan || '',
+          meterSerial: t.msn || '',
+          accountNumber: t.accountNumber || '',
+        }]
 
     const gasMeters = (cust.gasMeters || []).length
       ? cust.gasMeters.map(m => ({ ...gasMeterToEditForm(m), currentSupplier: capitalize(m.currentSupplier) }))
-      : [{ ...DEFAULT_GAS_METER }]
+      : [{
+          ...DEFAULT_GAS_METER,
+          mprn: t.mprn || '',
+          meterSerial: t.msn || '',
+          accountNumber: t.accountNumber || '',
+        }]
 
     const rawAddress = cust.businessAddress || ''
     const rawPostcode = cust.postcode || ''
@@ -225,6 +240,8 @@ export default function EditTransfer() {
             meterNumber: i + 1,
             currentSupplier: m.currentSupplier || null,
             supplyNumber: m.supplyNumber || null,
+            meterSerial: m.meterSerial || null,
+            accountNumber: m.accountNumber || null,
             dayUnitRate: toNum(m.dayUnitRate),
             nightUnitRate: toNum(m.nightUnitRate),
             eveningUnitRate: toNum(m.eveningUnitRate),
@@ -238,6 +255,9 @@ export default function EditTransfer() {
         ? form.gasMeters.map((m, i) => ({
             meterNumber: i + 1,
             currentSupplier: m.currentSupplier || null,
+            mprn: m.mprn || null,
+            meterSerial: m.meterSerial || null,
+            accountNumber: m.accountNumber || null,
             unitRate: toNum(m.unitRate),
             standingRate: toNum(m.standingRate),
             monthlyBill: toNum(m.monthlyBill),
@@ -262,16 +282,20 @@ export default function EditTransfer() {
         }),
       ])
 
-      const transferMpan = form.utilityType !== 'gas' ? form.elecMeters?.[0]?.supplyNumber || form.mpan : null
-      const transferMprn = form.gasMeters?.[0]?.mprn || form.mprn
+      const firstMeter = form.utilityType !== 'gas' ? form.elecMeters?.[0] : form.gasMeters?.[0]
+      const firstMpan = form.utilityType !== 'gas' ? form.elecMeters?.[0]?.supplyNumber : null
+      const firstMprn = form.utilityType !== 'electricity' ? form.gasMeters?.[0]?.mprn : null
+      const firstMsn = firstMeter?.meterSerial || null
+      const firstAccountNumber = firstMeter?.accountNumber || null
+
       const transferPayload = {
         utilityType: form.utilityType || undefined,
         supplier: form.supplier || undefined,
         status: form.status || undefined,
-        accountNumber: form.accountNumber || null,
-        mpan: transferMpan || undefined,
-        mprn: transferMprn || undefined,
-        msn: form.msn || undefined,
+        accountNumber: firstAccountNumber,
+        mpan: firstMpan || undefined,
+        mprn: firstMprn || undefined,
+        msn: firstMsn || undefined,
         notes: form.notes || undefined,
       }
 
@@ -284,6 +308,9 @@ export default function EditTransfer() {
           customerId: customer.id,
           scheduledDateTime: `${form.date}T${form.time}:00`,
           notes: form.notes || null,
+          mpan: firstMpan,
+          mprn: firstMprn,
+          msn: firstMsn,
         })
       }
 
@@ -415,22 +442,7 @@ export default function EditTransfer() {
               </div>
             </Card>
 
-            <Card icon={FileText} iconColor="#0891b2" iconBg="rgba(8,145,178,0.15)" title="Additional Meter Details" delay="rt-d3">
-              <div className="rt-grid2">
-                {(form.utilityType === 'electricity' || form.utilityType === 'both') && (
-                  <div>
-                    <Field label="MSN (Meter Serial No)">
-                      <input className="rt-input" placeholder="e.g. 12A3456789" value={form.msn} onChange={(e) => setField('msn', e.target.value)} />
-                    </Field>
-                  </div>
-                )}
-                <div>
-                  <Field label="Account Number">
-                    <input className="rt-input" placeholder="e.g. AC12345678" value={form.accountNumber || ''} onChange={(e) => setField('accountNumber', e.target.value)} />
-                  </Field>
-                </div>
-              </div>
-            </Card>
+
 
             <Card icon={Calendar} iconColor="#f59e0b" iconBg="rgba(245,158,11,0.15)" title="Schedule as Call Back" delay="rt-d5"
               headerRight={

@@ -29,15 +29,17 @@ def _sale_out(s: Sale, customer: Customer = None) -> SaleOut:
             electricityMeters=[ElectricityMeterOut(
                 id=m.id, customerId=m.customer_id, meterNumber=m.meter_number,
                 currentSupplier=m.current_supplier, supplyNumber=m.supply_number,
+                meterSerial=m.meter_serial, accountNumber=m.account_number,
                 dayUnitRate=m.day_unit_rate, nightUnitRate=m.night_unit_rate,
                 eveningUnitRate=m.evening_unit_rate, standingRate=m.standing_rate,
                 monthlyBill=m.monthly_bill, contractEndDate=m.contract_end_date,
             ) for m in customer.electricity_meters],
             gasMeters=[GasMeterOut(
                 id=m.id, customerId=m.customer_id, meterNumber=m.meter_number,
-                currentSupplier=m.current_supplier, unitRate=m.unit_rate,
-                standingRate=m.standing_rate, monthlyBill=m.monthly_bill,
-                contractEndDate=m.contract_end_date,
+                currentSupplier=m.current_supplier, mprn=m.mprn,
+                meterSerial=m.meter_serial, accountNumber=m.account_number,
+                unitRate=m.unit_rate, standingRate=m.standing_rate,
+                monthlyBill=m.monthly_bill, contractEndDate=m.contract_end_date,
             ) for m in customer.gas_meters],
         )
     transfer_out = None

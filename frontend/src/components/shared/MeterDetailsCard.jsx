@@ -38,7 +38,7 @@ export default function MeterDetailsCard({ utilityType, meters }) {
             )}
 
             <div className="grid grid-cols-2 gap-4 text-sm">
-              <div className={isElec && m.supplyNumber ? '' : 'col-span-2'}>
+              <div>
                 <span className="text-slate-500">Meter No.</span>
                 <p className="font-semibold text-slate-900 mt-1">{m.meterNumber || i + 1}</p>
               </div>
@@ -46,6 +46,24 @@ export default function MeterDetailsCard({ utilityType, meters }) {
                 <div>
                   <span className="text-slate-500">MPAN / Supply No.</span>
                   <p className="font-semibold text-slate-900 mt-1 font-mono text-xs break-all">{m.supplyNumber}</p>
+                </div>
+              )}
+              {!isElec && m.mprn && (
+                <div>
+                  <span className="text-slate-500">MPRN</span>
+                  <p className="font-semibold text-slate-900 mt-1 font-mono text-xs break-all">{m.mprn}</p>
+                </div>
+              )}
+              {m.meterSerial && (
+                <div>
+                  <span className="text-slate-500">MSN (Meter Serial No.)</span>
+                  <p className="font-semibold text-slate-900 mt-1 font-mono text-xs break-all">{m.meterSerial}</p>
+                </div>
+              )}
+              {m.accountNumber && (
+                <div>
+                  <span className="text-slate-500">Account Number</span>
+                  <p className="font-semibold text-slate-900 mt-1 font-mono text-xs break-all">{m.accountNumber}</p>
                 </div>
               )}
               {m.currentSupplier && (

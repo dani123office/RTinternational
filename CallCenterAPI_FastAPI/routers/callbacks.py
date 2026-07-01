@@ -26,15 +26,17 @@ def _customer_out(c) -> CustomerOut:
         electricityMeters=[ElectricityMeterOut(
             id=m.id, customerId=m.customer_id, meterNumber=m.meter_number,
             currentSupplier=m.current_supplier, supplyNumber=m.supply_number,
-            dayUnitRate=m.day_unit_rate, nightUnitRate=m.night_unit_rate,
+            meterSerial=m.meter_serial, accountNumber=m.account_number,
+            dayUnitRate=m.day_unit_rate, night_unit_rate=m.night_unit_rate,
             eveningUnitRate=m.evening_unit_rate, standingRate=m.standing_rate,
             monthlyBill=m.monthly_bill, contractEndDate=m.contract_end_date,
         ) for m in c.electricity_meters],
         gasMeters=[GasMeterOut(
             id=m.id, customerId=m.customer_id, meterNumber=m.meter_number,
-            currentSupplier=m.current_supplier, unitRate=m.unit_rate,
-            standingRate=m.standing_rate, monthlyBill=m.monthly_bill,
-            contractEndDate=m.contract_end_date,
+            currentSupplier=m.current_supplier, mprn=m.mprn,
+            meterSerial=m.meter_serial, accountNumber=m.account_number,
+            unitRate=m.unit_rate, standingRate=m.standing_rate,
+            monthlyBill=m.monthly_bill, contractEndDate=m.contract_end_date,
         ) for m in c.gas_meters],
     )
 
@@ -338,6 +340,7 @@ def update_callback(id: int, dto: CallBackUpdate, request: Request, current_user
                     db.add(ElectricityMeter(
                         customer_id=customer.id, meter_number=rate.meterNumber,
                         current_supplier=rate.currentSupplier, supply_number=rate.supplyNumber,
+                        meter_serial=rate.meterSerial, account_number=rate.accountNumber,
                         day_unit_rate=rate.dayUnitRate, night_unit_rate=rate.nightUnitRate,
                         evening_unit_rate=rate.eveningUnitRate, standing_rate=rate.standingRate,
                         monthly_bill=rate.monthlyBill, contract_end_date=rate.contractEndDate,
@@ -349,9 +352,10 @@ def update_callback(id: int, dto: CallBackUpdate, request: Request, current_user
                 for rate in dto.gasRates:
                     db.add(GasMeter(
                         customer_id=customer.id, meter_number=rate.meterNumber,
-                        current_supplier=rate.currentSupplier, unit_rate=rate.unitRate,
-                        standing_rate=rate.standingRate, monthly_bill=rate.monthlyBill,
-                        contract_end_date=rate.contractEndDate,
+                        current_supplier=rate.currentSupplier, mprn=rate.mprn,
+                        meter_serial=rate.meterSerial, account_number=rate.accountNumber,
+                        unit_rate=rate.unitRate, standing_rate=rate.standingRate,
+                        monthly_bill=rate.monthlyBill, contract_end_date=rate.contractEndDate,
                     ))
 
         db.commit()

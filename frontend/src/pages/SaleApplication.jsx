@@ -55,14 +55,17 @@ const normDate = (v) => { if (!v) return null; const d = new Date(v); return Num
 
 const mapMeter = (m, i) => ({
   meterNumber: i + 1, currentSupplier: m.currentSupplier || null, supplyNumber: m.supplyNumber || null,
+  meterSerial: m.meterSerial || null, accountNumber: m.accountNumber || null,
   dayUnitRate: toNum(m.dayUnitRate), nightUnitRate: toNum(m.nightUnitRate),
   eveningUnitRate: toNum(m.eveningUnitRate), standingRate: toNum(m.standingRate),
   monthlyBill: toNum(m.monthlyBill), contractEndDate: normDate(m.contractEndDate),
 })
 
 const mapGasMeter = (m, i) => ({
-  meterNumber: i + 1, currentSupplier: m.currentSupplier || null, unitRate: toNum(m.unitRate),
-  standingRate: toNum(m.standingRate), monthlyBill: toNum(m.monthlyBill), contractEndDate: normDate(m.contractEndDate),
+  meterNumber: i + 1, currentSupplier: m.currentSupplier || null, mprn: m.mprn || null,
+  meterSerial: m.meterSerial || null, accountNumber: m.accountNumber || null,
+  unitRate: toNum(m.unitRate), standingRate: toNum(m.standingRate), monthlyBill: toNum(m.monthlyBill),
+  contractEndDate: normDate(m.contractEndDate),
 })
 
 export default function SaleApplication() {
@@ -112,23 +115,32 @@ export default function SaleApplication() {
             ? cust.electricityMeters.map((m, i) => ({
                 meterNumber: m.meterNumber || i + 1,
                 currentSupplier: m.currentSupplier || '', supplyNumber: m.supplyNumber || '',
+                meterSerial: m.meterSerial || '', accountNumber: m.accountNumber || '',
                 dayUnitRate: m.dayUnitRate?.toString() || '', nightUnitRate: m.nightUnitRate?.toString() || '',
                 eveningUnitRate: m.eveningUnitRate?.toString() || '', standingRate: m.standingRate?.toString() || '',
                 monthlyBill: m.monthlyBill?.toString() || '', contractEndDate: normDate(m.contractEndDate) || '',
               }))
-            : [{ ...DEFAULT_ELEC_METER }],
+            : [{
+                ...DEFAULT_ELEC_METER,
+                supplyNumber: lt?.mpan || '',
+                meterSerial: lt?.msn || '',
+                accountNumber: lt?.accountNumber || '',
+              }],
           gasMeters: (cust.gasMeters && cust.gasMeters.length)
             ? cust.gasMeters.map((m, i) => ({
                 meterNumber: m.meterNumber || i + 1,
-                currentSupplier: m.currentSupplier || '', unitRate: m.unitRate?.toString() || '',
+                currentSupplier: m.currentSupplier || '', mprn: m.mprn || '',
+                meterSerial: m.meterSerial || '', accountNumber: m.accountNumber || '',
+                unitRate: m.unitRate?.toString() || '',
                 standingRate: m.standingRate?.toString() || '', monthlyBill: m.monthlyBill?.toString() || '',
                 contractEndDate: normDate(m.contractEndDate) || '',
               }))
-            : [{ ...DEFAULT_GAS_METER }],
-          mpan: lt?.mpan || '',
-          mprn: lt?.mprn || '',
-          msn: lt?.msn || '',
-          accountNumber: lt?.accountNumber || '',
+            : [{
+                ...DEFAULT_GAS_METER,
+                mprn: lt?.mprn || '',
+                meterSerial: lt?.msn || '',
+                accountNumber: lt?.accountNumber || '',
+              }],
           date: lt?.scheduledDateTime?.substring(0, 10) || '',
           time: lt?.scheduledDateTime?.substring(11, 16) || '',
           transferNotes: lt?.notes || '',
@@ -172,25 +184,34 @@ export default function SaleApplication() {
         ? (prefill.elecMeters || customer.electricityMeters || prefill.electricityMeters).map((m, i) => ({
             meterNumber: m.meterNumber || i + 1,
             currentSupplier: m.currentSupplier || '', supplyNumber: m.supplyNumber || '',
+            meterSerial: m.meterSerial || '', accountNumber: m.accountNumber || '',
             dayUnitRate: m.dayUnitRate?.toString() || '', nightUnitRate: m.nightUnitRate?.toString() || '',
             eveningUnitRate: m.eveningUnitRate?.toString() || '', standingRate: m.standingRate?.toString() || '',
             monthlyBill: m.monthlyBill?.toString() || '', contractEndDate: normDate(m.contractEndDate) || '',
           }))
-        : [{ ...DEFAULT_ELEC_METER }],
+        : [{
+            ...DEFAULT_ELEC_METER,
+            supplyNumber: prefill.mpan || '',
+            meterSerial: prefill.msn || '',
+            accountNumber: prefill.accountNumber || '',
+          }],
       gasMeters: (prefill.gasMeters || customer.gasMeters)
         ? (prefill.gasMeters || customer.gasMeters).map((m, i) => ({
             meterNumber: m.meterNumber || i + 1,
-            currentSupplier: m.currentSupplier || '', mprn: m.mprn || '', unitRate: m.unitRate?.toString() || '',
+            currentSupplier: m.currentSupplier || '', mprn: m.mprn || '',
+            meterSerial: m.meterSerial || '', accountNumber: m.accountNumber || '',
+            unitRate: m.unitRate?.toString() || '',
             standingRate: m.standingRate?.toString() || '', monthlyBill: m.monthlyBill?.toString() || '',
             contractEndDate: normDate(m.contractEndDate) || '',
           }))
-        : [{ ...DEFAULT_GAS_METER }],
+        : [{
+            ...DEFAULT_GAS_METER,
+            mprn: prefill.mprn || '',
+            meterSerial: prefill.msn || '',
+            accountNumber: prefill.accountNumber || '',
+          }],
       
-      // Additional meter details
-      mpan: prefill.mpan || '',
-      mprn: prefill.mprn || '',
-      msn: prefill.msn || '',
-      accountNumber: prefill.accountNumber || '',
+
       
       // Schedule/Transfer Date & Time
       date: prefill.scheduledDateTime?.substring(0, 10) || '',
@@ -233,30 +254,23 @@ export default function SaleApplication() {
         next.elecMeters = data.electricityMeters.map((m, i) => ({
           meterNumber: m.meterNumber || i + 1,
           currentSupplier: m.currentSupplier || '', supplyNumber: m.supplyNumber || '',
+          meterSerial: m.meterSerial || '', accountNumber: m.accountNumber || '',
           dayUnitRate: m.dayUnitRate?.toString() || '', nightUnitRate: m.nightUnitRate?.toString() || '',
           eveningUnitRate: m.eveningUnitRate?.toString() || '', standingRate: m.standingRate?.toString() || '',
           monthlyBill: m.monthlyBill?.toString() || '', contractEndDate: normDate(m.contractEndDate) || '',
         }))
-        const first = data.electricityMeters[0]
-        if (first.mpan && !next.mpan) next.mpan = first.mpan
-        if (!next.mpan && first.supplyNumber) next.mpan = first.supplyNumber
-        if (first.msn && !next.msn) next.msn = first.msn
-        if (first.accountNumber && !next.accountNumber) next.accountNumber = first.accountNumber
       }
 
       if (data.gasMeters?.length) {
         next.gasMeters = data.gasMeters.map((m, i) => ({
           meterNumber: m.meterNumber || i + 1,
           currentSupplier: m.currentSupplier || '', mprn: m.mprn || '',
+          meterSerial: m.meterSerial || '', accountNumber: m.accountNumber || '',
           unitRate: (m.unitRate || m.dayUnitRate)?.toString() || '',
           standingRate: m.standingRate?.toString() || '',
           monthlyBill: m.monthlyBill?.toString() || '',
           contractEndDate: normDate(m.contractEndDate) || '',
         }))
-        const first = data.gasMeters[0]
-        if (first.mprn && !next.mprn) next.mprn = first.mprn
-        if (first.msn && !next.msn) next.msn = first.msn
-        if (first.accountNumber && !next.accountNumber) next.accountNumber = first.accountNumber
       }
 
       return next
@@ -325,14 +339,19 @@ export default function SaleApplication() {
       }
 
       // 2. Prepare Transfer Payload
-      const firstElectricitySupply = form.elecMeters?.[0]?.supplyNumber || form.mpan || null
+      const firstMeter = form.utilityType !== 'gas' ? form.elecMeters?.[0] : form.gasMeters?.[0]
+      const firstMpan = form.utilityType !== 'gas' ? form.elecMeters?.[0]?.supplyNumber : null
+      const firstMprn = form.utilityType !== 'electricity' ? form.gasMeters?.[0]?.mprn : null
+      const firstMsn = firstMeter?.meterSerial || null
+      const firstAccountNumber = firstMeter?.accountNumber || null
+
       const transferPayload = {
         utilityType: form.utilityType,
-        accountNumber: form.accountNumber || null,
+        accountNumber: firstAccountNumber,
         notes: form.transferNotes || null,
-        mpan: form.utilityType !== 'gas' ? firstElectricitySupply : null,
-        mprn: form.utilityType !== 'electricity' ? form.gasMeters?.[0]?.mprn || form.mprn || null : null,
-        msn: form.msn || null,
+        mpan: firstMpan,
+        mprn: firstMprn,
+        msn: firstMsn,
         scheduledDateTime: form.date ? `${form.date}T${form.time || '10:00'}:00` : null,
       }
 
@@ -508,25 +527,7 @@ export default function SaleApplication() {
               </div>
             </Card>
 
-            {/* 3. Additional Meter Details Card */}
-            <Card icon={FileText} iconColor="#0891b2" iconBg="rgba(8,145,178,0.15)" title="Additional Meter Details" delay="rt-d3">
-              <div className="rt-grid2">
-                {(form.utilityType === 'electricity' || form.utilityType === 'both') && (
-                  <>
-                    <div>
-                      <Field label="MSN (Meter Serial No)">
-                        <input className="rt-input" placeholder="e.g. 12A3456789" value={form.msn} onChange={(e) => setField('msn', e.target.value)} />
-                      </Field>
-                    </div>
-                  </>
-                )}
-                <div>
-                  <Field label="Account Number">
-                    <input className="rt-input" placeholder="e.g. AC12345678" value={form.accountNumber} onChange={(e) => setField('accountNumber', e.target.value)} />
-                  </Field>
-                </div>
-              </div>
-            </Card>
+
 
             {/* 4. Schedule Card */}
             <Card icon={CalendarIcon} iconColor="#f59e0b" iconBg="rgba(245,158,11,0.15)" title="Schedule Transfer/Callback" delay="rt-d4">

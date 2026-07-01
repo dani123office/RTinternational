@@ -30,7 +30,11 @@ export default function GasMeterSection({ meters, onUpdate, onAdd, onRemove }) {
               )}
             </div>
             <div><Label>Current Supplier</Label><Input value={meter.currentSupplier || ''} onChange={(e) => updateMeter(idx, 'currentSupplier', e.target.value)} /></div>
-            <div><Label>MPRN</Label><Input placeholder="e.g. 1234567890" value={meter.mprn || ''} onChange={(e) => updateMeter(idx, 'mprn', e.target.value)} /></div>
+            <div className="grid grid-cols-2 gap-3">
+              <div><Label>MPRN</Label><Input placeholder="e.g. 1234567890" value={meter.mprn || ''} onChange={(e) => updateMeter(idx, 'mprn', e.target.value)} /></div>
+              <div><Label>MSN (Meter Serial No)</Label><Input value={meter.meterSerial || ''} onChange={(e) => updateMeter(idx, 'meterSerial', e.target.value)} placeholder="e.g. 12A3456789" /></div>
+            </div>
+            <div><Label>Account Number</Label><Input value={meter.accountNumber || ''} onChange={(e) => updateMeter(idx, 'accountNumber', e.target.value)} placeholder="e.g. AC12345678" /></div>
             <div className="grid grid-cols-2 gap-3">
               <div><Label>Unit Rate (p/kWh)</Label><Input type="number" step="0.01" value={meter.unitRate || ''} onChange={(e) => updateMeter(idx, 'unitRate', e.target.value)} /></div>
               <div><Label>Standing Rate (p/day)</Label><Input type="number" step="0.01" value={meter.standingRate || ''} onChange={(e) => updateMeter(idx, 'standingRate', e.target.value)} /></div>

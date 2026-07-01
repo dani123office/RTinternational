@@ -620,6 +620,7 @@ def update_callback(
                     db.add(ElectricityMeter(
                         customer_id=customer.id, meter_number=rate.meterNumber,
                         current_supplier=rate.currentSupplier, supply_number=rate.supplyNumber,
+                        meter_serial=rate.meterSerial, account_number=rate.accountNumber,
                         day_unit_rate=rate.dayUnitRate, night_unit_rate=rate.nightUnitRate,
                         evening_unit_rate=rate.eveningUnitRate, standing_rate=rate.standingRate,
                         monthly_bill=rate.monthlyBill, contract_end_date=rate.contractEndDate,
@@ -631,9 +632,10 @@ def update_callback(
                 for rate in dto.gasRates:
                     db.add(GasMeter(
                         customer_id=customer.id, meter_number=rate.meterNumber,
-                        current_supplier=rate.currentSupplier, unit_rate=rate.unitRate,
-                        standing_rate=rate.standingRate, monthly_bill=rate.monthlyBill,
-                        contract_end_date=rate.contractEndDate,
+                        current_supplier=rate.currentSupplier, mprn=rate.mprn,
+                        meter_serial=rate.meterSerial, account_number=rate.accountNumber,
+                        unit_rate=rate.unitRate, standing_rate=rate.standingRate,
+                        monthly_bill=rate.monthlyBill, contract_end_date=rate.contractEndDate,
                     ))
 
         db.commit()

@@ -196,11 +196,7 @@ export default function AdminCallbackDetail() {
             </div>
           )}
 
-          {(cb.accountNumber || cb.mpan || cb.mprn || cb.msn) && (
-            <div className="rt-fade mt-4">
-              <AccountDetailsCard transfer={cb} />
-            </div>
-          )}
+
 
           <div className="rt-fade mt-4">
             <OfferedRatesCard transfer={cb} />

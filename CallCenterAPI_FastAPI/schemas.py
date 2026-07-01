@@ -648,6 +648,8 @@ class ElectricityMeterOut(BaseModel):
     meterNumber: int
     currentSupplier: Optional[str] = None
     supplyNumber: Optional[str] = None
+    meterSerial: Optional[str] = None
+    accountNumber: Optional[str] = None
     dayUnitRate: Optional[float] = None
     nightUnitRate: Optional[float] = None
     eveningUnitRate: Optional[float] = None
@@ -665,6 +667,14 @@ class ElectricityMeterCreate(BaseModel):
     supplyNumber: Optional[str] = Field(
         None, max_length=100,
         description="Supply number / MPAN"
+    )
+    meterSerial: Optional[str] = Field(
+        None, max_length=100,
+        description="Meter serial number / MSN"
+    )
+    accountNumber: Optional[str] = Field(
+        None, max_length=50,
+        description="Account number"
     )
     dayUnitRate: Optional[float] = Field(
         None,
@@ -726,6 +736,9 @@ class GasMeterOut(BaseModel):
     customerId: int
     meterNumber: int
     currentSupplier: Optional[str] = None
+    mprn: Optional[str] = None
+    meterSerial: Optional[str] = None
+    accountNumber: Optional[str] = None
     unitRate: Optional[float] = None
     standingRate: Optional[float] = None
     monthlyBill: Optional[float] = None
@@ -738,6 +751,18 @@ class GasMeterCreate(BaseModel):
     currentSupplier: Optional[str] = Field(
         None, max_length=255,
         description="Current gas supplier name"
+    )
+    mprn: Optional[str] = Field(
+        None, max_length=100,
+        description="MPRN"
+    )
+    meterSerial: Optional[str] = Field(
+        None, max_length=100,
+        description="Meter serial number / MSN"
+    )
+    accountNumber: Optional[str] = Field(
+        None, max_length=50,
+        description="Account number"
     )
     unitRate: Optional[float] = Field(
         None,

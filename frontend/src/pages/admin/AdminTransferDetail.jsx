@@ -142,11 +142,7 @@ export default function AdminTransferDetail() {
             </div>
           </div>
 
-          {(t.accountNumber || t.mpan || t.mprn || t.msn) && (
-            <div className="rt-fade mt-4">
-              <AccountDetailsCard transfer={t} />
-            </div>
-          )}
+
 
           {c?.electricityMeters?.length > 0 && (
             <div className="rt-fade mt-4">

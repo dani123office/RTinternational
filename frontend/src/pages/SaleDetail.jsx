@@ -158,10 +158,7 @@ export default function SaleDetail() {
             <CustomerInfoCard customer={compositeCustomer} />
             <PaymentDetailsCard sale={sale} />
 
-            {/* Account details from linked transfer */}
-            {linkedTransfer && (linkedTransfer.accountNumber || linkedTransfer.mpan || linkedTransfer.mprn || linkedTransfer.msn) && (
-              <AccountDetailsCard transfer={linkedTransfer} />
-            )}
+
 
             {/* Meter details from customer */}
             {customer.electricityMeters?.length > 0 && (

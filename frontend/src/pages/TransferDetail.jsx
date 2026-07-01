@@ -113,12 +113,7 @@ export default function TransferDetail() {
             <CustomerInfoCard customer={customer} />
           </div>
 
-          {/* Account Details (transfer-level) */}
-          {hasAccountDetails && (
-            <div className="rt-fade rt-d3">
-              <AccountDetailsCard transfer={accountDetails} />
-            </div>
-          )}
+
 
           {/* Meter Details grid */}
           <div className="rt-grid2">

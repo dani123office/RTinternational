@@ -20,8 +20,8 @@ import GasMeterSection from '@/components/GasMeterSection'
 import AiFormFiller from '@/components/AiFormFiller'
 
 // ─── Data Initialization Models ─────────────────────────────────────────────
-const DEFAULT_ELEC_METER = { currentSupplier:'',supplyNumber:'',dayUnitRate:'',nightUnitRate:'',eveningUnitRate:'',standingRate:'',monthlyBill:'',contractEndDate:'' }
-const DEFAULT_GAS_METER  = { currentSupplier:'',mprn:'',unitRate:'',standingRate:'',monthlyBill:'',contractEndDate:'' }
+const DEFAULT_ELEC_METER = { currentSupplier:'',supplyNumber:'',meterSerial:'',accountNumber:'',dayUnitRate:'',nightUnitRate:'',eveningUnitRate:'',standingRate:'',monthlyBill:'',contractEndDate:'' }
+const DEFAULT_GAS_METER  = { currentSupplier:'',mprn:'',meterSerial:'',accountNumber:'',unitRate:'',standingRate:'',monthlyBill:'',contractEndDate:'' }
 
 const getTomorrow = () => { const d=new Date(); d.setDate(d.getDate()+1); return d.toISOString().split('T')[0] }
 const normalizeContractEnd = (v) => {
@@ -45,20 +45,21 @@ const normDate = (v) => { if(!v) return null; const d=new Date(v); return Number
 
 const mapMeter = (m, i) => ({
   meterNumber:i+1, currentSupplier:m.currentSupplier||null, supplyNumber:m.supplyNumber||null,
+  meterSerial:m.meterSerial||null, accountNumber:m.accountNumber||null,
   dayUnitRate:toNum(m.dayUnitRate), nightUnitRate:toNum(m.nightUnitRate),
   eveningUnitRate:toNum(m.eveningUnitRate), standingRate:toNum(m.standingRate),
   monthlyBill:toNum(m.monthlyBill), contractEndDate:normDate(m.contractEndDate),
 })
 const mapGasMeter = (m, i) => ({
-  meterNumber:i+1, currentSupplier:m.currentSupplier||null, unitRate:toNum(m.unitRate),
-  standingRate:toNum(m.standingRate), monthlyBill:toNum(m.monthlyBill),
+  meterNumber:i+1, currentSupplier:m.currentSupplier||null, mprn:m.mprn||null,
+  meterSerial:m.meterSerial||null, accountNumber:m.accountNumber||null,
+  unitRate:toNum(m.unitRate), standingRate:toNum(m.standingRate), monthlyBill:toNum(m.monthlyBill),
   contractEndDate:normDate(m.contractEndDate),
 })
 
 const initState = () => ({
   utilityType:'electricity',
   businessName:'',addressLine1:'',city:'',businessPhone:'',ownerName:'',ownerPhone:'',email:'',postcode:'',notes:'',
-  accountNumber:'', mpan:'', mprn:'', msn:'',
   dayOfWeek:'', scheduledDate:getTomorrow(), scheduledTime:'10:00',
   elecMeters:[{...DEFAULT_ELEC_METER}], gasMeters:[{...DEFAULT_GAS_METER}],
 })
@@ -229,26 +230,35 @@ export default function AddCallback() {
       ownerPhone: c.ownerPhone||'', email: c.email||'', postcode: c.postcode||'',
       notes: callbackData.notes||'',
       utilityType: c.utilityType||'electricity',
-      accountNumber: callbackData.accountNumber || callbackData.linkedTransferAccountNumber || '',
-      mpan: callbackData.mpan || callbackData.linkedTransferMpan || '',
-      mprn: callbackData.mprn || callbackData.linkedTransferMprn || '',
-      msn: callbackData.msn || callbackData.linkedTransferMsn || '',
       dayOfWeek: callbackData.dayOfWeek || '',
       scheduledDate: callbackData.scheduledDateTime?.substring(0,10) || getTomorrow(),
       scheduledTime: callbackData.scheduledDateTime?.substring(11,16) || '10:00',
       elecMeters: c.electricityMeters?.length ? c.electricityMeters.map((m, i) => ({
         meterNumber: m.meterNumber || i + 1,
         currentSupplier:m.currentSupplier||'', supplyNumber:m.supplyNumber||'',
+        meterSerial:m.meterSerial||'', accountNumber:m.accountNumber||'',
         dayUnitRate:m.dayUnitRate?.toString()||'', nightUnitRate:m.nightUnitRate?.toString()||'',
         eveningUnitRate:m.eveningUnitRate?.toString()||'', standingRate:m.standingRate?.toString()||'',
         monthlyBill:m.monthlyBill?.toString()||'', contractEndDate:normDate(m.contractEndDate)||'',
-      })) : [{...DEFAULT_ELEC_METER}],
+      })) : [{
+        ...DEFAULT_ELEC_METER,
+        supplyNumber: callbackData.mpan || callbackData.linkedTransferMpan || '',
+        meterSerial: callbackData.msn || callbackData.linkedTransferMsn || '',
+        accountNumber: callbackData.accountNumber || callbackData.linkedTransferAccountNumber || '',
+      }],
       gasMeters: c.gasMeters?.length ? c.gasMeters.map((m, i) => ({
         meterNumber: m.meterNumber || i + 1,
-        currentSupplier:m.currentSupplier||'', unitRate:m.unitRate?.toString()||'',
+        currentSupplier:m.currentSupplier||'', mprn:m.mprn||'',
+        meterSerial:m.meterSerial||'', accountNumber:m.accountNumber||'',
+        unitRate:m.unitRate?.toString()||'',
         standingRate:m.standingRate?.toString()||'', monthlyBill:m.monthlyBill?.toString()||'',
         contractEndDate:normDate(m.contractEndDate)||'',
-      })) : [{...DEFAULT_GAS_METER}],
+      })) : [{
+        ...DEFAULT_GAS_METER,
+        mprn: callbackData.mprn || callbackData.linkedTransferMprn || '',
+        meterSerial: callbackData.msn || callbackData.linkedTransferMsn || '',
+        accountNumber: callbackData.accountNumber || callbackData.linkedTransferAccountNumber || '',
+      }],
     }))
   }, [callbackData])
 
@@ -271,6 +281,8 @@ export default function AddCallback() {
         next.elecMeters = data.electricityMeters.map((m) => ({
           currentSupplier:   m.currentSupplier   || '',
           supplyNumber:      m.supplyNumber      || '',
+          meterSerial:       m.meterSerial       || '',
+          accountNumber:     m.accountNumber     || '',
           dayUnitRate:       m.dayUnitRate?.toString()       || '',
           nightUnitRate:     m.nightUnitRate?.toString()     || '',
           eveningUnitRate:   m.eveningUnitRate?.toString()   || '',
@@ -284,6 +296,8 @@ export default function AddCallback() {
         next.gasMeters = data.gasMeters.map((m) => ({
           currentSupplier:   m.currentSupplier   || '',
           mprn:              m.mprn             || '',
+          meterSerial:       m.meterSerial       || '',
+          accountNumber:     m.accountNumber     || '',
           unitRate:          (m.unitRate || m.dayUnitRate)?.toString() || '',
           standingRate:      m.standingRate?.toString()        || '',
           monthlyBill:       m.monthlyBill?.toString()         || '',
@@ -459,16 +473,7 @@ export default function AddCallback() {
               </div>
             </DashboardCard>
 
-            <DashboardCard icon={FileText} iconColor="#0891b2" iconBg="#eff6ff" title="Additional Meter Details" delay="rt-d4">
-              <div style={{display:'grid', gridTemplateColumns:'1fr 1fr', gap:'16px'}}>
-                {(form.utilityType==='electricity'||form.utilityType==='both') && (
-                  <>
-                    <div><InputField label="MSN (Meter Serial No)"><input className="rt-input" value={form.msn} onChange={(e)=>upd('msn',e.target.value)} placeholder="e.g. 12A3456789"/></InputField></div>
-                  </>
-                )}
-                        <div><InputField label="Account Number"><input className="rt-input" value={form.accountNumber} onChange={(e)=>upd('accountNumber',e.target.value)} placeholder="e.g. AC12345678"/></InputField></div>
-              </div>
-            </DashboardCard>
+
 
             <div style={{display:'flex', justifyContent:'flex-end', gap:'12px', paddingTop:'12px', borderTop:'1px solid #e2e8f0', marginTop:'12px'}}>
               <button

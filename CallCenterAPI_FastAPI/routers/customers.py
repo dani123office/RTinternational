@@ -41,6 +41,8 @@ def _customer_out(c) -> CustomerOut:
             meterNumber=m.meter_number,
             currentSupplier=m.current_supplier,
             supplyNumber=m.supply_number,
+            meterSerial=m.meter_serial,
+            accountNumber=m.account_number,
             dayUnitRate=m.day_unit_rate,
             nightUnitRate=m.night_unit_rate,
             eveningUnitRate=m.evening_unit_rate,
@@ -53,6 +55,9 @@ def _customer_out(c) -> CustomerOut:
             customerId=m.customer_id,
             meterNumber=m.meter_number,
             currentSupplier=m.current_supplier,
+            mprn=m.mprn,
+            meterSerial=m.meter_serial,
+            accountNumber=m.account_number,
             unitRate=m.unit_rate,
             standingRate=m.standing_rate,
             monthlyBill=m.monthly_bill,
@@ -137,6 +142,7 @@ def create_customer(dto: CustomerCreate, request: Request, current_user: User = 
                         db.add(ElectricityMeter(
                             customer_id=existing.id, meter_number=rate.meterNumber,
                             current_supplier=rate.currentSupplier, supply_number=rate.supplyNumber,
+                            meter_serial=rate.meterSerial, account_number=rate.accountNumber,
                             day_unit_rate=rate.dayUnitRate, night_unit_rate=rate.nightUnitRate,
                             evening_unit_rate=rate.eveningUnitRate, standing_rate=rate.standingRate,
                             monthly_bill=rate.monthlyBill, contract_end_date=rate.contractEndDate,
@@ -148,9 +154,10 @@ def create_customer(dto: CustomerCreate, request: Request, current_user: User = 
                     for rate in dto.gasRates:
                         db.add(GasMeter(
                             customer_id=existing.id, meter_number=rate.meterNumber,
-                            current_supplier=rate.currentSupplier, unit_rate=rate.unitRate,
-                            standing_rate=rate.standingRate, monthly_bill=rate.monthlyBill,
-                            contract_end_date=rate.contractEndDate,
+                            current_supplier=rate.currentSupplier, mprn=rate.mprn,
+                            meter_serial=rate.meterSerial, account_number=rate.accountNumber,
+                            unit_rate=rate.unitRate, standing_rate=rate.standingRate,
+                            monthly_bill=rate.monthlyBill, contract_end_date=rate.contractEndDate,
                         ))
 
                 db.commit()
@@ -182,6 +189,8 @@ def create_customer(dto: CustomerCreate, request: Request, current_user: User = 
                     meter_number=rate.meterNumber,
                     current_supplier=rate.currentSupplier,
                     supply_number=rate.supplyNumber,
+                    meter_serial=rate.meterSerial,
+                    account_number=rate.accountNumber,
                     day_unit_rate=rate.dayUnitRate,
                     night_unit_rate=rate.nightUnitRate,
                     evening_unit_rate=rate.eveningUnitRate,
@@ -197,6 +206,9 @@ def create_customer(dto: CustomerCreate, request: Request, current_user: User = 
                     customer_id=customer.id,
                     meter_number=rate.meterNumber,
                     current_supplier=rate.currentSupplier,
+                    mprn=rate.mprn,
+                    meter_serial=rate.meterSerial,
+                    account_number=rate.accountNumber,
                     unit_rate=rate.unitRate,
                     standing_rate=rate.standingRate,
                     monthly_bill=rate.monthlyBill,
@@ -255,6 +267,7 @@ def update_customer(id: int, dto: CustomerUpdate, request: Request, current_user
                 db.add(ElectricityMeter(
                     customer_id=customer.id, meter_number=rate.meterNumber,
                     current_supplier=rate.currentSupplier, supply_number=rate.supplyNumber,
+                    meter_serial=rate.meterSerial, account_number=rate.accountNumber,
                     day_unit_rate=rate.dayUnitRate, night_unit_rate=rate.nightUnitRate,
                     evening_unit_rate=rate.eveningUnitRate, standing_rate=rate.standingRate,
                     monthly_bill=rate.monthlyBill, contract_end_date=rate.contractEndDate,
@@ -266,9 +279,10 @@ def update_customer(id: int, dto: CustomerUpdate, request: Request, current_user
             for rate in dto.gasRates:
                 db.add(GasMeter(
                     customer_id=customer.id, meter_number=rate.meterNumber,
-                    current_supplier=rate.currentSupplier, unit_rate=rate.unitRate,
-                    standing_rate=rate.standingRate, monthly_bill=rate.monthlyBill,
-                    contract_end_date=rate.contractEndDate,
+                    current_supplier=rate.currentSupplier, mprn=rate.mprn,
+                    meter_serial=rate.meterSerial, account_number=rate.accountNumber,
+                    unit_rate=rate.unitRate, standing_rate=rate.standingRate,
+                    monthly_bill=rate.monthlyBill, contract_end_date=rate.contractEndDate,
                 ))
 
         db.commit()

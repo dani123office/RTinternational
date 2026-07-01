@@ -122,11 +122,7 @@ export default function ManagerCallbackDetail() {
                 </div>
               )}
 
-              {Object.values(accountDetails).some(Boolean) && (
-                <div className="rt-fade rt-d3">
-                  <AccountDetailsCard transfer={accountDetails} />
-                </div>
-              )}
+
 
               {callback.notes && (
                 <DashboardCard icon={FileText} title="Interaction Notes" delay="rt-d4">

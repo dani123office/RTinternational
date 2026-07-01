@@ -81,13 +81,13 @@ export const SALE_TYPES = [
 ];
 
 export const DEFAULT_ELEC_METER = {
-  currentSupplier: '', supplyNumber: '', dayUnitRate: '',
+  currentSupplier: '', supplyNumber: '', meterSerial: '', accountNumber: '', dayUnitRate: '',
   nightUnitRate: '', eveningUnitRate: '', standingRate: '',
   monthlyBill: '', contractEndDate: '',
 };
 
 export const DEFAULT_GAS_METER = {
-  currentSupplier: '', mprn: '', unitRate: '', standingRate: '',
+  currentSupplier: '', mprn: '', meterSerial: '', accountNumber: '', unitRate: '', standingRate: '',
   monthlyBill: '', contractEndDate: '',
 };
 

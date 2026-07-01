@@ -123,22 +123,7 @@ export default function AddTransfer() {
               </div>
             </Card>
 
-            <Card icon={FileText} iconColor="#0891b2" iconBg="rgba(8,145,178,0.15)" title="Additional Meter Details" delay="rt-d3">
-              <div className="rt-grid2">
-                {(form.utilityType === 'electricity' || form.utilityType === 'both') && (
-                  <div>
-                    <Field label="MSN (Meter Serial No)">
-                      <input className="rt-input" placeholder="e.g. 12A3456789" value={form.msn} onChange={(e) => setField('msn', e.target.value)} />
-                    </Field>
-                  </div>
-                )}
-                <div>
-                  <Field label="Account Number">
-                    <input className="rt-input" placeholder="e.g. AC12345678" value={form.accountNumber || ''} onChange={(e) => setField('accountNumber', e.target.value)} />
-                  </Field>
-                </div>
-              </div>
-            </Card>
+
 
             <Card icon={CalendarIcon} iconColor="#f59e0b" iconBg="rgba(245,158,11,0.15)" title="Schedule as Call Back" delay="rt-d4"
               headerRight={
