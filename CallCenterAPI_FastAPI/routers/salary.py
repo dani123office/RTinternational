@@ -25,6 +25,47 @@ def _fmt(n: int) -> str:
     return f"Rs. {n:,}"
 
 
+def _num_to_words(n: int) -> str:
+    """Convert an integer to English words (e.g. 243958 -> 'Two Hundred Forty Three Thousand Nine Hundred Fifty Eight')."""
+    if n == 0:
+        return "Zero"
+    ones = ["", "One", "Two", "Three", "Four", "Five", "Six", "Seven", "Eight", "Nine",
+            "Ten", "Eleven", "Twelve", "Thirteen", "Fourteen", "Fifteen", "Sixteen",
+            "Seventeen", "Eighteen", "Nineteen"]
+    tens = ["", "", "Twenty", "Thirty", "Forty", "Fifty", "Sixty", "Seventy", "Eighty", "Ninety"]
+
+    def _below_1000(num):
+        if num == 0:
+            return ""
+        elif num < 20:
+            return ones[num]
+        elif num < 100:
+            return tens[num // 10] + (" " + ones[num % 10] if num % 10 else "")
+        else:
+            rest = _below_1000(num % 100)
+            return ones[num // 100] + " Hundred" + (" " + rest if rest else "")
+
+    parts = []
+    if n < 0:
+        parts.append("Minus")
+        n = abs(n)
+
+    billions = n // 1_000_000_000
+    millions = (n % 1_000_000_000) // 1_000_000
+    thousands = (n % 1_000_000) // 1_000
+    remainder = n % 1_000
+
+    if billions:
+        parts.append(_below_1000(billions) + " Billion")
+    if millions:
+        parts.append(_below_1000(millions) + " Million")
+    if thousands:
+        parts.append(_below_1000(thousands) + " Thousand")
+    if remainder:
+        parts.append(_below_1000(remainder))
+    return " ".join(parts)
+
+
 class _SalaryPDF:
     """Zero-dependency manual PDF builder matching the clean two-column UI design."""
 
@@ -167,18 +208,33 @@ class _SalaryPDF:
     def build_slip(self, **kw):
         buf = []
         PW, PH = self.PAGE_W, self.PAGE_H
-        LM, CM = self.LM, self.COL_MID
-        RM = PW - LM   # right margin x
+        LM = self.LM
+        RM = PW - LM
 
-        # Y helper: PDF origin is bottom-left; we work top-down
         def Y(pt): return PH - pt
 
-        # ── outer border ─────────────────────────────────────────────────────
-        buf.append(self._sg(*self.C_DIV))
-        buf.append(self._lw(0.7))
-        buf.append(self._rect(10, 10, PW - 20, PH - 20, fill=False, stroke=True))
+        # ── colour constants for new design ──────────────────────────────────
+        C_TEAL   = (0, 102, 128)      # dark teal for decorations
+        C_TEAL_L = (0, 140, 170)      # lighter teal accent
+        C_GOLD   = (180, 160, 60)     # gold/olive for highlights
+        C_BLACK  = (0, 0, 0)
+        C_GREY   = (100, 100, 100)
+        C_LGREY  = (200, 200, 200)
+        C_WHITE  = (255, 255, 255)
+        C_YELLOW = (255, 255, 0)      # highlight yellow
 
-        # ── header block ─────────────────────────────────────────────────────
+        # ── page background: white ───────────────────────────────────────────
+        buf.append(self._fg(*C_WHITE))
+        buf.append(self._rect(0, 0, PW, PH, fill=True, stroke=False))
+
+        # ── LEFT SIDE BLUE CURVED DECORATION ─────────────────────────────────
+        # Top-left blue curved shape
+        buf.append(self._fg(*C_TEAL))
+        buf.append(f"0 {PH} m 0 {PH - 180} l 35 {PH - 160} 45 {PH - 100} 30 {PH - 40} c 20 {PH} l h f\n")
+        # Bottom-left blue curved shape
+        buf.append(f"0 180 m 0 0 l 40 0 l 45 60 35 140 0 180 c h f\n")
+
+        # ── HEADER AREA ──────────────────────────────────────────────────────
         import os
         base_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
         logo_path = os.path.join(base_dir, "logort.png")
@@ -187,176 +243,282 @@ class _SalaryPDF:
         if img_data:
             img_bytes, img_w, img_h = img_data
             aspect = img_w / img_h
-            h = 55
+            h = 60
             w = h * aspect
-            # Shift logo 12pt to the right for visual balance
-            logo_x = (PW - w) / 2 + 12
-            # Translate to bottom-left corner of the logo image (top at Y(30))
+            logo_x = 50
             icon_y = Y(30 + h)
             buf.append(f"q {w:.2f} 0 0 {h:.2f} {logo_x:.2f} {icon_y:.2f} cm /Im1 Do Q\n")
 
-            # Draw "RT International" text right below the logo image, also shifted 12pt
-            brand_y = icon_y - 12
-            buf.append(self._fg(*self.C_DARK))
-            brand_text = "RT International"
-            brand_sz = 12
-            approx_brand_w = len(brand_text) * brand_sz * 0.52
-            brand_x = (PW - approx_brand_w) / 2 + 12
-            buf.append(self._t(brand_x, brand_y, brand_text, "Helvetica-Bold", brand_sz))
-            y = brand_y - 18
+            # Company name below logo
+            brand_y = icon_y - 10
+            buf.append(self._fg(*C_TEAL))
+            buf.append(self._t(50, brand_y, "RINDH TECH INTERNATIONAL", "Helvetica-Bold", 7))
+            buf.append(self._t(50, brand_y - 10, "SMC Pvt.Ltd", "Helvetica-Bold", 6))
         else:
-            icon_y = Y(64)
-            logo_text = "RT International"
-            text_sz = 20
-            text_w = len(logo_text) * text_sz * 0.52
-            icon_w = 26
-            gap = 8
-            total_w = icon_w + gap + text_w
-            logo_x = (PW - total_w) / 2
+            # Fallback: draw text logo
+            buf.append(self._fg(*C_TEAL))
+            buf.append(self._t(50, Y(50), "RT International", "Helvetica-Bold", 18))
 
-            # Draw icon
-            buf.append(self._fg(*self.C_BLUE))
-            buf.append(self._rrect(logo_x, icon_y, icon_w, icon_w, r=6, fill=True, stroke=False))
-            # Draw "RT" text inside icon
-            buf.append(self._fg(*self.C_WHITE))
-            buf.append(self._t(logo_x + 6, icon_y + 8, "RT", "Helvetica-Bold", 11))
+        # ── Date and Reference on top right ──────────────────────────────────
+        now_str = kw.get("generated_at", "")
+        buf.append(self._fg(*C_BLACK))
+        buf.append(self._tr(RM, Y(60), now_str.split(" at ")[0] if " at " in now_str else now_str, "Helvetica", 9))
+        # Reference number
+        ref = f"HRG/RTL/{kw.get('slip_year', '')}"
+        buf.append(self._tr(RM, Y(72), ref, "Helvetica", 8))
 
-            # Draw "RT International" brand name next to the icon
-            buf.append(self._fg(*self.C_DARK))
-            buf.append(self._t(logo_x + icon_w + gap, icon_y + 5, logo_text, "Helvetica-Bold", text_sz))
-            y = icon_y - 20
+        # ── decorative triangles row ─────────────────────────────────────────
+        tri_y = Y(42)
+        tri_x = 280
+        buf.append(self._fg(*C_LGREY))
+        for i in range(8):
+            x = tri_x + i * 30
+            buf.append(f"{x} {tri_y} m {x+8} {tri_y+10} l {x+16} {tri_y} l h f\n")
 
-        buf.append(self._fg(*self.C_DARK))
-        buf.append(self._tc(y, "SALARY SLIP", "Helvetica-Bold", 12))
-        y -= 15
-        month_text = kw["period"].replace("for the month of ", "")
-        buf.append(self._fg(*self.C_LABEL))
-        buf.append(self._tc(y, month_text, "Helvetica", 9))
-        y -= 14
-        buf.append(self._sg(*self.C_DIV))
+        # ── TITLE BAR ────────────────────────────────────────────────────────
+        title_y = Y(130)
+        bar_h = 20
+        buf.append(self._fg(*C_TEAL))
+        buf.append(self._rect(LM, title_y, RM - LM, bar_h, fill=True, stroke=False))
+        buf.append(self._fg(*C_WHITE))
+        period_text = f"Pay slip {kw['period']}"
+        buf.append(self._tc(title_y + 5, period_text, "Helvetica-Bold", 9))
+
+        # ── EMPLOYEE INFORMATION TABLE ────────────────────────────────────────
+        table_top = title_y - 5
+        row_h = 16
+        label_w = 100
+        value_w = 160
+        col2_x = LM + label_w + value_w + 10
+
+        # Table border
+        buf.append(self._sg(*C_BLACK))
         buf.append(self._lw(0.5))
-        buf.append(self._line(LM, y, RM, y))
-        y -= 18
 
-        # ── SECTION 1: Employee Info (left) + Attendance Summary (right) ─────
-        hdr, y_after = self._section_header("Employee Information", y, full_width=False)
-        buf.append(hdr)
-
-        # Right column header at same vertical position
-        buf.append(self._fg(*self.C_LABEL))
-        buf.append(self._t(CM, y, "Attendance Summary".upper(), "Helvetica-Bold", 7))
-        buf.append(self._sg(*self.C_DIV))
-        buf.append(self._line(CM, y - 7, RM, y - 7))
-
-        y = y_after
-        row_h = 17
-
-        left_info = [
-            ("Name",           kw["employee_name"]),
-            ("Employee ID",    kw["employee_id"]),
-            ("Designation",    kw["designation"]),
-            ("Department",     kw["department"]),
-            ("CNIC",           kw["cnic"]),
-            ("Date of Joining",kw["doj"]),
-        ]
-        right_info = [
-            ("Working Days",   kw["working_days"]),
-            ("Present Days",   kw["present_days"]),
-            ("Absent Days",    kw["absent_days"]),
+        info_rows = [
+            ("Employee Name", kw["employee_name"], None, None),
+            ("Employee CNIC", kw["cnic"], None, None),
+            ("Designation", kw["designation"], None, None),
+            ("Pay Period", kw.get("pay_period", "-"), "Employee Net Pay=", f"Rs.{kw['net_salary']:,}.00"),
+            ("Payment Date", kw.get("payment_date", "-"), f"Paid Days:{kw['present_days']} | LOP Days: {kw['absent_days']}", None),
+            ("Salary A/C Number", kw.get("account_number", "-"), None, None),
+            ("Bank Name", kw.get("bank_name", "-"), None, None),
+            ("Job Cadre", kw.get("job_cadre", "Full time"), None, None),
+            ("Currency Type", "Pak Rupee", None, None),
         ]
 
-        left_col_right  = CM - 20   # value aligns right before midpoint gap
-        right_col_right = RM - 5
+        y = table_top
+        for i, (label, value, right_label, right_value) in enumerate(info_rows):
+            ry = y - row_h
+            # Left label cell
+            buf.append(self._sg(*C_BLACK))
+            buf.append(self._lw(0.3))
+            buf.append(self._rect(LM, ry, label_w, row_h, fill=False, stroke=True))
+            # Left value cell
+            buf.append(self._rect(LM + label_w, ry, value_w, row_h, fill=False, stroke=True))
 
-        ly = y
-        for lbl, val in left_info:
-            is_bold = lbl in ("Name", "Employee ID")
-            buf.append(self._fg(*self.C_LABEL))
-            buf.append(self._t(LM, ly, lbl, "Helvetica", 8.5))
-            buf.append(self._fg(*self.C_DARK))
-            vfont = "Helvetica-Bold" if is_bold else "Helvetica"
-            buf.append(self._tr(left_col_right, ly, val, vfont, 8.5))
-            ly -= row_h
+            # Label text
+            buf.append(self._fg(*C_BLACK))
+            buf.append(self._t(LM + 3, ry + 4, label, "Helvetica-Bold", 7))
+            # Value text
+            buf.append(self._fg(*C_BLACK))
+            buf.append(self._t(LM + label_w + 3, ry + 4, str(value), "Helvetica", 7))
 
-        ry = y
-        for lbl, val in right_info:
-            buf.append(self._fg(*self.C_LABEL))
-            buf.append(self._t(CM, ry, lbl, "Helvetica", 8.5))
-            buf.append(self._fg(*self.C_DARK))
-            buf.append(self._tr(right_col_right, ry, val, "Helvetica", 8.5))
-            ry -= row_h
+            # Right side content
+            if right_label and right_value:
+                # Net Pay highlighted box
+                right_w = RM - col2_x
+                buf.append(self._rect(col2_x, ry, right_w, row_h, fill=False, stroke=True))
+                buf.append(self._fg(*C_BLACK))
+                buf.append(self._t(col2_x + 3, ry + 4, f"{right_label} {right_value}", "Helvetica-Bold", 7))
+            elif right_label:
+                right_w = RM - col2_x
+                buf.append(self._rect(col2_x, ry, right_w, row_h, fill=False, stroke=True))
+                buf.append(self._fg(*C_BLACK))
+                buf.append(self._t(col2_x + 3, ry + 4, right_label, "Helvetica", 7))
 
-        y = min(ly, ry) - 22
+            y = ry
 
-        # ── SECTION 2: Earnings (left) + Deductions (right) ──────────────────
-        earn_hdr, _ = self._section_header("Earnings", y, full_width=False)
-        buf.append(earn_hdr)
-        buf.append(self._fg(*self.C_LABEL))
-        buf.append(self._t(CM, y, "Deductions".upper(), "Helvetica-Bold", 7))
-        buf.append(self._sg(*self.C_DIV))
-        buf.append(self._line(CM, y - 10, RM, y - 10))
+        # ── EARNINGS & DEDUCTIONS TABLE ──────────────────────────────────────
+        y -= 8
+        earn_top = y
+        # Column widths for 6-column table
+        e_label_w = 120
+        e_amt_w = 70
+        e_ytd_w = 70
+        d_label_w = 80
+        d_amt_w = 60
+        d_ytd_w = 50
 
+        total_w = e_label_w + e_amt_w + e_ytd_w + d_label_w + d_amt_w + d_ytd_w
+        # Scale to fit
+        scale = (RM - LM) / total_w
+        e_label_w = int(e_label_w * scale)
+        e_amt_w = int(e_amt_w * scale)
+        e_ytd_w = int(e_ytd_w * scale)
+        d_label_w = int(d_label_w * scale)
+        d_amt_w = int(d_amt_w * scale)
+        d_ytd_w = RM - LM - e_label_w - e_amt_w - e_ytd_w - d_label_w - d_amt_w
+
+        # Header row
+        hdr_h = 16
+        hdr_y = y - hdr_h
+        # Yellow highlighted header cells
+        buf.append(self._fg(*C_YELLOW))
+        buf.append(self._rect(LM, hdr_y, e_label_w, hdr_h, fill=True, stroke=False))
+        buf.append(self._rect(LM + e_label_w, hdr_y, e_amt_w, hdr_h, fill=True, stroke=False))
+        buf.append(self._rect(LM + e_label_w + e_amt_w, hdr_y, e_ytd_w, hdr_h, fill=True, stroke=False))
+        buf.append(self._rect(LM + e_label_w + e_amt_w + e_ytd_w, hdr_y, d_label_w, hdr_h, fill=True, stroke=False))
+        buf.append(self._rect(LM + e_label_w + e_amt_w + e_ytd_w + d_label_w, hdr_y, d_amt_w, hdr_h, fill=True, stroke=False))
+        buf.append(self._rect(LM + e_label_w + e_amt_w + e_ytd_w + d_label_w + d_amt_w, hdr_y, d_ytd_w, hdr_h, fill=True, stroke=False))
+
+        # Header borders
+        buf.append(self._sg(*C_BLACK))
+        buf.append(self._lw(0.3))
+        buf.append(self._rect(LM, hdr_y, RM - LM, hdr_h, fill=False, stroke=True))
+        # Vertical lines in header
+        cx = LM + e_label_w
+        buf.append(self._line(cx, hdr_y, cx, hdr_y + hdr_h))
+        cx += e_amt_w
+        buf.append(self._line(cx, hdr_y, cx, hdr_y + hdr_h))
+        cx += e_ytd_w
+        buf.append(self._line(cx, hdr_y, cx, hdr_y + hdr_h))
+        cx += d_label_w
+        buf.append(self._line(cx, hdr_y, cx, hdr_y + hdr_h))
+        cx += d_amt_w
+        buf.append(self._line(cx, hdr_y, cx, hdr_y + hdr_h))
+
+        # Header text
+        buf.append(self._fg(*C_BLACK))
+        buf.append(self._t(LM + 3, hdr_y + 4, "EARNINGS", "Helvetica-Bold", 7))
+        buf.append(self._t(LM + e_label_w + 3, hdr_y + 4, "AMOUNT", "Helvetica-Bold", 7))
+        buf.append(self._t(LM + e_label_w + e_amt_w + 3, hdr_y + 4, "YTD", "Helvetica-Bold", 7))
+        dx = LM + e_label_w + e_amt_w + e_ytd_w
+        buf.append(self._t(dx + 3, hdr_y + 4, "DEDUCTIONS", "Helvetica-Bold", 7))
+        buf.append(self._t(dx + d_label_w + 3, hdr_y + 4, "AMOUNT", "Helvetica-Bold", 7))
+        buf.append(self._t(dx + d_label_w + d_amt_w + 3, hdr_y + 4, "YTD", "Helvetica-Bold", 7))
+
+        # Data rows
+        earnings = kw["earnings"]
+        deductions = kw["deductions"]
+        max_rows = max(len(earnings), len(deductions))
+        data_row_h = 15
+
+        y = hdr_y
+        for i in range(max_rows):
+            ry = y - data_row_h
+            # Row background (alternate white)
+            buf.append(self._sg(*C_BLACK))
+            buf.append(self._lw(0.2))
+
+            # Earnings cells
+            if i < len(earnings):
+                lbl, amt, bold = earnings[i]
+                fnt = "Helvetica-Bold" if bold else "Helvetica"
+                buf.append(self._rect(LM, ry, e_label_w, data_row_h, fill=False, stroke=True))
+                buf.append(self._rect(LM + e_label_w, ry, e_amt_w, data_row_h, fill=False, stroke=True))
+                buf.append(self._rect(LM + e_label_w + e_amt_w, ry, e_ytd_w, data_row_h, fill=False, stroke=True))
+                buf.append(self._fg(*C_BLACK))
+                buf.append(self._t(LM + 3, ry + 4, lbl, fnt, 7))
+                # Amount - right align
+                amt_str = amt.replace("Rs. ", "")
+                buf.append(self._tr(LM + e_label_w + e_amt_w - 3, ry + 4, amt_str, fnt, 7))
+                # YTD
+                ytd_val = kw.get("ytd_earnings", {}).get(lbl, "")
+                if ytd_val:
+                    buf.append(self._tr(LM + e_label_w + e_amt_w + e_ytd_w - 3, ry + 4, str(ytd_val), "Helvetica", 7))
+            else:
+                buf.append(self._rect(LM, ry, e_label_w + e_amt_w + e_ytd_w, data_row_h, fill=False, stroke=True))
+
+            # Deductions cells
+            ddx = LM + e_label_w + e_amt_w + e_ytd_w
+            if i < len(deductions):
+                lbl, amt, bold = deductions[i]
+                fnt = "Helvetica-Bold" if bold else "Helvetica"
+                buf.append(self._rect(ddx, ry, d_label_w, data_row_h, fill=False, stroke=True))
+                buf.append(self._rect(ddx + d_label_w, ry, d_amt_w, data_row_h, fill=False, stroke=True))
+                buf.append(self._rect(ddx + d_label_w + d_amt_w, ry, d_ytd_w, data_row_h, fill=False, stroke=True))
+                buf.append(self._fg(*C_BLACK))
+                buf.append(self._t(ddx + 3, ry + 4, lbl, fnt, 7))
+                amt_str = amt.replace("Rs. ", "")
+                buf.append(self._tr(ddx + d_label_w + d_amt_w - 3, ry + 4, amt_str, fnt, 7))
+            else:
+                buf.append(self._rect(ddx, ry, d_label_w + d_amt_w + d_ytd_w, data_row_h, fill=False, stroke=True))
+
+            y = ry
+
+        # ── SUMMARY ROWS ────────────────────────────────────────────────────
+        gross = kw.get("gross_salary", kw["net_salary"])
+        total_ded = 0
+        for _, amt, _ in kw["deductions"]:
+            val = amt.replace("Rs. ", "").replace(",", "")
+            try:
+                total_ded = int(val)
+            except ValueError:
+                pass
+
+        summary_rows = [
+            ("Gross Earnings", "", f"{gross:,}.00"),
+            ("Total Deductions", "", f"{total_ded:,}.00"),
+            ("Total Net Payable", "", f"Rs {kw['net_salary']:,}.00"),
+        ]
+        for lbl, _, val in summary_rows:
+            ry = y - data_row_h
+            buf.append(self._sg(*C_BLACK))
+            buf.append(self._lw(0.3))
+            buf.append(self._rect(LM, ry, e_label_w + e_amt_w + e_ytd_w, data_row_h, fill=False, stroke=True))
+            buf.append(self._rect(LM + e_label_w + e_amt_w + e_ytd_w, ry, d_label_w + d_amt_w + d_ytd_w, data_row_h, fill=False, stroke=True))
+            buf.append(self._fg(*C_BLACK))
+            buf.append(self._t(LM + 3, ry + 4, lbl, "Helvetica-Bold", 7))
+            buf.append(self._tr(RM - 3, ry + 4, val, "Helvetica-Bold", 7))
+            y = ry
+
+        # ── NET PAYABLE IN WORDS ─────────────────────────────────────────────
+        ry = y - data_row_h - 2
+        buf.append(self._sg(*C_BLACK))
+        buf.append(self._lw(0.3))
+        buf.append(self._rect(LM, ry, RM - LM, data_row_h, fill=False, stroke=True))
+        buf.append(self._fg(*C_BLACK))
+        words = kw.get("net_in_words", "")
+        buf.append(self._t(LM + 3, ry + 4, f"Total Net Payable {kw['net_salary']:,}.00 ( {words} Rupees).", "Helvetica-Bold", 6.5))
+        y = ry
+
+        # ── ISSUED ON DATE ───────────────────────────────────────────────────
+        y -= 12
+        buf.append(self._fg(*C_GREY))
+        buf.append(self._tr(RM, y, f"Issued on {kw.get('issued_date', '')}", "Helvetica-Oblique", 7))
+
+        # ── REGARDS SECTION ──────────────────────────────────────────────────
+        y -= 40
+        buf.append(self._fg(*C_GREY))
+        buf.append(self._tr(RM - 40, y, "Regards,", "Helvetica-Oblique", 9))
+        y -= 14
+        buf.append(self._tr(RM - 40, y, "Qalab Abbas", "Helvetica-Bold", 9))
+        y -= 12
+        buf.append(self._tr(RM - 40, y, "Director", "Helvetica-Oblique", 9))
+
+        # ── SIGNATURE LINE ───────────────────────────────────────────────────
         y -= 30
-        row_h = 18
-
-        earnings = kw["earnings"]        # list of (label, amount, bold)
-        deductions = kw["deductions"]    # list of (label, amount, bold)
-
-        # left earnings column
-        ey = y
-        for lbl, amt, bold in earnings:
-            if bold:  # draw divider ABOVE the bold row, before rendering text
-                buf.append(self._sg(*self.C_DIV))
-                buf.append(self._lw(0.4))
-                buf.append(self._line(LM, ey + row_h - 2, left_col_right, ey + row_h - 2))
-            buf.append(self._fg(*self.C_DARK))
-            buf.append(self._t(LM, ey, lbl, "Helvetica-Bold" if bold else "Helvetica", 8.5))
-            buf.append(self._tr(left_col_right, ey, amt, "Helvetica-Bold" if bold else "Helvetica", 8.5))
-            ey -= row_h
-
-        # right deductions column
-        dy = y
-        for lbl, amt, bold in deductions:
-            if bold:  # draw divider ABOVE the bold row, before rendering text
-                buf.append(self._sg(*self.C_DIV))
-                buf.append(self._lw(0.4))
-                buf.append(self._line(CM, dy + row_h - 2, right_col_right, dy + row_h - 2))
-            buf.append(self._fg(*self.C_DARK))
-            buf.append(self._t(CM, dy, lbl, "Helvetica-Bold" if bold else "Helvetica", 8.5))
-            buf.append(self._tr(right_col_right, dy, amt, "Helvetica-Bold" if bold else "Helvetica", 8.5))
-            dy -= row_h
-
-        y = min(ey, dy) - 25
-
-        # ── NET SALARY CARD ───────────────────────────────────────────────────
-        card_h = 58
-        card_y = y - card_h
-        # keep card above footer
-        if card_y < 95:
-            card_y = 95
-
-        buf.append(self._fg(*self.C_CARD_BG))
-        buf.append(self._sg(*self.C_CARD_BOR))
-        buf.append(self._lw(1.0))
-        buf.append(self._rrect(LM, card_y, RM - LM, card_h, r=8))
-
-        mid_card = card_y + card_h / 2 - 5
-        buf.append(self._fg(*self.C_DARK))
-        buf.append(self._t(LM + 18, mid_card, "NET SALARY", "Helvetica-Bold", 11))
-        net_str = f"Rs. {kw['net_salary']:,}"
-        buf.append(self._fg(*self.C_BLUE))
-        buf.append(self._tr(RM - 18, mid_card - 4, net_str, "Helvetica-Bold", 18))
+        buf.append(self._sg(*C_TEAL))
+        buf.append(self._lw(0.5))
+        buf.append(self._line(RM - 140, y, RM - 20, y))
+        y -= 12
+        buf.append(self._fg(*C_TEAL))
+        buf.append(self._tr(RM - 50, y, "Signature", "Helvetica-Oblique", 8))
 
         # ── FOOTER ───────────────────────────────────────────────────────────
-        fy = card_y - 22
-        buf.append(self._sg(*self.C_DIV))
-        buf.append(self._lw(0.4))
-        buf.append(self._line(LM, fy, RM, fy))
-        fy -= 13
-        buf.append(self._fg(*self.C_LABEL))
-        buf.append(self._tc(fy, "This is a computer-generated document and does not require a physical signature.", "Helvetica-Oblique", 7))
-        fy -= 11
-        buf.append(self._tc(fy, "Generated on " + kw["generated_at"], "Helvetica-Oblique", 7))
+        # Bottom blue curved decoration is already drawn at top
+        # Footer contact info
+        fy = 75
+        buf.append(self._fg(*C_TEAL))
+        # Phone icon + number
+        buf.append(self._t(50, fy, "0314-5195056", "Helvetica", 8))
+        fy -= 14
+        # Email
+        buf.append(self._t(50, fy, "rtinternational566@gmail.com", "Helvetica", 8))
+        fy -= 14
+        # Address
+        buf.append(self._t(50, fy, "Office#3, Plot#15 Near JS Bank, Bank Road, Saddar Rawalpindi", "Helvetica", 7))
 
         content = "".join(buf)
         self._build_pdf(content, img_data=img_data)
@@ -464,6 +626,7 @@ def download_salary_slip(
     deductions_rows.append(("Total Deductions", _fmt(total_deductions), True))
 
     pdf = _SalaryPDF()
+    gen_now = datetime.now()
     pdf.build_slip(
         period        = f"for the month of {_month_name(m)} {y}",
         employee_name = current_user.name,
@@ -478,7 +641,16 @@ def download_salary_slip(
         earnings      = earnings_rows,
         deductions    = deductions_rows,
         net_salary    = net_salary,
-        generated_at  = datetime.now().strftime("%B %d, %Y at %I:%M %p"),
+        gross_salary  = gross,
+        generated_at  = gen_now.strftime("%B %d, %Y at %I:%M %p"),
+        pay_period    = f"{_month_name(m)[:3]}-{y}",
+        payment_date  = gen_now.strftime("%d %B %Y"),
+        account_number= current_user.bank_account_number or "-",
+        bank_name     = current_user.bank_name or "-",
+        job_cadre     = current_user.job_cadre or "Full time",
+        net_in_words  = _num_to_words(max(net_salary, 0)),
+        issued_date   = gen_now.strftime("%d %B %Y"),
+        slip_year     = str(y),
     )
 
     fname = f"Salary_Slip_{_month_name(m)}_{y}_{current_user.name}.pdf"

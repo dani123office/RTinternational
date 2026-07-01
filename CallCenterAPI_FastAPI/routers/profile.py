@@ -9,6 +9,17 @@ from .auth import get_current_user
 from ..utils.logger import log_activity, get_client_ip
 from ..utils.email import generate_otp, send_otp_email
 from pydantic import BaseModel, Field
+import bcrypt
+from datetime import datetime, timedelta
+from fastapi import APIRouter, Depends, HTTPException, Request
+from sqlalchemy.orm import Session
+from sqlalchemy import func
+from ..database import get_db
+from ..models import User, EmailVerification
+from .auth import get_current_user
+from ..utils.logger import log_activity, get_client_ip
+from ..utils.email import generate_otp, send_otp_email
+from pydantic import BaseModel, Field
 from typing import Optional
 from datetime import date
 
@@ -35,6 +46,9 @@ class ProfileOut(BaseModel):
     dateOfJoining: Optional[date] = None
     emergContactName: Optional[str] = None
     emergContactNumber: Optional[str] = None
+    bankName: Optional[str] = None
+    bankAccountNumber: Optional[str] = None
+    jobCadre: Optional[str] = "Full time"
 
 
 
@@ -45,6 +59,9 @@ class ProfileUpdate(BaseModel):
     phone: Optional[str] = Field(None, max_length=20)
     currentPassword: Optional[str] = None
     newPassword: Optional[str] = Field(None, max_length=128)
+    bankName: Optional[str] = None
+    bankAccountNumber: Optional[str] = None
+    jobCadre: Optional[str] = None
 
 
 @router.get("")
@@ -69,6 +86,9 @@ def get_profile(current_user: User = Depends(get_current_user)):
         dateOfJoining=current_user.date_of_joining,
         emergContactName=current_user.emerg_contact_name,
         emergContactNumber=current_user.emerg_contact_number,
+        bankName=current_user.bank_name,
+        bankAccountNumber=current_user.bank_account_number,
+        jobCadre=current_user.job_cadre,
     )
 
 
@@ -158,6 +178,13 @@ def update_profile(
             raise HTTPException(status_code=400, detail="New password must be at least 6 characters")
         current_user.password_hash = bcrypt.hashpw(dto.newPassword.encode("utf-8"), bcrypt.gensalt()).decode("utf-8")
 
+    if dto.bankName is not None:
+        current_user.bank_name = dto.bankName.strip() or None
+    if dto.bankAccountNumber is not None:
+        current_user.bank_account_number = dto.bankAccountNumber.strip() or None
+    if dto.jobCadre is not None:
+        current_user.job_cadre = dto.jobCadre or "Full time"
+
     current_user.updated_at = datetime.now()
     db.commit()
     db.refresh(current_user)
@@ -186,4 +213,7 @@ def update_profile(
         dateOfJoining=current_user.date_of_joining,
         emergContactName=current_user.emerg_contact_name,
         emergContactNumber=current_user.emerg_contact_number,
+        bankName=current_user.bank_name,
+        bankAccountNumber=current_user.bank_account_number,
+        jobCadre=current_user.job_cadre,
     )

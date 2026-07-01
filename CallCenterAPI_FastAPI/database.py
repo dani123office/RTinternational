@@ -104,7 +104,16 @@ def _ensure_tables():
                     col_type = col.type.compile(engine.dialect)
                     default_clause = ""
                     if col.server_default is not None:
-                        val = col.server_default.arg.text if hasattr(col.server_default.arg, 'text') else str(col.server_default.arg)
+                        if hasattr(col.server_default.arg, 'text'):
+                            val = col.server_default.arg.text
+                        else:
+                            val = str(col.server_default.arg)
+                            if isinstance(col.server_default.arg, str):
+                                try:
+                                    float(val)
+                                except ValueError:
+                                    if not (val.startswith("'") and val.endswith("'")) and not (val.startswith('"') and val.endswith('"')):
+                                        val = f"'{val}'"
                         default_clause = f" DEFAULT {val}"
                     elif col.default is not None and not callable(col.default.arg):
                         val = str(col.default.arg)

@@ -17,6 +17,7 @@ export default function Register() {
     name: '', email: '', password: '', confirmPassword: '',
     fatherName: '', cnic: '', phone: '', dateOfBirth: '',
     emergContactName: '', emergContactNumber: '',
+    bankName: '', bankAccountNumber: '', jobCadre: 'Full time',
   })
   const [showPassword, setShowPassword] = useState(false)
   const [showConfirm, setShowConfirm] = useState(false)
@@ -42,6 +43,7 @@ export default function Register() {
       form.name, form.email, form.password, 'agent', true,
       form.fatherName, form.cnic, form.phone, form.dateOfBirth,
       form.emergContactName, form.emergContactNumber,
+      form.bankName, form.bankAccountNumber, form.jobCadre,
     )
     if (success) {
       setRegistered(true)
@@ -70,6 +72,8 @@ export default function Register() {
     { key: 'cnic', label: 'CNIC', type: 'text', placeholder: 'XXXXX-XXXXXXX-X', icon: <><rect x="2" y="3" width="20" height="14" rx="2" /><line x1="8" y1="21" x2="16" y2="21" /><line x1="12" y1="17" x2="12" y2="21" /></> },
     { key: 'emergContactName', label: 'Emerg. Contact Name', type: 'text', placeholder: 'Enter emergency contact', icon: <><path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" /><circle cx="8.5" cy="7" r="4" /><polyline points="17 11 19 13 23 9" /></> },
     { key: 'emergContactNumber', label: 'Emerg. Contact Number', type: 'tel', placeholder: 'Enter emergency number', icon: <><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07A19.5 19.5 0 0 1 1.61 3.4 2 2 0 0 1 3.6 1.21h3a2 2 0 0 1 2 1.72c.127.96.361 1.903.7 2.81a2 2 0 0 1-.45 2.11L7.91 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0 1 22 16.92z" /></> },
+    { key: 'bankName', label: 'Bank Name', type: 'text', placeholder: 'Enter bank name', icon: <><rect x="3" y="3" width="18" height="18" rx="2" /><line x1="3" y1="9" x2="21" y2="9" /><line x1="9" y1="21" x2="9" y2="9" /></> },
+    { key: 'bankAccountNumber', label: 'Bank Account Number', type: 'text', placeholder: 'Enter account number', icon: <><rect x="2" y="3" width="20" height="14" rx="2" /><line x1="8" y1="21" x2="16" y2="21" /><line x1="12" y1="17" x2="12" y2="21" /></> },
   ]
 
   const btnGradient = 'linear-gradient(135deg, #6366f1 0%, #4f46e5 100%)'
@@ -333,6 +337,38 @@ export default function Register() {
                   )}
                 </div>
               ))}
+
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '7px' }}>
+                <label style={{
+                  fontSize: '12px', fontWeight: 700, color: '#475569',
+                  letterSpacing: '0.3px', textTransform: 'uppercase',
+                }}>Job Cadre</label>
+                <select
+                  value={form.jobCadre}
+                  onChange={set('jobCadre')}
+                  style={{
+                    width: '100%',
+                    padding: '12px 14px',
+                    borderRadius: '12px', border: '1px solid #e2e8f0',
+                    background: '#fff', color: '#0f172a',
+                    fontSize: '14px', fontFamily: 'inherit', outline: 'none',
+                    transition: 'border-color 0.2s, box-shadow 0.2s, background 0.2s',
+                  }}
+                  onFocus={(e) => {
+                    e.target.style.borderColor = '#6366f1'
+                    e.target.style.boxShadow = '0 0 0 3px rgba(99,102,241,0.12)'
+                  }}
+                  onBlur={(e) => {
+                    e.target.style.borderColor = '#e2e8f0'
+                    e.target.style.boxShadow = 'none'
+                  }}
+                >
+                  <option value="Full time">Full time</option>
+                  <option value="Part time">Part time</option>
+                  <option value="Contract">Contract</option>
+                  <option value="Internship">Internship</option>
+                </select>
+              </div>
 
               {error && (
                 <div style={{

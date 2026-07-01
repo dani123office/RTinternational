@@ -21,7 +21,7 @@ from ..schemas import (
 from .callbacks import _build_callback_out
 from .transfers import _transfer_out
 from .sales import _sale_out
-from .salary import _SalaryPDF, _employee_id, _month_name, _attendance_summary, _fmt
+from .salary import _SalaryPDF, _employee_id, _month_name, _attendance_summary, _fmt, _num_to_words
 import openpyxl
 from openpyxl.styles import Font, PatternFill, Alignment, Border, Side
 from openpyxl.utils import get_column_letter
@@ -102,6 +102,9 @@ def create_agent(data: CreateAgentRequest, request: Request, admin: User = Depen
             date_of_joining=data.dateOfJoining,
             emerg_contact_name=data.emergContactName,
             emerg_contact_number=data.emergContactNumber,
+            bank_name=data.bankName,
+            bank_account_number=data.bankAccountNumber,
+            job_cadre=data.jobCadre or "Full time",
         )
         db.add(user)
         db.flush()
@@ -340,6 +343,12 @@ def update_agent_staff(
             agent.emerg_contact_name = data.emergContactName or None
         if data.emergContactNumber is not None:
             agent.emerg_contact_number = data.emergContactNumber or None
+        if data.bankName is not None:
+            agent.bank_name = data.bankName or None
+        if data.bankAccountNumber is not None:
+            agent.bank_account_number = data.bankAccountNumber or None
+        if data.jobCadre is not None:
+            agent.job_cadre = data.jobCadre or "Full time"
         db.commit()
         db.refresh(agent)
         log_activity(db, admin.id, "updated", "agent", agent.id,
@@ -358,6 +367,9 @@ def update_agent_staff(
             dateOfJoining=agent.date_of_joining,
             emergContactName=agent.emerg_contact_name,
             emergContactNumber=agent.emerg_contact_number,
+            bankName=agent.bank_name,
+            bankAccountNumber=agent.bank_account_number,
+            jobCadre=agent.job_cadre,
         )
     except HTTPException:
         db.rollback()
@@ -560,6 +572,12 @@ def approve_user(
         user.emerg_contact_name = data.emergContactName
     if data.emergContactNumber is not None:
         user.emerg_contact_number = data.emergContactNumber
+    if data.bankName is not None:
+        user.bank_name = data.bankName
+    if data.bankAccountNumber is not None:
+        user.bank_account_number = data.bankAccountNumber
+    if data.jobCadre is not None:
+        user.job_cadre = data.jobCadre or "Full time"
 
     user.manager_id = data.managerId
     user.is_active = True
@@ -1260,6 +1278,7 @@ def admin_salary_slip(
     deductions_rows.append(("Total Deductions", _fmt(total_deductions), True))
 
     pdf = _SalaryPDF()
+    gen_now = datetime.now()
     pdf.build_slip(
         period        = f"for the month of {_month_name(m)} {y}",
         employee_name = agent.name,
@@ -1274,7 +1293,16 @@ def admin_salary_slip(
         earnings      = earnings_rows,
         deductions    = deductions_rows,
         net_salary    = net_salary,
-        generated_at  = datetime.now().strftime("%B %d, %Y at %I:%M %p"),
+        gross_salary  = gross,
+        generated_at  = gen_now.strftime("%B %d, %Y at %I:%M %p"),
+        pay_period    = f"{_month_name(m)[:3]}-{y}",
+        payment_date  = gen_now.strftime("%d %B %Y"),
+        account_number= agent.bank_account_number or "-",
+        bank_name     = agent.bank_name or "-",
+        job_cadre     = agent.job_cadre or "Full time",
+        net_in_words  = _num_to_words(max(net_salary, 0)),
+        issued_date   = gen_now.strftime("%d %B %Y"),
+        slip_year     = str(y),
     )
 
     return Response(

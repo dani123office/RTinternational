@@ -321,6 +321,24 @@ export default function AdminAgentDetail() {
                       </p>
                     </div>
                   )}
+                  {agent.bankName && (
+                    <div>
+                      <p style={{ fontSize: '10px', fontWeight: 700, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.5px', margin: '0 0 3px' }}>Bank Name</p>
+                      <p style={{ fontSize: '13px', fontWeight: 600, color: '#0f172a', margin: 0 }}>{agent.bankName}</p>
+                    </div>
+                  )}
+                  {agent.bankAccountNumber && (
+                    <div>
+                      <p style={{ fontSize: '10px', fontWeight: 700, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.5px', margin: '0 0 3px' }}>Bank Account Number</p>
+                      <p style={{ fontSize: '13px', fontWeight: 600, color: '#0f172a', margin: 0 }}>{agent.bankAccountNumber}</p>
+                    </div>
+                  )}
+                  {agent.jobCadre && (
+                    <div>
+                      <p style={{ fontSize: '10px', fontWeight: 700, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.5px', margin: '0 0 3px' }}>Job Cadre</p>
+                      <p style={{ fontSize: '13px', fontWeight: 600, color: '#0f172a', margin: 0 }}>{agent.jobCadre}</p>
+                    </div>
+                  )}
                 </div>
               </div>
             </div>

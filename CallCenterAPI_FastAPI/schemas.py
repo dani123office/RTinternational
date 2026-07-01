@@ -255,6 +255,9 @@ class RegisterRequest(BaseModel):
     dateOfBirth: Optional[date] = None
     emergContactName: Optional[str] = None
     emergContactNumber: Optional[str] = None
+    bankName: Optional[str] = None
+    bankAccountNumber: Optional[str] = None
+    jobCadre: Optional[str] = "Full time"
 
 
 class ForgotPasswordRequest(BaseModel):
@@ -299,6 +302,9 @@ class UserOut(BaseModel):
     dateOfJoining: Optional[date] = None
     emergContactName: Optional[str] = None
     emergContactNumber: Optional[str] = None
+    bankName: Optional[str] = None
+    bankAccountNumber: Optional[str] = None
+    jobCadre: Optional[str] = "Full time"
 
 
 class AgentOut(BaseModel):
@@ -318,6 +324,9 @@ class AgentOut(BaseModel):
     dateOfJoining: Optional[date] = None
     emergContactName: Optional[str] = None
     emergContactNumber: Optional[str] = None
+    bankName: Optional[str] = None
+    bankAccountNumber: Optional[str] = None
+    jobCadre: Optional[str] = "Full time"
 
 
 class ManagerTeamStats(BaseModel):
@@ -360,6 +369,9 @@ class ApproveUserRequest(BaseModel):
     dateOfJoining: Optional[date] = None
     emergContactName: Optional[str] = None
     emergContactNumber: Optional[str] = None
+    bankName: Optional[str] = None
+    bankAccountNumber: Optional[str] = None
+    jobCadre: Optional[str] = "Full time"
 
     @field_validator('cnic')
     @classmethod
@@ -393,6 +405,9 @@ class CreateAgentRequest(BaseModel):
     dateOfJoining: Optional[date] = None
     emergContactName: Optional[str] = None
     emergContactNumber: Optional[str] = None
+    bankName: Optional[str] = None
+    bankAccountNumber: Optional[str] = None
+    jobCadre: Optional[str] = "Full time"
 
     @field_validator('cnic')
     @classmethod
@@ -425,6 +440,9 @@ class UpdateAgentStaffRequest(BaseModel):
     dateOfJoining: Optional[date] = None
     emergContactName: Optional[str] = None
     emergContactNumber: Optional[str] = None
+    bankName: Optional[str] = None
+    bankAccountNumber: Optional[str] = None
+    jobCadre: Optional[str] = "Full time"
 
     @field_validator('cnic')
     @classmethod

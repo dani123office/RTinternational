@@ -193,6 +193,9 @@ def register(request: RegisterRequest, fastapi_req: Request, db: Session = Depen
         date_of_birth=request.dateOfBirth,
         emerg_contact_name=request.emergContactName,
         emerg_contact_number=request.emergContactNumber,
+        bank_name=request.bankName,
+        bank_account_number=request.bankAccountNumber,
+        job_cadre=request.jobCadre or "Full time",
     )
     db.add(user)
     db.flush()

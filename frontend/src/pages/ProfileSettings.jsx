@@ -17,6 +17,8 @@ export default function ProfileSettings() {
 
   const [name, setName] = useState('')
   const [email, setEmail] = useState('')
+  const [bankName, setBankName] = useState('')
+  const [bankAccountNumber, setBankAccountNumber] = useState('')
 
   const isManager = user?.role === 'manager'
   const isAdmin = user?.role === 'admin'
@@ -31,6 +33,8 @@ export default function ProfileSettings() {
         setProfile(p)
         setName(p.name || '')
         setEmail(p.email || '')
+        setBankName(p.bankName || '')
+        setBankAccountNumber(p.bankAccountNumber || '')
       } catch {
         toast('Failed to load profile', 'error')
       } finally {
@@ -43,9 +47,17 @@ export default function ProfileSettings() {
   const handleSave = async () => {
     setSaving(true)
     try {
-      const body = { name: name.trim(), email: email.trim() }
+      const body = {
+        name: name.trim(),
+        email: email.trim(),
+        bankName: bankName.trim(),
+        bankAccountNumber: bankAccountNumber.trim(),
+      }
       const res = await api.put('/api/profile', body)
-      setProfile(res.data)
+      const p = res.data
+      setProfile(p)
+      setBankName(p.bankName || '')
+      setBankAccountNumber(p.bankAccountNumber || '')
       toast('Profile updated successfully', 'success')
     } catch (err) {
       const msg = err.response?.data?.detail || 'Failed to update profile'
@@ -185,6 +197,36 @@ export default function ProfileSettings() {
                     onBlur={(e) => { e.target.style.borderColor = '#e2e6ec' }}
                   />
                 </div>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                  <label style={{ fontSize: '11px', fontWeight: 700, color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Bank Name</label>
+                  <input
+                    value={bankName}
+                    onChange={(e) => setBankName(e.target.value)}
+                    placeholder="Enter bank name"
+                    style={{
+                      padding: '10px 14px', border: '1px solid #e2e6ec', borderRadius: '10px',
+                      fontSize: '14px', color: '#0f172a', outline: 'none',
+                      background: '#f8fafc', transition: 'border-color 0.15s',
+                    }}
+                    onFocus={(e) => { e.target.style.borderColor = accentColor }}
+                    onBlur={(e) => { e.target.style.borderColor = '#e2e6ec' }}
+                  />
+                </div>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                  <label style={{ fontSize: '11px', fontWeight: 700, color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Bank Account Number</label>
+                  <input
+                    value={bankAccountNumber}
+                    onChange={(e) => setBankAccountNumber(e.target.value)}
+                    placeholder="Enter account number"
+                    style={{
+                      padding: '10px 14px', border: '1px solid #e2e6ec', borderRadius: '10px',
+                      fontSize: '14px', color: '#0f172a', outline: 'none',
+                      background: '#f8fafc', transition: 'border-color 0.15s',
+                    }}
+                    onFocus={(e) => { e.target.style.borderColor = accentColor }}
+                    onBlur={(e) => { e.target.style.borderColor = '#e2e6ec' }}
+                  />
+                </div>
               </div>
             </div>
           </div>
@@ -254,6 +296,24 @@ export default function ProfileSettings() {
                     <div>
                       <p style={{ fontSize: '11px', fontWeight: 700, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.5px', margin: '0 0 4px' }}>Emergency Contact</p>
                       <p style={{ fontSize: '14px', fontWeight: 600, color: '#0f172a', margin: 0 }}>{profile.emergContactName}{profile.emergContactNumber ? ` (${profile.emergContactNumber})` : ''}</p>
+                    </div>
+                  )}
+                  {profile.bankName && (
+                    <div>
+                      <p style={{ fontSize: '11px', fontWeight: 700, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.5px', margin: '0 0 4px' }}>Bank Name</p>
+                      <p style={{ fontSize: '14px', fontWeight: 600, color: '#0f172a', margin: 0 }}>{profile.bankName}</p>
+                    </div>
+                  )}
+                  {profile.bankAccountNumber && (
+                    <div>
+                      <p style={{ fontSize: '11px', fontWeight: 700, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.5px', margin: '0 0 4px' }}>Bank Account Number</p>
+                      <p style={{ fontSize: '14px', fontWeight: 600, color: '#0f172a', margin: 0 }}>{profile.bankAccountNumber}</p>
+                    </div>
+                  )}
+                  {profile.jobCadre && (
+                    <div>
+                      <p style={{ fontSize: '11px', fontWeight: 700, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.5px', margin: '0 0 4px' }}>Job Cadre</p>
+                      <p style={{ fontSize: '14px', fontWeight: 600, color: '#0f172a', margin: 0 }}>{profile.jobCadre}</p>
                     </div>
                   )}
                 </div>

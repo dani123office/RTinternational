@@ -73,12 +73,14 @@ export const useAuthStore = create((set, get) => ({
   },
 
   register: async (name, email, password, role = 'agent', rememberMe = true,
-    fatherName, cnic, phone, dateOfBirth, emergContactName, emergContactNumber) => {
+    fatherName, cnic, phone, dateOfBirth, emergContactName, emergContactNumber,
+    bankName, bankAccountNumber, jobCadre) => {
     set({ isLoading: true, error: null })
     try {
       await api.post(endpoints.auth.register, {
         name, email, password, role,
         fatherName, cnic, phone, dateOfBirth, emergContactName, emergContactNumber,
+        bankName, bankAccountNumber, jobCadre,
       })
       set({ isLoading: false })
       return true

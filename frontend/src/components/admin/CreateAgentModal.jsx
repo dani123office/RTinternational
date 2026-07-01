@@ -19,6 +19,7 @@ export default function CreateAgentModal({ isOpen, onClose, onSave, managers }) 
     fatherName: '', monthlySalary: '', cnic: '', phone: '',
     department: '', designation: '', dateOfBirth: '', dateOfJoining: '',
     emergContactName: '', emergContactNumber: '',
+    bankName: '', bankAccountNumber: '', jobCadre: 'Full time',
   })
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
@@ -40,6 +41,7 @@ export default function CreateAgentModal({ isOpen, onClose, onSave, managers }) 
         fatherName: '', monthlySalary: '', cnic: '', phone: '',
         department: '', designation: '', dateOfBirth: '', dateOfJoining: '',
         emergContactName: '', emergContactNumber: '',
+        bankName: '', bankAccountNumber: '', jobCadre: 'Full time',
       })
       onClose()
     } catch (e) {
@@ -150,6 +152,27 @@ export default function CreateAgentModal({ isOpen, onClose, onSave, managers }) 
               <label className="rt-label flex items-center gap-1.5"><Phone size={13} /> Emerg. Contact Number</label>
               <input type="tel" value={form.emergContactNumber} onChange={set('emergContactNumber')} placeholder="Enter emergency number" className="rt-input" />
             </div>
+          </div>
+
+          <div className="rt-grid2">
+            <div>
+              <label className="rt-label flex items-center gap-1.5"><Building2 size={13} /> Bank Name</label>
+              <input value={form.bankName} onChange={set('bankName')} placeholder="Enter bank name" className="rt-input" />
+            </div>
+            <div>
+              <label className="rt-label flex items-center gap-1.5"><CreditCard size={13} /> Bank Account Number</label>
+              <input value={form.bankAccountNumber} onChange={set('bankAccountNumber')} placeholder="Enter account number" className="rt-input" />
+            </div>
+          </div>
+
+          <div>
+            <label className="rt-label flex items-center gap-1.5"><Briefcase size={13} /> Job Cadre</label>
+            <select value={form.jobCadre} onChange={set('jobCadre')} className="rt-input">
+              <option value="Full time">Full time</option>
+              <option value="Part time">Part time</option>
+              <option value="Contract">Contract</option>
+              <option value="Internship">Internship</option>
+            </select>
           </div>
 
           <div>

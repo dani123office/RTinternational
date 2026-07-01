@@ -33,6 +33,9 @@ export default function EditStaffModal({ isOpen, onClose, onSave, agent }) {
         dateOfJoining: agent.dateOfJoining ? agent.dateOfJoining.slice(0, 10) : '',
         emergContactName: agent.emergContactName || '',
         emergContactNumber: agent.emergContactNumber || '',
+        bankName: agent.bankName || '',
+        bankAccountNumber: agent.bankAccountNumber || '',
+        jobCadre: agent.jobCadre || 'Full time',
       })
     }
   }, [agent])
@@ -145,6 +148,27 @@ export default function EditStaffModal({ isOpen, onClose, onSave, agent }) {
               <label className="rt-label flex items-center gap-1.5"><Phone size={13} /> Emerg. Contact Number</label>
               <input type="tel" value={form.emergContactNumber} onChange={set('emergContactNumber')} placeholder="Enter emergency number" className="rt-input" />
             </div>
+          </div>
+
+          <div className="rt-grid2">
+            <div>
+              <label className="rt-label flex items-center gap-1.5"><Building2 size={13} /> Bank Name</label>
+              <input value={form.bankName} onChange={set('bankName')} placeholder="Enter bank name" className="rt-input" />
+            </div>
+            <div>
+              <label className="rt-label flex items-center gap-1.5"><CreditCard size={13} /> Bank Account Number</label>
+              <input value={form.bankAccountNumber} onChange={set('bankAccountNumber')} placeholder="Enter account number" className="rt-input" />
+            </div>
+          </div>
+
+          <div>
+            <label className="rt-label flex items-center gap-1.5"><Briefcase size={13} /> Job Cadre</label>
+            <select value={form.jobCadre} onChange={set('jobCadre')} className="rt-input">
+              <option value="Full time">Full time</option>
+              <option value="Part time">Part time</option>
+              <option value="Contract">Contract</option>
+              <option value="Internship">Internship</option>
+            </select>
           </div>
         </div>
         <div className="flex items-center justify-end gap-2 px-6 py-4 border-t border-slate-100">

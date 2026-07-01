@@ -215,6 +215,9 @@ export default function PendingUsers() {
       dateOfJoining: user.dateOfJoining || '',
       emergContactName: user.emergContactName || '',
       emergContactNumber: user.emergContactNumber || '',
+      bankName: user.bankName || '',
+      bankAccountNumber: user.bankAccountNumber || '',
+      jobCadre: user.jobCadre || 'Full time',
       managerId: user._selectedManagerId || '',
     })
     setSelectedUser(user)
@@ -252,6 +255,9 @@ export default function PendingUsers() {
       if (editForm.dateOfJoining) profileData.dateOfJoining = editForm.dateOfJoining
       if (editForm.emergContactName) profileData.emergContactName = editForm.emergContactName
       if (editForm.emergContactNumber) profileData.emergContactNumber = editForm.emergContactNumber
+      if (editForm.bankName) profileData.bankName = editForm.bankName
+      if (editForm.bankAccountNumber) profileData.bankAccountNumber = editForm.bankAccountNumber
+      if (editForm.jobCadre) profileData.jobCadre = editForm.jobCadre
 
       await approveUser(selectedUser.id, Number(editForm.managerId), profileData)
       closeModal()
@@ -893,6 +899,27 @@ export default function PendingUsers() {
               <div>
                 <label style={labelStyle}>Emergency Contact Number</label>
                 <input style={inputStyle} value={editForm.emergContactNumber} onChange={(e) => handleFieldChange('emergContactNumber', e.target.value)} />
+              </div>
+              <div>
+                <label style={labelStyle}>Bank Name</label>
+                <input style={inputStyle} value={editForm.bankName} onChange={(e) => handleFieldChange('bankName', e.target.value)} placeholder="Enter bank name" />
+              </div>
+              <div>
+                <label style={labelStyle}>Bank Account Number</label>
+                <input style={inputStyle} value={editForm.bankAccountNumber} onChange={(e) => handleFieldChange('bankAccountNumber', e.target.value)} placeholder="Enter account number" />
+              </div>
+              <div style={{ gridColumn: '1 / -1' }}>
+                <label style={labelStyle}>Job Cadre</label>
+                <select
+                  value={editForm.jobCadre}
+                  onChange={(e) => handleFieldChange('jobCadre', e.target.value)}
+                  style={inputStyle}
+                >
+                  <option value="Full time">Full time</option>
+                  <option value="Part time">Part time</option>
+                  <option value="Contract">Contract</option>
+                  <option value="Internship">Internship</option>
+                </select>
               </div>
               <div style={{ gridColumn: '1 / -1' }}>
                 <label style={labelStyle}>Assign Manager</label>
