@@ -6,6 +6,7 @@ from ..schemas import SaleOut, CustomerOut, ElectricityMeterOut, GasMeterOut, Sa
 from datetime import datetime
 from .auth import get_current_user
 from ..utils.logger import log_activity, get_client_ip
+from .transfers import _transfer_out
 
 router = APIRouter(prefix="/api/sales", tags=["sales"])
 
