@@ -61,6 +61,7 @@ export function useTransferForm(locationState, navigate) {
       email: prefill.email || prefill.customer?.email || '',
       utilityType: prefill.utilityType || prefill.customer?.utilityType || 'electricity',
       // Preserve account/meter details from prefill (callback may supply these)
+      accountNumber: prefill.accountNumber || prefill.customer?.accountNumber || '',
       mpan: prefill.mpan || prefill.customer?.mpan || '',
       mprn: prefill.mprn || prefill.customer?.mprn || '',
       msn: prefill.msn || prefill.customer?.msn || '',
@@ -103,6 +104,7 @@ export function useTransferForm(locationState, navigate) {
       if (data.email)           next.email           = data.email
       if (data.notes)           next.notes           = p.notes ? `${p.notes}\n${data.notes}` : data.notes
       if (data.utilityType)     next.utilityType     = data.utilityType
+      if (data.accountNumber)   next.accountNumber   = data.accountNumber
 
       if (data.electricityMeters?.length) {
         next.elecMeters = data.electricityMeters.map((m, i) => ({
@@ -177,6 +179,7 @@ export function useTransferForm(locationState, navigate) {
       const firstGasMprn = form.gasMeters?.[0]?.mprn || form.mprn || null
       const transfer = await createTransfer({
         customerId,
+        accountNumber: form.accountNumber || null,
         mpan: firstElectricitySupply || null,
         mprn: firstGasMprn,
         msn: form.msn || null,
