@@ -26,25 +26,54 @@ export default function StaffManagement() {
   const [showDeactivated, setShowDeactivated] = useState(false)
   const [loading, setLoading] = useState(true)
 
+  const [selectedMonth, setSelectedMonth] = useState(() => {
+    const d = new Date()
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`
+  })
+
+  const monthsList = useMemo(() => {
+    const list = []
+    const d = new Date()
+    for (let i = 0; i < 12; i++) {
+      const year = d.getFullYear()
+      const month = d.getMonth() + 1
+      const label = d.toLocaleString('en-US', { month: 'long', year: 'numeric' })
+      const value = `${year}-${String(month).padStart(2, '0')}`
+      list.push({ value, label, year, month })
+      d.setMonth(d.getMonth() - 1)
+    }
+    list.push({ value: 'all', label: 'All Time', year: null, month: null })
+    return list
+  }, [])
+
+  const { filterYear, filterMonth } = useMemo(() => {
+    if (selectedMonth === 'all') return { filterYear: null, filterMonth: null }
+    const [y, m] = selectedMonth.split('-').map(Number)
+    return { filterYear: y, filterMonth: m }
+  }, [selectedMonth])
+
   useEffect(() => {
-    Promise.all([loadManagers(), loadAgents(showDeactivated)]).then(() => setLoading(false))
-  }, [loadManagers, loadAgents, showDeactivated])
+    Promise.all([
+      loadManagers(filterYear, filterMonth),
+      loadAgents(showDeactivated, filterYear, filterMonth)
+    ]).then(() => setLoading(false))
+  }, [loadManagers, loadAgents, showDeactivated, filterYear, filterMonth])
 
   // --- Manager handlers ---
   const handleCreateManager = async (data) => {
     await createManager(data)
-    await loadManagers()
+    await loadManagers(filterYear, filterMonth)
   }
 
   const handleToggleManagerActive = async (manager) => {
     await updateUser(manager.id, { isActive: manager.isActive ? 0 : 1 })
-    await loadManagers()
+    await loadManagers(filterYear, filterMonth)
   }
 
   const handleDeleteManager = async (manager) => {
     try {
       await deleteUser(manager.id)
-      await loadManagers()
+      await loadManagers(filterYear, filterMonth)
     } catch (e) {
       alert(e.response?.data?.detail || 'Cannot delete manager')
     }
@@ -53,22 +82,24 @@ export default function StaffManagement() {
   // --- Agent handlers ---
   const handleCreateAgent = async (data) => {
     await createAgent(data)
-    await loadAgents(showDeactivated)
+    await loadAgents(showDeactivated, filterYear, filterMonth)
   }
 
   const handleAssign = async (agentId, managerId) => {
     await assignAgent(agentId, managerId)
-    await loadAgents(showDeactivated)
+    await loadAgents(showDeactivated, filterYear, filterMonth)
   }
 
   const handleToggleAgentActive = async (agent) => {
     await updateUser(agent.id, { isActive: agent.isActive ? 0 : 1 }, showDeactivated)
+    await loadAgents(showDeactivated, filterYear, filterMonth)
   }
 
   const handleDeleteAgent = async (agent) => {
     if (!confirm(`Permanently delete ${agent.name}? This cannot be undone.`)) return
     try {
       await deleteUser(agent.id, showDeactivated)
+      await loadAgents(showDeactivated, filterYear, filterMonth)
     } catch (e) {
       alert(e.response?.data?.detail || 'Cannot delete agent')
     }
@@ -201,6 +232,22 @@ export default function StaffManagement() {
                 </div>
               </div>
               <div className="flex gap-2 items-center flex-wrap">
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginRight: '8px' }}>
+                  <span style={{ fontSize: '11px', fontWeight: 700, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Month:</span>
+                  <select
+                    value={selectedMonth}
+                    onChange={(e) => setSelectedMonth(e.target.value)}
+                    style={{
+                      padding: '6px 12px', border: '1px solid #e2e6ec', borderRadius: '8px',
+                      fontSize: '12px', fontWeight: 600, color: '#0f172a', outline: 'none',
+                      background: 'white', cursor: 'pointer', transition: 'border-color 0.15s',
+                    }}
+                  >
+                    {monthsList.map(m => (
+                      <option key={m.value} value={m.value}>{m.label}</option>
+                    ))}
+                  </select>
+                </div>
                 <button
                   onClick={() => setShowCreateManager(true)}
                   className="flex items-center gap-1.5 px-4 py-2 rounded-xl text-sm font-semibold cursor-pointer transition-all duration-200 border-none text-white"

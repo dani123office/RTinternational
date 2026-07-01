@@ -14,20 +14,26 @@ export const useAdminStore = create((set, get) => ({
   isLoading: false,
   error: null,
 
-  loadManagers: async () => {
+  loadManagers: async (year = null, month = null) => {
     set({ isLoading: true, error: null })
     try {
-      const res = await api.get(endpoints.admin.managers)
+      const params = {}
+      if (year) params.year = year
+      if (month) params.month = month
+      const res = await api.get(endpoints.admin.managers, { params })
       set({ managers: res.data, isLoading: false })
     } catch (err) {
       set({ error: err.response?.data?.detail || 'Failed to load managers', isLoading: false })
     }
   },
 
-  loadAgents: async (showAll = false) => {
+  loadAgents: async (showAll = false, year = null, month = null) => {
     set({ isLoading: true, error: null })
     try {
-      const res = await api.get(endpoints.admin.agents, { params: { showAll } })
+      const params = { showAll }
+      if (year) params.year = year
+      if (month) params.month = month
+      const res = await api.get(endpoints.admin.agents, { params })
       set({ agents: res.data, isLoading: false })
     } catch (err) {
       set({ error: err.response?.data?.detail || 'Failed to load agents', isLoading: false })
@@ -133,10 +139,13 @@ export const useAdminStore = create((set, get) => ({
     return res.data
   },
 
-  loadAdminManagerDetail: async (id) => {
+  loadAdminManagerDetail: async (id, year = null, month = null) => {
     set({ selectedManager: null, isLoading: true, error: null })
     try {
-      const res = await api.get(endpoints.admin.managerDetail(id))
+      const params = {}
+      if (year) params.year = year
+      if (month) params.month = month
+      const res = await api.get(endpoints.admin.managerDetail(id), { params })
       set({ selectedManager: res.data, isLoading: false })
       return res.data
     } catch (err) {

@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useMemo } from 'react'
 import { useParams, useNavigate, Link } from 'react-router-dom'
 import { useAdminStore } from '@/store/adminStore'
 import {
@@ -14,7 +14,37 @@ export default function AdminManagerDetail() {
   const navigate = useNavigate()
   const { selectedManager, loadAdminManagerDetail, isLoading, error } = useAdminStore()
 
-  useEffect(() => { if (id) loadAdminManagerDetail(Number(id)) }, [id, loadAdminManagerDetail])
+  const [selectedMonth, setSelectedMonth] = useState(() => {
+    const d = new Date()
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`
+  })
+
+  const monthsList = useMemo(() => {
+    const list = []
+    const d = new Date()
+    for (let i = 0; i < 12; i++) {
+      const year = d.getFullYear()
+      const month = d.getMonth() + 1
+      const label = d.toLocaleString('en-US', { month: 'long', year: 'numeric' })
+      const value = `${year}-${String(month).padStart(2, '0')}`
+      list.push({ value, label, year, month })
+      d.setMonth(d.getMonth() - 1)
+    }
+    list.push({ value: 'all', label: 'All Time', year: null, month: null })
+    return list
+  }, [])
+
+  const { filterYear, filterMonth } = useMemo(() => {
+    if (selectedMonth === 'all') return { filterYear: null, filterMonth: null }
+    const [y, m] = selectedMonth.split('-').map(Number)
+    return { filterYear: y, filterMonth: m }
+  }, [selectedMonth])
+
+  useEffect(() => {
+    if (id) {
+      loadAdminManagerDetail(Number(id), filterYear, filterMonth)
+    }
+  }, [id, loadAdminManagerDetail, filterYear, filterMonth])
 
   const manager = selectedManager?.manager
   const agents  = selectedManager?.agents || []
@@ -68,10 +98,26 @@ export default function AdminManagerDetail() {
       <div className="rt-page">
         <div style={{ maxWidth: '960px', margin: '0 auto' }}>
 
-          <div className="rt-page-header">
-            <Link to="/admin/managers" className="flex items-center gap-1.5 text-sm text-slate-500 no-underline hover:text-slate-800 transition-colors">
-              <ArrowLeft size={16} /> Back to Managers
+          <div className="rt-page-header flex justify-between items-center" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
+            <Link to="/admin/staff" className="flex items-center gap-1.5 text-sm text-slate-500 no-underline hover:text-slate-800 transition-colors">
+              <ArrowLeft size={16} /> Back to Staff
             </Link>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <span style={{ fontSize: '11px', fontWeight: 700, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Month:</span>
+              <select
+                value={selectedMonth}
+                onChange={(e) => setSelectedMonth(e.target.value)}
+                style={{
+                  padding: '6px 12px', border: '1px solid #e2e6ec', borderRadius: '8px',
+                  fontSize: '12px', fontWeight: 600, color: '#0f172a', outline: 'none',
+                  background: 'white', cursor: 'pointer', transition: 'border-color 0.15s',
+                }}
+              >
+                {monthsList.map(m => (
+                  <option key={m.value} value={m.value}>{m.label}</option>
+                ))}
+              </select>
+            </div>
           </div>
 
           <div className="rt-card rt-fade" style={{ marginBottom: '20px' }}>

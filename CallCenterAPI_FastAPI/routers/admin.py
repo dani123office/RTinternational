@@ -154,6 +154,8 @@ def get_all_users(admin: User = Depends(require_admin), db: Session = Depends(ge
 
 @router.get("/managers")
 def get_managers(
+    year: Optional[int] = Query(None),
+    month: Optional[int] = Query(None),
     admin: User = Depends(require_admin),
     db: Session = Depends(get_db),
 ):
@@ -162,9 +164,22 @@ def get_managers(
     for m in managers:
         agent_ids = [a.id for a in db.query(User).filter(User.manager_id == m.id).all()]
         if agent_ids:
-            cb = db.query(func.count(CallBack.id)).filter(CallBack.employee_id.in_(agent_ids)).scalar() or 0
-            tr = db.query(func.count(Transfer.id)).filter(Transfer.employee_id.in_(agent_ids)).scalar() or 0
-            sa = db.query(func.count(Sale.id)).filter(Sale.employee_id.in_(agent_ids)).scalar() or 0
+            cb_q = db.query(func.count(CallBack.id)).filter(CallBack.employee_id.in_(agent_ids))
+            tr_q = db.query(func.count(Transfer.id)).filter(Transfer.employee_id.in_(agent_ids))
+            sa_q = db.query(func.count(Sale.id)).filter(Sale.employee_id.in_(agent_ids))
+
+            if year is not None:
+                cb_q = cb_q.filter(extract("year", CallBack.created_at) == year)
+                tr_q = tr_q.filter(extract("year", Transfer.created_at) == year)
+                sa_q = sa_q.filter(extract("year", Sale.created_at) == year)
+            if month is not None:
+                cb_q = cb_q.filter(extract("month", CallBack.created_at) == month)
+                tr_q = tr_q.filter(extract("month", Transfer.created_at) == month)
+                sa_q = sa_q.filter(extract("month", Sale.created_at) == month)
+
+            cb = cb_q.scalar() or 0
+            tr = tr_q.scalar() or 0
+            sa = sa_q.scalar() or 0
         else:
             cb = tr = sa = 0
         total_opps = tr
@@ -178,6 +193,8 @@ def get_managers(
 
 @router.get("/agents")
 def get_agents(
+    year: Optional[int] = Query(None),
+    month: Optional[int] = Query(None),
     admin: User = Depends(require_admin),
     db: Session = Depends(get_db),
     showAll: bool = False,
@@ -193,9 +210,22 @@ def get_agents(
             manager_map[a.manager_id] = mgr.name if mgr else "Unassigned"
     result = []
     for a in agents:
-        cb = db.query(func.count(CallBack.id)).filter(CallBack.employee_id == a.id).scalar() or 0
-        tr = db.query(func.count(Transfer.id)).filter(Transfer.employee_id == a.id).scalar() or 0
-        sa = db.query(func.count(Sale.id)).filter(Sale.employee_id == a.id).scalar() or 0
+        cb_q = db.query(func.count(CallBack.id)).filter(CallBack.employee_id == a.id)
+        tr_q = db.query(func.count(Transfer.id)).filter(Transfer.employee_id == a.id)
+        sa_q = db.query(func.count(Sale.id)).filter(Sale.employee_id == a.id)
+
+        if year is not None:
+            cb_q = cb_q.filter(extract("year", CallBack.created_at) == year)
+            tr_q = tr_q.filter(extract("year", Transfer.created_at) == year)
+            sa_q = sa_q.filter(extract("year", Sale.created_at) == year)
+        if month is not None:
+            cb_q = cb_q.filter(extract("month", CallBack.created_at) == month)
+            tr_q = tr_q.filter(extract("month", Transfer.created_at) == month)
+            sa_q = sa_q.filter(extract("month", Sale.created_at) == month)
+
+        cb = cb_q.scalar() or 0
+        tr = tr_q.scalar() or 0
+        sa = sa_q.scalar() or 0
         total_opps = tr
         result.append(AgentKpi(
             id=a.id, name=a.name,
@@ -211,6 +241,8 @@ def get_agents(
 @router.get("/managers/{manager_id}")
 def get_manager_detail(
     manager_id: int,
+    year: Optional[int] = Query(None),
+    month: Optional[int] = Query(None),
     admin: User = Depends(require_admin),
     db: Session = Depends(get_db),
 ):
@@ -222,9 +254,22 @@ def get_manager_detail(
 
     agent_list = []
     for a in agents:
-        cb = db.query(func.count(CallBack.id)).filter(CallBack.employee_id == a.id).scalar() or 0
-        tr = db.query(func.count(Transfer.id)).filter(Transfer.employee_id == a.id).scalar() or 0
-        sa = db.query(func.count(Sale.id)).filter(Sale.employee_id == a.id).scalar() or 0
+        cb_q = db.query(func.count(CallBack.id)).filter(CallBack.employee_id == a.id)
+        tr_q = db.query(func.count(Transfer.id)).filter(Transfer.employee_id == a.id)
+        sa_q = db.query(func.count(Sale.id)).filter(Sale.employee_id == a.id)
+
+        if year is not None:
+            cb_q = cb_q.filter(extract("year", CallBack.created_at) == year)
+            tr_q = tr_q.filter(extract("year", Transfer.created_at) == year)
+            sa_q = sa_q.filter(extract("year", Sale.created_at) == year)
+        if month is not None:
+            cb_q = cb_q.filter(extract("month", CallBack.created_at) == month)
+            tr_q = tr_q.filter(extract("month", Transfer.created_at) == month)
+            sa_q = sa_q.filter(extract("month", Sale.created_at) == month)
+
+        cb = cb_q.scalar() or 0
+        tr = tr_q.scalar() or 0
+        sa = sa_q.scalar() or 0
         total_opps = tr
         agent_list.append(AgentKpi(
             id=a.id, name=a.name,
