@@ -95,6 +95,38 @@ def _transfer_out(t: Transfer, customer: Customer = None) -> TransferOut:
     top_supplier = t.gas_offer_supplier if t.utility_type == "gas" else (t.elec_offer_supplier or t.gas_offer_supplier)
     final_supplier = top_supplier or meter_supplier
 
+    # Resolve fallback for MPAN / MPRN / MSN / Account Number
+    mpan_val = t.mpan
+    mprn_val = t.mprn
+    msn_val = t.msn
+    acc_num_val = t.account_number
+
+    if not mpan_val and cust and cust.electricity_meters:
+        mpan_val = cust.electricity_meters[0].supply_number
+    if not mpan_val and t.callback:
+        mpan_val = t.callback.mpan
+
+    if not mprn_val and cust and cust.gas_meters:
+        mprn_val = cust.gas_meters[0].mprn
+    if not mprn_val and t.callback:
+        mprn_val = t.callback.mprn
+
+    if not msn_val:
+        if cust and t.utility_type == "gas" and cust.gas_meters:
+            msn_val = cust.gas_meters[0].meter_serial
+        elif cust and cust.electricity_meters:
+            msn_val = cust.electricity_meters[0].meter_serial
+        if not msn_val and t.callback:
+            msn_val = t.callback.msn
+
+    if not acc_num_val:
+        if cust and t.utility_type == "gas" and cust.gas_meters:
+            acc_num_val = cust.gas_meters[0].account_number
+        elif cust and cust.electricity_meters:
+            acc_num_val = cust.electricity_meters[0].account_number
+        if not acc_num_val and t.callback:
+            acc_num_val = t.callback.account_number
+
     return TransferOut(
         id=t.id,
         employeeId=t.employee_id,
@@ -106,10 +138,10 @@ def _transfer_out(t: Transfer, customer: Customer = None) -> TransferOut:
         outcome=t.outcome,
         notInterestedReason=t.not_interested_reason,
         scheduledDateTime=t.scheduled_datetime,
-        accountNumber=t.account_number,
-        mpan=t.mpan,
-        mprn=t.mprn,
-        msn=t.msn,
+        accountNumber=acc_num_val,
+        mpan=mpan_val,
+        mprn=mprn_val,
+        msn=msn_val,
         notes=t.notes,
         createdAt=t.created_at,
         customer=customer_out,
