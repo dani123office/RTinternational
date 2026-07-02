@@ -27,9 +27,15 @@ export default function StaffManagement() {
   const [loading, setLoading] = useState(true)
 
   const [selectedMonth, setSelectedMonth] = useState(() => {
+    const saved = localStorage.getItem('adminSelectedMonth')
+    if (saved) return saved
     const d = new Date()
     return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`
   })
+
+  useEffect(() => {
+    localStorage.setItem('adminSelectedMonth', selectedMonth)
+  }, [selectedMonth])
 
   const monthsList = useMemo(() => {
     const list = []
