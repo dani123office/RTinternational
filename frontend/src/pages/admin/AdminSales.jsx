@@ -217,9 +217,10 @@ export default function AdminSales() {
                     </tr>
                   </thead>
                   <tbody>
-                    {filteredItems.map((s) => {
                       const utility = s.customer?.utilityType || s.transfer?.utilityType || '-'
-                      const mpanMprn = s.transfer?.mpan || s.transfer?.mprn || '-'
+                      const mpan = s.customer?.electricityMeters?.[0]?.supplyNumber || s.transfer?.mpan || ''
+                      const mprn = s.customer?.gasMeters?.[0]?.mprn || s.transfer?.mprn || ''
+                      const mpanMprn = [mpan, mprn].filter(Boolean).join(' / ') || '-'
                       return (
                       <tr
                         key={s.id}
