@@ -182,9 +182,17 @@ export default function AdminAgentDetail() {
   }, [activeItems, statusFilter, activeTab])
 
   // Calculated Stats
+  const getSaleWeight = useCallback((s) => {
+    const numElec = s.customer?.electricityMeters?.length || 0
+    const numGas = s.customer?.gasMeters?.length || 0
+    return Math.max(1, numElec + numGas)
+  }, [])
+
   const statsCallbacksCount = filteredCallbacks.length
   const statsTransfersCount = filteredTransfers.length
-  const statsSalesCount     = filteredSales.length
+  const statsSalesCount = useMemo(() => {
+    return filteredSales.reduce((acc, s) => acc + getSaleWeight(s), 0)
+  }, [filteredSales, getSaleWeight])
   const statsConversion     = useMemo(() => {
     const total = statsCallbacksCount + statsTransfersCount
     if (total === 0) return 0
@@ -501,7 +509,7 @@ export default function AdminAgentDetail() {
                   {tab}
                   <span className="ml-2 text-xs px-1.5 py-0.5 rounded-full"
                     style={{ background: activeTab === tab ? '#eef2ff' : '#f8fafc', color: activeTab === tab ? '#6366f1' : '#94a3b8' }}>
-                    {tab === 'Callbacks' ? callbacks.length : tab === 'Transfers' ? transfers.length : tab === 'Sales' ? sales.length : tab === 'Attendance' ? attendanceHistory.length : leaveHistory.length}
+                    {tab === 'Callbacks' ? callbacks.length : tab === 'Transfers' ? transfers.length : tab === 'Sales' ? sales.reduce((acc, s) => acc + getSaleWeight(s), 0) : tab === 'Attendance' ? attendanceHistory.length : leaveHistory.length}
                   </span>
                 </button>
               ))}
