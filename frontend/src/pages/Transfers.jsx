@@ -33,6 +33,35 @@ export default function Transfers() {
   const withToast = useLoadingToast()
   const [deleteId, setDeleteId] = useState(null)
 
+  const [selectedMonth, setSelectedMonth] = useState(() => {
+    const d = new Date()
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`
+  })
+
+  const monthsList = useMemo(() => {
+    const list = []
+    const d = new Date()
+    for (let i = 0; i < 12; i++) {
+      const year = d.getFullYear()
+      const month = d.getMonth() + 1
+      const label = d.toLocaleString('en-US', { month: 'long', year: 'numeric' })
+      const value = `${year}-${String(month).padStart(2, '0')}`
+      list.push({ value, label, year, month })
+      d.setMonth(d.getMonth() - 1)
+    }
+    list.push({ value: 'all', label: 'All Time', year: null, month: null })
+    return list
+  }, [])
+
+  const filteredTransfers = useMemo(() => {
+    if (selectedMonth === 'all') return transfers
+    const [y, m] = selectedMonth.split('-').map(Number)
+    return transfers.filter((t) => {
+      const d = new Date(t.createdAt)
+      return d.getFullYear() === y && (d.getMonth() + 1) === m
+    })
+  }, [transfers, selectedMonth])
+
   const columns = useMemo(() => [
     {
       header: 'Business',
@@ -119,13 +148,37 @@ export default function Transfers() {
                 </p>
               </div>
             </div>
-            <button
-              className="rt-btn-primary"
-              style={{flex:'none',padding:'11px 22px',fontSize:'14px'}}
-              onClick={() => navigate('/transfers/add')}
-            >
-              <Plus size={16}/> Add Transfer
-            </button>
+            <div style={{display:'flex',alignItems:'center',gap:'10px'}}>
+              <select
+                value={selectedMonth}
+                onChange={(e) => setSelectedMonth(e.target.value)}
+                className="rt-input"
+                style={{
+                  width: '160px',
+                  height: '42px',
+                  border: '1.5px solid #e2e6ec',
+                  borderRadius: '12px',
+                  padding: '0 12px',
+                  fontSize: '13px',
+                  fontWeight: 600,
+                  color: '#475569',
+                  background: '#ffffff',
+                  cursor: 'pointer',
+                  fontFamily: "'DM Sans', sans-serif",
+                }}
+              >
+                {monthsList.map((m) => (
+                  <option key={m.value} value={m.value}>{m.label}</option>
+                ))}
+              </select>
+              <button
+                className="rt-btn-primary"
+                style={{flex:'none',padding:'11px 22px',fontSize:'14px'}}
+                onClick={() => navigate('/transfers/add')}
+              >
+                <Plus size={16}/> Add Transfer
+              </button>
+            </div>
           </div>
 
           {/* -- Transfers Table -- */}
@@ -133,16 +186,16 @@ export default function Transfers() {
             icon={ArrowLeftRight}
             title="All Transfers"
             delay="rt-d1"
-            headerRight={<span style={{color:'#94a3b8',fontWeight:600,fontSize:'12px',letterSpacing:'0.4px'}}>({transfers.length} total)</span>}
+            headerRight={<span style={{color:'#94a3b8',fontWeight:600,fontSize:'12px',letterSpacing:'0.4px'}}>({filteredTransfers.length} total)</span>}
           >
-            {isLoading && !transfers.length ? (
+            {isLoading && !filteredTransfers.length ? (
               <div style={{display:'flex',justifyContent:'center',padding:'48px 0'}}>
                 <Loader2 size={24} className="rt-spin" color="#6366f1" />
               </div>
             ) : (
               <DataTable
                 columns={columns}
-                data={transfers}
+                data={filteredTransfers}
                 searchKey={(r) => r.customer?.businessName || r.customer?.ownerName || ''}
                 onRowClick={(row) => navigate('/transfers/' + row.id)}
               />

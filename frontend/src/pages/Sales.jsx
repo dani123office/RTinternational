@@ -27,22 +27,49 @@ const FILTERS = [
 export default function Sales() {
   const { sales, isLoading } = useDataStore()
   const navigate = useNavigate()
-  const [activeFilter, setActiveFilter] = useState('all')
+  const [selectedMonth, setSelectedMonth] = useState(() => {
+    const d = new Date()
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`
+  })
+
+  const monthsList = useMemo(() => {
+    const list = []
+    const d = new Date()
+    for (let i = 0; i < 12; i++) {
+      const year = d.getFullYear()
+      const month = d.getMonth() + 1
+      const label = d.toLocaleString('en-US', { month: 'long', year: 'numeric' })
+      const value = `${year}-${String(month).padStart(2, '0')}`
+      list.push({ value, label, year, month })
+      d.setMonth(d.getMonth() - 1)
+    }
+    list.push({ value: 'all', label: 'All Time', year: null, month: null })
+    return list
+  }, [])
+
+  const filteredByMonthSales = useMemo(() => {
+    if (selectedMonth === 'all') return sales
+    const [y, m] = selectedMonth.split('-').map(Number)
+    return sales.filter((s) => {
+      const d = new Date(s.createdAt)
+      return d.getFullYear() === y && (d.getMonth() + 1) === m
+    })
+  }, [sales, selectedMonth])
 
   const counts = useMemo(() => ({
-    all: sales.length,
-    chasing: sales.filter((s) => s.cotStatus === 'chasing').length,
-    cotInProgress: sales.filter((s) => s.cotStatus === 'cotInProgress').length,
-    cotComplete: sales.filter((s) => s.cotStatus === 'cotComplete').length,
-    renewal: sales.filter((s) => s.cotStatus === 'renewal').length,
-    outOfContract: sales.filter((s) => s.cotStatus === 'outOfContract').length,
-    done: sales.filter((s) => s.cotStatus === 'done').length,
-  }), [sales])
+    all: filteredByMonthSales.length,
+    chasing: filteredByMonthSales.filter((s) => s.cotStatus === 'chasing').length,
+    cotInProgress: filteredByMonthSales.filter((s) => s.cotStatus === 'cotInProgress').length,
+    cotComplete: filteredByMonthSales.filter((s) => s.cotStatus === 'cotComplete').length,
+    renewal: filteredByMonthSales.filter((s) => s.cotStatus === 'renewal').length,
+    outOfContract: filteredByMonthSales.filter((s) => s.cotStatus === 'outOfContract').length,
+    done: filteredByMonthSales.filter((s) => s.cotStatus === 'done').length,
+  }), [filteredByMonthSales])
 
   const filteredSales = useMemo(() => {
-    if (activeFilter === 'all') return sales
-    return sales.filter((s) => s.cotStatus === activeFilter)
-  }, [sales, activeFilter])
+    if (activeFilter === 'all') return filteredByMonthSales
+    return filteredByMonthSales.filter((s) => s.cotStatus === activeFilter)
+  }, [filteredByMonthSales, activeFilter])
 
   const columns = useMemo(() => [
     {
@@ -92,9 +119,33 @@ export default function Sales() {
                 <p style={{fontSize:'13px',color:'#64748b',margin:'3px 0 0',fontFamily:'DM Sans, sans-serif'}}>Manage sales applications</p>
               </div>
             </div>
-            <button onClick={() => navigate(`/sales/apply`)} className="rt-btn-primary" style={{flex:'none',padding:'11px 22px',fontSize:14}}>
-              <Plus size={16}/> New Sale Application
-            </button>
+            <div style={{display:'flex',alignItems:'center',gap:'10px'}}>
+              <select
+                value={selectedMonth}
+                onChange={(e) => setSelectedMonth(e.target.value)}
+                className="rt-input"
+                style={{
+                  width: '160px',
+                  height: '42px',
+                  border: '1.5px solid #e2e6ec',
+                  borderRadius: '12px',
+                  padding: '0 12px',
+                  fontSize: '13px',
+                  fontWeight: 600,
+                  color: '#475569',
+                  background: '#ffffff',
+                  cursor: 'pointer',
+                  fontFamily: "'DM Sans', sans-serif",
+                }}
+              >
+                {monthsList.map((m) => (
+                  <option key={m.value} value={m.value}>{m.label}</option>
+                ))}
+              </select>
+              <button onClick={() => navigate(`/sales/apply`)} className="rt-btn-primary" style={{flex:'none',padding:'11px 22px',fontSize:14}}>
+                <Plus size={16}/> New Sale Application
+              </button>
+            </div>
           </div>
 
           <div className="rt-fade rt-d1" style={{marginBottom:20}}>

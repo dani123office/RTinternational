@@ -65,6 +65,59 @@ export default function Dashboard() {
   const rawFirstName = user?.name?.split(' ')[0] || 'Agent'
   const firstName = rawFirstName.charAt(0).toUpperCase() + rawFirstName.slice(1)
 
+  const [selectedMonth, setSelectedMonth] = useState(() => {
+    const d = new Date()
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`
+  })
+
+  const monthsList = useMemo(() => {
+    const list = []
+    const d = new Date()
+    for (let i = 0; i < 12; i++) {
+      const year = d.getFullYear()
+      const month = d.getMonth() + 1
+      const label = d.toLocaleString('en-US', { month: 'long', year: 'numeric' })
+      const value = `${year}-${String(month).padStart(2, '0')}`
+      list.push({ value, label, year, month })
+      d.setMonth(d.getMonth() - 1)
+    }
+    list.push({ value: 'all', label: 'All Time', year: null, month: null })
+    return list
+  }, [])
+
+  const getSaleWeight = useCallback((s) => {
+    const numElec = s.customer?.electricityMeters?.length || 0
+    const numGas = s.customer?.gasMeters?.length || 0
+    return Math.max(1, numElec + numGas)
+  }, [])
+
+  const filteredCallbacks = useMemo(() => {
+    if (selectedMonth === 'all') return callbacks
+    const [y, m] = selectedMonth.split('-').map(Number)
+    return callbacks.filter((c) => {
+      const d = new Date(c.createdAt || c.scheduledDateTime)
+      return d.getFullYear() === y && (d.getMonth() + 1) === m
+    })
+  }, [callbacks, selectedMonth])
+
+  const filteredTransfers = useMemo(() => {
+    if (selectedMonth === 'all') return transfers
+    const [y, m] = selectedMonth.split('-').map(Number)
+    return transfers.filter((t) => {
+      const d = new Date(t.createdAt)
+      return d.getFullYear() === y && (d.getMonth() + 1) === m
+    })
+  }, [transfers, selectedMonth])
+
+  const filteredSales = useMemo(() => {
+    if (selectedMonth === 'all') return sales
+    const [y, m] = selectedMonth.split('-').map(Number)
+    return sales.filter((s) => {
+      const d = new Date(s.createdAt)
+      return d.getFullYear() === y && (d.getMonth() + 1) === m
+    })
+  }, [sales, selectedMonth])
+
   const todayCallbacks = useMemo(() =>
     callbacks.filter((c) => {
       const d = new Date(c.scheduledDateTime || c.scheduledDate)
@@ -78,50 +131,56 @@ export default function Dashboard() {
     [callbacks, today]
   )
 
-  const weeklySales = useMemo(() => {
-    const weekAgo = new Date(today.getTime() - 7 * 24 * 60 * 60 * 1000)
-    return sales.filter((s) => new Date(s.createdAt || s.submittedAt) >= weekAgo)
-  }, [sales, today])
+  const displayTransfersCount = useMemo(() => filteredTransfers.length, [filteredTransfers])
+  const displaySalesCount = useMemo(() => filteredSales.reduce((acc, s) => acc + getSaleWeight(s), 0), [filteredSales, getSaleWeight])
+  const displayConversionRate = useMemo(() => {
+    if (displayTransfersCount === 0) return 0
+    return Math.round((filteredSales.length / displayTransfersCount) * 100)
+  }, [displayTransfersCount, filteredSales])
 
   const cotPending = useMemo(() =>
     sales.filter((s) => s.cotStatus === 'chasing' || s.cotStatus === 'cotInProgress'),
     [sales]
   )
 
-  const conversionRate = useMemo(() => {
-    if (transfers.length === 0) return 0
-    return Math.round((sales.length / transfers.length) * 100)
-  }, [transfers, sales])
-
   const pipelineData = useMemo(() => [
-    { name: 'Callbacks', value: callbacks.length, color: '#6366f1' },
-    { name: 'Transfers', value: transfers.length, color: '#8b5cf6' },
-    { name: 'Sales', value: sales.length, color: '#10b981' },
-  ], [callbacks, transfers, sales])
+    { name: 'Callbacks', value: filteredCallbacks.length, color: '#6366f1' },
+    { name: 'Transfers', value: displayTransfersCount, color: '#8b5cf6' },
+    { name: 'Sales', value: displaySalesCount, color: '#10b981' },
+  ], [filteredCallbacks, displayTransfersCount, displaySalesCount])
 
   const weeklyData = useMemo(() => {
     const days = []
+    let baseDate = new Date()
+    if (selectedMonth !== 'all') {
+      const [y, m] = selectedMonth.split('-').map(Number)
+      const todayMonth = today.getMonth() + 1
+      const todayYear = today.getFullYear()
+      if (y !== todayYear || m !== todayMonth) {
+        baseDate = new Date(y, m, 0)
+      }
+    }
     for (let i = 6; i >= 0; i--) {
-      const d = new Date(today)
+      const d = new Date(baseDate)
       d.setDate(d.getDate() - i)
       const ds = d.toDateString()
       days.push({
         name: d.toLocaleDateString('en-GB', { weekday: 'short' }),
         Callbacks: callbacks.filter((c) => new Date(c.createdAt || c.scheduledDateTime).toDateString() === ds).length,
-        Sales: sales.filter((s) => new Date(s.createdAt || today).toDateString() === ds).length,
+        Sales: sales.filter((s) => new Date(s.createdAt || today).toDateString() === ds).reduce((acc, s) => acc + getSaleWeight(s), 0),
       })
     }
     return days
-  }, [callbacks, sales, today])
+  }, [callbacks, sales, today, selectedMonth, getSaleWeight])
 
   const recentActivity = useMemo(() => {
     const items = [
-      ...callbacks.map((c) => ({ ...c, _type: 'callback', _date: new Date(c.createdAt || c.scheduledDateTime) })),
-      ...transfers.map((t) => ({ ...t, _type: 'transfer', _date: new Date(t.createdAt || today) })),
-      ...sales.map((s) => ({ ...s, _type: 'sale', _date: new Date(s.createdAt || today) })),
+      ...filteredCallbacks.map((c) => ({ ...c, _type: 'callback', _date: new Date(c.createdAt || c.scheduledDateTime) })),
+      ...filteredTransfers.map((t) => ({ ...t, _type: 'transfer', _date: new Date(t.createdAt || today) })),
+      ...filteredSales.map((s) => ({ ...s, _type: 'sale', _date: new Date(s.createdAt || today) })),
     ]
     return items.sort((a, b) => b._date - a._date).slice(0, 8)
-  }, [callbacks, transfers, sales, today])
+  }, [filteredCallbacks, filteredTransfers, filteredSales, today])
 
   const typeConfig = {
     callback: { color: '#6366f1', bg: '#eef2ff', label: 'Callback' },
@@ -145,6 +204,28 @@ export default function Dashboard() {
               </p>
             </div>
             <div className="flex items-center gap-2 shrink-0 self-start flex-wrap">
+              <select
+                value={selectedMonth}
+                onChange={(e) => setSelectedMonth(e.target.value)}
+                className="rt-input"
+                style={{
+                  width: '160px',
+                  height: '42px',
+                  border: '1.5px solid #e2e6ec',
+                  borderRadius: '12px',
+                  padding: '0 12px',
+                  fontSize: '13px',
+                  fontWeight: 600,
+                  color: '#475569',
+                  background: '#ffffff',
+                  cursor: 'pointer',
+                  fontFamily: "'DM Sans', sans-serif",
+                }}
+              >
+                {monthsList.map((m) => (
+                  <option key={m.value} value={m.value}>{m.label}</option>
+                ))}
+              </select>
               <button onClick={() => navigate('/callbacks/add')}
                 className="flex items-center gap-1.5 px-4 py-2.5 rounded-xl text-sm font-semibold cursor-pointer transition-all duration-200"
                 style={{
@@ -213,11 +294,11 @@ export default function Dashboard() {
             icon={<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#6366f1" strokeWidth="2.2"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07A19.5 19.5 0 0 1 4.69 12 19.79 19.79 0 0 1 1.61 3.4 2 2 0 0 1 3.6 1.21h3a2 2 0 0 1 2 1.72c.127.96.361 1.903.7 2.81a2 2 0 0 1-.45 2.11L7.91 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0 1 22 16.92z" /></svg>} />
           <StatCard title="Overdue" value={error ? '-' : overdueCallbacks.length} subtitle={error ? 'Data unavailable' : overdueCallbacks.length === 0 ? 'None overdue' : 'Action needed'} bg={overdueCallbacks.length > 0 ? "#fee2e2" : "#dcfce7"}
             icon={<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke={overdueCallbacks.length > 0 ? "#ef4444" : "#10b981"} strokeWidth="2.2"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z" /><line x1="12" y1="9" x2="12" y2="13" /><line x1="12" y1="17" x2="12.01" y2="17" /></svg>} />
-          <StatCard title="Total Transfers" value={error ? '-' : transfers.length} subtitle={error ? 'Data unavailable' : transfers.length === 0 ? 'None yet' : 'In pipeline'} bg="#f3e8ff"
+          <StatCard title={selectedMonth === 'all' ? 'Total Transfers' : 'Transfers (Period)'} value={error ? '-' : displayTransfersCount} subtitle={error ? 'Data unavailable' : 'In pipeline'} bg="#f3e8ff"
             icon={<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#8b5cf6" strokeWidth="2.2"><path d="M7 16V4m0 0L3 8m4-4 4 4" /><path d="M17 8v12m0 0 4-4m-4 4-4-4" /></svg>} />
-          <StatCard title="Sales This Week" value={error ? '-' : weeklySales.length} subtitle={error ? 'Data unavailable' : 'Last 7 days'} bg="#dcfce7"
+          <StatCard title={selectedMonth === 'all' ? 'Total Sales' : 'Sales (Period)'} value={error ? '-' : displaySalesCount} subtitle={error ? 'Data unavailable' : 'Weighted by meters'} bg="#dcfce7"
             icon={<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#10b981" strokeWidth="2.2"><path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6" /></svg>} />
-          <StatCard title="COT Pending" value={error ? '-' : cotPending.length} subtitle={error ? 'Data unavailable' : 'Awaiting completion'} bg="#fef9c3"
+          <StatCard title="Conversion Rate" value={error ? '-' : `${displayConversionRate}%`} subtitle={error ? 'Data unavailable' : 'Transfers to sales'} bg="#fef9c3"
             icon={<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#ca8a04" strokeWidth="2.2"><circle cx="12" cy="12" r="10" /><polyline points="12 6 12 12 16 14" /></svg>} />
         </div>
 
