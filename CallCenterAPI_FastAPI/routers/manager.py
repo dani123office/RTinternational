@@ -491,6 +491,7 @@ def create_manager_sale(
             sale_type=data.saleType or "cot",
             cot_status="done" if data.saleType in ("renewal", "out_of_contract") else "submitted",
             notes=data.notes,
+            created_at=data.createdAt or datetime.now(),
         )
         db.add(s)
         db.commit()
@@ -725,6 +726,11 @@ def update_sale(
         for key, val in data.items():
             attr = _to_snake(key)
             if hasattr(s, attr):
+                if attr == "created_at" and isinstance(val, str):
+                    try:
+                        val = datetime.fromisoformat(val.replace("Z", "+00:00"))
+                    except Exception:
+                        pass
                 setattr(s, attr, val)
         if data.get("saleType") in ("renewal", "out_of_contract"):
             s.cot_status = "done"

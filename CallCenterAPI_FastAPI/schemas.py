@@ -628,6 +628,7 @@ class ManagerSaleCreate(BaseModel):
     ownerFullName: Optional[str] = None
     homeAddress: Optional[str] = None
     dateOfBirth: Optional[date] = None
+    createdAt: Optional[datetime] = Field(None, description="Custom sale creation date/time")
     businessType: Optional[str] = None
     billFrequency: Optional[str] = None
     paymentMethod: Optional[str] = None
@@ -1501,6 +1502,7 @@ class SaleCreate(BaseModel):
     transferId: Optional[int] = None
     employeeId: Optional[int] = Field(None, description="Employee ID (auto-set from JWT on server)")
     customerId: int = Field(..., description="Customer ID is required")
+    createdAt: Optional[datetime] = Field(None, description="Custom sale creation date/time")
     ownerFullName: Optional[str] = Field(None, max_length=255, description="Full name of business owner")
     homeAddress: Optional[str] = Field(None, max_length=500, description="Home address of owner")
     dateOfBirth: Optional[date] = Field(None, description="Date of birth (YYYY-MM-DD — must be at least 18 years ago)")
@@ -1594,6 +1596,7 @@ class SaleUpdate(BaseModel):
     ownerFullName: Optional[str] = Field(None, max_length=255)
     homeAddress: Optional[str] = Field(None, max_length=500)
     dateOfBirth: Optional[date] = Field(None, description="Date of birth (must be at least 18 years ago)")
+    createdAt: Optional[datetime] = Field(None, description="Custom sale creation date/time")
     businessType: Optional[str] = Field(None, max_length=100)
     billFrequency: Optional[str] = Field(None, max_length=50)
     paymentMethod: Optional[str] = Field(None, max_length=50)

@@ -130,7 +130,7 @@ def create_sale(dto: SaleCreate, request: Request, current_user: User = Depends(
             notes=dto.notes,
             sale_type=dto.saleType or "cot",
             cot_status="done" if dto.saleType in ("renewal", "out_of_contract") else "chasing",
-            created_at=datetime.now(),
+            created_at=dto.createdAt or datetime.now(),
         )
         db.add(sale)
         db.commit()
@@ -198,6 +198,8 @@ def update_sale(id: int, dto: SaleUpdate, request: Request, current_user: User =
                 sale.cot_status = "done"
         if dto.notes is not None:
             sale.notes = dto.notes
+        if dto.createdAt is not None:
+            sale.created_at = dto.createdAt
         if dto.commissionStatus is not None:
             if current_user.role == "admin":
                 sale.commission_status = dto.commissionStatus

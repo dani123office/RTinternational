@@ -53,6 +53,14 @@ function Field({ label, required, icon: Icon, children }) {
 const toNum = (v) => (v === '' || v == null ? null : Number.isNaN(Number(v)) ? null : Number(v))
 const normDate = (v) => { if (!v) return null; const d = new Date(v); return Number.isNaN(d.getTime()) ? null : d.toISOString().split('T')[0] }
 
+const getTodayString = () => {
+  const d = new Date()
+  const year = d.getFullYear()
+  const month = String(d.getMonth() + 1).padStart(2, '0')
+  const day = String(d.getDate()).padStart(2, '0')
+  return `${year}-${month}-${day}`
+}
+
 const mapMeter = (m, i) => ({
   meterNumber: i + 1, currentSupplier: m.currentSupplier || null, supplyNumber: m.supplyNumber || null,
   meterSerial: m.meterSerial || null, accountNumber: m.accountNumber || null,
@@ -144,6 +152,7 @@ export default function SaleApplication() {
           date: lt?.scheduledDateTime?.substring(0, 10) || '',
           time: lt?.scheduledDateTime?.substring(11, 16) || '',
           transferNotes: lt?.notes || '',
+          saleDate: s.createdAt ? s.createdAt.substring(0, 10) : getTodayString(),
           saleType: s.saleType || 'cot',
           ownerFullName: s.ownerFullName || '',
           homeAddress: s.homeAddress || '',
@@ -219,6 +228,7 @@ export default function SaleApplication() {
       transferNotes: prefill.notes || '',
 
       // Sales specific details
+      saleDate: isEdit ? '' : getTodayString(),
       saleType: 'cot',
       ownerFullName: customer.ownerName || prefill.ownerName || customer.businessName || prefill.businessName || '',
       homeAddress: customer.businessAddress || prefill.businessAddress || '',
@@ -376,6 +386,7 @@ export default function SaleApplication() {
         businessType: form.businessType,
         billFrequency: form.billFrequency,
         notes: form.notes || null,
+        createdAt: form.saleDate ? `${form.saleDate}T12:00:00` : null,
       }
 
       if (isEdit) {
@@ -468,6 +479,22 @@ export default function SaleApplication() {
 
           <form onSubmit={handleSubmit} className="rt-section-gap">
             
+            {/* 0. Application Date Card */}
+            <Card icon={CalendarIcon} iconColor="#6366f1" iconBg="rgba(99,102,241,0.15)" title="Application Date" delay="rt-d0">
+              <div style={{ maxWidth: '320px' }}>
+                <Field label="Sale / Application Date" required icon={CalendarIcon}>
+                  <input
+                    className="rt-input"
+                    style={{ paddingLeft: '38px' }}
+                    type="date"
+                    value={form.saleDate}
+                    onChange={(e) => setField('saleDate', e.target.value)}
+                    required
+                  />
+                </Field>
+              </div>
+            </Card>
+
             {/* 1. Business Information Card */}
             <Card icon={Building2} iconColor="#6366f1" iconBg="rgba(99,102,241,0.15)" title="Business Details" delay="rt-d1">
               <div className="rt-grid2">
