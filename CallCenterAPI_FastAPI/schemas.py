@@ -1208,8 +1208,6 @@ class CallBackCreate(BaseModel):
     @field_validator('scheduledDateTime')
     @classmethod
     def validate_scheduled_datetime(cls, v):
-        if v and v < datetime.now():
-            raise ValueError('Scheduled date/time cannot be in the past')
         return v
 
     @field_validator('notes')
