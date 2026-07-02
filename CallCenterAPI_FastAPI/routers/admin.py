@@ -8,7 +8,7 @@ from fastapi.responses import Response
 from sqlalchemy.orm import Session
 from sqlalchemy import func, extract
 from ..database import get_db
-from ..models import User, Customer, CallBack, Transfer, Sale, ActivityLog, Attendance, LeaveRequest, LoanRequest, Notification, EmailVerification, StaffOTP
+from ..models import User, Customer, CallBack, Transfer, Sale, ActivityLog, Attendance, LeaveRequest, LoanRequest, Notification, EmailVerification, StaffOTP, ElectricityMeter, GasMeter
 from .auth import require_admin
 from ..utils.logger import log_activity, get_client_ip
 from ..utils.email import generate_otp, send_otp_email
@@ -33,6 +33,16 @@ def _safe_div(a: int, b: int) -> float:
     if b == 0:
         return 0.0
     return round((a / b) * 100, 1)
+
+
+def _get_sale_count_by_meters(db: Session, sale_query) -> int:
+    sales = sale_query.all()
+    total = 0
+    for s in sales:
+        num_elec = db.query(func.count(ElectricityMeter.id)).filter(ElectricityMeter.customer_id == s.customer_id).scalar() or 0
+        num_gas = db.query(func.count(GasMeter.id)).filter(GasMeter.customer_id == s.customer_id).scalar() or 0
+        total += max(1, num_elec + num_gas)
+    return total
 
 
 # ─── User Management ─────────────────────────────────────
@@ -166,7 +176,7 @@ def get_managers(
         if agent_ids:
             cb_q = db.query(func.count(CallBack.id)).filter(CallBack.employee_id.in_(agent_ids))
             tr_q = db.query(func.count(Transfer.id)).filter(Transfer.employee_id.in_(agent_ids))
-            sa_q = db.query(func.count(Sale.id)).filter(Sale.employee_id.in_(agent_ids))
+            sa_q = db.query(Sale).filter(Sale.employee_id.in_(agent_ids))
 
             if year is not None:
                 cb_q = cb_q.filter(extract("year", CallBack.created_at) == year)
@@ -179,7 +189,7 @@ def get_managers(
 
             cb = cb_q.scalar() or 0
             tr = tr_q.scalar() or 0
-            sa = sa_q.scalar() or 0
+            sa = _get_sale_count_by_meters(db, sa_q)
         else:
             cb = tr = sa = 0
         total_opps = tr
@@ -212,7 +222,7 @@ def get_agents(
     for a in agents:
         cb_q = db.query(func.count(CallBack.id)).filter(CallBack.employee_id == a.id)
         tr_q = db.query(func.count(Transfer.id)).filter(Transfer.employee_id == a.id)
-        sa_q = db.query(func.count(Sale.id)).filter(Sale.employee_id == a.id)
+        sa_q = db.query(Sale).filter(Sale.employee_id == a.id)
 
         if year is not None:
             cb_q = cb_q.filter(extract("year", CallBack.created_at) == year)
@@ -225,7 +235,7 @@ def get_agents(
 
         cb = cb_q.scalar() or 0
         tr = tr_q.scalar() or 0
-        sa = sa_q.scalar() or 0
+        sa = _get_sale_count_by_meters(db, sa_q)
         total_opps = tr
         result.append(AgentKpi(
             id=a.id, name=a.name,
@@ -256,7 +266,7 @@ def get_manager_detail(
     for a in agents:
         cb_q = db.query(func.count(CallBack.id)).filter(CallBack.employee_id == a.id)
         tr_q = db.query(func.count(Transfer.id)).filter(Transfer.employee_id == a.id)
-        sa_q = db.query(func.count(Sale.id)).filter(Sale.employee_id == a.id)
+        sa_q = db.query(Sale).filter(Sale.employee_id == a.id)
 
         if year is not None:
             cb_q = cb_q.filter(extract("year", CallBack.created_at) == year)
@@ -269,7 +279,7 @@ def get_manager_detail(
 
         cb = cb_q.scalar() or 0
         tr = tr_q.scalar() or 0
-        sa = sa_q.scalar() or 0
+        sa = _get_sale_count_by_meters(db, sa_q)
         total_opps = tr
         agent_list.append(AgentKpi(
             id=a.id, name=a.name,
@@ -671,7 +681,7 @@ def overall_stats(
     
     cb_q = db.query(func.count(CallBack.id))
     tr_q = db.query(func.count(Transfer.id))
-    sa_q = db.query(func.count(Sale.id))
+    sa_q = db.query(Sale)
     
     if year:
         cb_q = cb_q.filter(extract("year", CallBack.created_at) == year)
@@ -684,7 +694,7 @@ def overall_stats(
         
     total_cb = cb_q.scalar() or 0
     total_tr = tr_q.scalar() or 0
-    total_sa = sa_q.scalar() or 0
+    total_sa = _get_sale_count_by_meters(db, sa_q)
     total_opps = total_tr
     return OverallStats(
         totalAgents=total_agents,
@@ -710,7 +720,7 @@ def performance_overview(
         if a_ids:
             cb_q = db.query(func.count(CallBack.id)).filter(CallBack.employee_id.in_(a_ids))
             tr_q = db.query(func.count(Transfer.id)).filter(Transfer.employee_id.in_(a_ids))
-            sa_q = db.query(func.count(Sale.id)).filter(Sale.employee_id.in_(a_ids))
+            sa_q = db.query(Sale).filter(Sale.employee_id.in_(a_ids))
             if year:
                 cb_q = cb_q.filter(extract("year", CallBack.created_at) == year)
                 tr_q = tr_q.filter(extract("year", Transfer.created_at) == year)
@@ -721,7 +731,7 @@ def performance_overview(
                 sa_q = sa_q.filter(extract("month", Sale.created_at) == month)
             cb = cb_q.scalar() or 0
             tr = tr_q.scalar() or 0
-            sa = sa_q.scalar() or 0
+            sa = _get_sale_count_by_meters(db, sa_q)
         else:
             cb = tr = sa = 0
         managers_data.append(ManagerKpi(
@@ -736,7 +746,7 @@ def performance_overview(
     for a in agents:
         cb_q = db.query(func.count(CallBack.id)).filter(CallBack.employee_id == a.id)
         tr_q = db.query(func.count(Transfer.id)).filter(Transfer.employee_id == a.id)
-        sa_q = db.query(func.count(Sale.id)).filter(Sale.employee_id == a.id)
+        sa_q = db.query(Sale).filter(Sale.employee_id == a.id)
         if year:
             cb_q = cb_q.filter(extract("year", CallBack.created_at) == year)
             tr_q = tr_q.filter(extract("year", Transfer.created_at) == year)
@@ -747,7 +757,7 @@ def performance_overview(
             sa_q = sa_q.filter(extract("month", Sale.created_at) == month)
         cb = cb_q.scalar() or 0
         tr = tr_q.scalar() or 0
-        sa = sa_q.scalar() or 0
+        sa = _get_sale_count_by_meters(db, sa_q)
         agents_data.append(AgentKpi(
             id=a.id, name=a.name,
             managerName=mgr_names.get(a.manager_id, "Unassigned"),

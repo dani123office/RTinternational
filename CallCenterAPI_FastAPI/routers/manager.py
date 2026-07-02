@@ -4,7 +4,7 @@ from fastapi import APIRouter, Depends, HTTPException, Query, Request
 from sqlalchemy.orm import Session
 from sqlalchemy import func
 from ..database import get_db
-from ..models import User, CallBack, Transfer, Sale
+from ..models import User, CallBack, Transfer, Sale, ElectricityMeter, GasMeter
 from .auth import require_manager, verify_manager_agent
 from ..utils.logger import log_activity, get_client_ip
 from ..schemas import (
@@ -55,6 +55,16 @@ def _safe_div(a: int, b: int) -> float:
     return round((a / b) * 100, 1)
 
 
+def _get_sale_count_by_meters(db: Session, sale_query) -> int:
+    sales = sale_query.all()
+    total = 0
+    for s in sales:
+        num_elec = db.query(func.count(ElectricityMeter.id)).filter(ElectricityMeter.customer_id == s.customer_id).scalar() or 0
+        num_gas = db.query(func.count(GasMeter.id)).filter(GasMeter.customer_id == s.customer_id).scalar() or 0
+        total += max(1, num_elec + num_gas)
+    return total
+
+
 @router.get("/team-stats")
 def get_team_stats(
     timeframe: str = Query("all_time"),  # "today", "this_week", "all_time"
@@ -76,7 +86,7 @@ def get_team_stats(
     total_transfers_query = db.query(func.count(Transfer.id)).filter(
         Transfer.employee_id.in_(agent_ids)
     )
-    total_sales_query = db.query(func.count(Sale.id)).filter(Sale.employee_id.in_(agent_ids))
+    total_sales_query = db.query(Sale).filter(Sale.employee_id.in_(agent_ids))
 
     if timeframe == "today":
         today_start = datetime.now().replace(hour=0, minute=0, second=0, microsecond=0)
@@ -91,7 +101,7 @@ def get_team_stats(
 
     total_callbacks = total_callbacks_query.scalar() or 0
     total_transfers = total_transfers_query.scalar() or 0
-    total_sales = total_sales_query.scalar() or 0
+    total_sales = _get_sale_count_by_meters(db, total_sales_query)
     total_records = total_transfers
     conversion_rate = _safe_div(total_sales, total_records)
 
@@ -105,7 +115,7 @@ def get_team_stats(
         at_q = db.query(func.count(Transfer.id)).filter(
             Transfer.employee_id == agent.id
         )
-        as_q = db.query(func.count(Sale.id)).filter(Sale.employee_id == agent.id)
+        as_q = db.query(Sale).filter(Sale.employee_id == agent.id)
 
         if timeframe == "today":
             today_start = datetime.now().replace(hour=0, minute=0, second=0, microsecond=0)
@@ -120,7 +130,7 @@ def get_team_stats(
 
         ac = ac_q.scalar() or 0
         at = at_q.scalar() or 0
-        as_ = as_q.scalar() or 0
+        as_ = _get_sale_count_by_meters(db, as_q)
         a_total = at
         a_cr = _safe_div(as_, a_total)
         agent_stats_list.append(AgentStats(
@@ -182,7 +192,7 @@ def get_agent_detail(
 
     ac = len(callbacks)
     at = len(transfers)
-    as_ = len(sales)
+    as_ = sum(max(1, (len(s.customer.electricity_meters) if s.customer else 0) + (len(s.customer.gas_meters) if s.customer else 0)) for s in sales)
     a_total = ac + at
     a_cr = _safe_div(as_, a_total)
 
