@@ -27,6 +27,7 @@ const FILTERS = [
 export default function Sales() {
   const { sales, isLoading } = useDataStore()
   const navigate = useNavigate()
+  const [activeFilter, setActiveFilter] = useState('all')
   const [selectedMonth, setSelectedMonth] = useState(() => {
     const d = new Date()
     return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`
