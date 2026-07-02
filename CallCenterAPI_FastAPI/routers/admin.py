@@ -316,7 +316,7 @@ def get_agent_detail(
 
     ac = len(callbacks)
     at = len(transfers)
-    as_ = len(sales)
+    as_ = sum(max(1, (len(s.customer.electricity_meters) if s.customer else 0) + (len(s.customer.gas_meters) if s.customer else 0)) for s in sales)
     a_total = ac + at
     a_cr = _safe_div(as_, a_total)
 
