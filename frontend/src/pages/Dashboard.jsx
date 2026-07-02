@@ -360,7 +360,7 @@ export default function Dashboard() {
                     </div>
                   ))}
                   <div className="mt-3 pt-4 text-center" style={{ borderTop: '1px solid #f1f5f9' }}>
-                    <span className="text-2xl font-extrabold" style={{ color: '#0f172a' }}>{conversionRate}%</span>
+                    <span className="text-2xl font-extrabold" style={{ color: '#0f172a' }}>{displayConversionRate}%</span>
                     <p className="text-xs font-semibold mt-0.5" style={{ color: '#94a3b8' }}>Conversion Rate</p>
                   </div>
                 </div>
