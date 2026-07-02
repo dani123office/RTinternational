@@ -190,13 +190,14 @@ def get_managers(
             cb = cb_q.scalar() or 0
             tr = tr_q.scalar() or 0
             sa = _get_sale_count_by_meters(db, sa_q)
+            sa_unweighted = sa_q.count()
         else:
-            cb = tr = sa = 0
+            cb = tr = sa = sa_unweighted = 0
         total_opps = tr
         result.append(ManagerKpi(
             id=m.id, name=m.name, teamSize=len(agent_ids),
             callbacks=cb, transfers=tr, sales=sa,
-            conversionRate=_safe_div(sa, total_opps),
+            conversionRate=_safe_div(sa_unweighted, total_opps),
         ))
     return result
 
@@ -236,12 +237,13 @@ def get_agents(
         cb = cb_q.scalar() or 0
         tr = tr_q.scalar() or 0
         sa = _get_sale_count_by_meters(db, sa_q)
+        sa_unweighted = sa_q.count()
         total_opps = tr
         result.append(AgentKpi(
             id=a.id, name=a.name,
             managerName=manager_map.get(a.manager_id, "Unassigned"),
             callbacks=cb, transfers=tr, sales=sa,
-            conversionRate=_safe_div(sa, total_opps),
+            conversionRate=_safe_div(sa_unweighted, total_opps),
             isActive=1 if a.is_active else 0,
             monthlySalary=a.monthly_salary if a.monthly_salary else 0,
         ))
@@ -280,12 +282,13 @@ def get_manager_detail(
         cb = cb_q.scalar() or 0
         tr = tr_q.scalar() or 0
         sa = _get_sale_count_by_meters(db, sa_q)
+        sa_unweighted = sa_q.count()
         total_opps = tr
         agent_list.append(AgentKpi(
             id=a.id, name=a.name,
             managerName=manager.name,
             callbacks=cb, transfers=tr, sales=sa,
-            conversionRate=_safe_div(sa, total_opps),
+            conversionRate=_safe_div(sa_unweighted, total_opps),
             isActive=1 if a.is_active else 0,
         ))
 
@@ -318,7 +321,7 @@ def get_agent_detail(
     at = len(transfers)
     as_ = sum(max(1, (len(s.customer.electricity_meters) if s.customer else 0) + (len(s.customer.gas_meters) if s.customer else 0)) for s in sales)
     a_total = ac + at
-    a_cr = _safe_div(as_, a_total)
+    a_cr = _safe_div(len(sales), a_total)
 
     return AgentDetail(
         agent=AgentOut(
@@ -695,6 +698,7 @@ def overall_stats(
     total_cb = cb_q.scalar() or 0
     total_tr = tr_q.scalar() or 0
     total_sa = _get_sale_count_by_meters(db, sa_q)
+    total_sa_unweighted = sa_q.count()
     total_opps = total_tr
     return OverallStats(
         totalAgents=total_agents,
@@ -702,7 +706,7 @@ def overall_stats(
         totalCallbacks=total_cb,
         totalTransfers=total_tr,
         totalSales=total_sa,
-        conversionRate=_safe_div(total_sa, total_opps),
+        conversionRate=_safe_div(total_sa_unweighted, total_opps),
     )
 
 
@@ -732,17 +736,19 @@ def performance_overview(
             cb = cb_q.scalar() or 0
             tr = tr_q.scalar() or 0
             sa = _get_sale_count_by_meters(db, sa_q)
+            sa_unweighted = sa_q.count()
         else:
-            cb = tr = sa = 0
+            cb = tr = sa = sa_unweighted = 0
         managers_data.append(ManagerKpi(
             id=m.id, name=m.name, teamSize=len(a_ids),
             callbacks=cb, transfers=tr, sales=sa,
-            conversionRate=_safe_div(sa, tr),
+            conversionRate=_safe_div(sa_unweighted, tr),
         ))
 
     agents_data = []
     agents = db.query(User).filter(User.role == "agent", User.is_active == True).all()
     mgr_names = {m.id: m.name for m in db.query(User).filter(User.role == "manager", User.is_active == True).all()}
+    total_sa_unweighted = 0
     for a in agents:
         cb_q = db.query(func.count(CallBack.id)).filter(CallBack.employee_id == a.id)
         tr_q = db.query(func.count(Transfer.id)).filter(Transfer.employee_id == a.id)
@@ -758,11 +764,13 @@ def performance_overview(
         cb = cb_q.scalar() or 0
         tr = tr_q.scalar() or 0
         sa = _get_sale_count_by_meters(db, sa_q)
+        sa_unweighted = sa_q.count()
+        total_sa_unweighted += sa_unweighted
         agents_data.append(AgentKpi(
             id=a.id, name=a.name,
             managerName=mgr_names.get(a.manager_id, "Unassigned"),
             callbacks=cb, transfers=tr, sales=sa,
-            conversionRate=_safe_div(sa, tr),
+            conversionRate=_safe_div(sa_unweighted, tr),
             isActive=1 if a.is_active else 0,
         ))
 
@@ -781,7 +789,7 @@ def performance_overview(
         totalCallbacks=total_cb,
         totalTransfers=total_tr,
         totalSales=total_sa,
-        conversionRate=_safe_div(total_sa, total_tr),
+        conversionRate=_safe_div(total_sa_unweighted, total_tr),
     )
 
 

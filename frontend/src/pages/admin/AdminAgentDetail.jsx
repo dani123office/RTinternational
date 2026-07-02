@@ -202,8 +202,8 @@ export default function AdminAgentDetail() {
   const statsConversion     = useMemo(() => {
     const total = statsCallbacksCount + statsTransfersCount
     if (total === 0) return 0
-    return Math.round((statsSalesCount / total) * 100)
-  }, [statsCallbacksCount, statsTransfersCount, statsSalesCount])
+    return Math.round((filteredSales.length / total) * 100)
+  }, [statsCallbacksCount, statsTransfersCount, filteredSales])
 
   const statsPresentCount = useMemo(() => {
     return filteredAttendanceByMonth.filter(r => r.status === 'present' || r.status === 'late').length

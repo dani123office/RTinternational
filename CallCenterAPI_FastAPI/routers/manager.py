@@ -102,8 +102,9 @@ def get_team_stats(
     total_callbacks = total_callbacks_query.scalar() or 0
     total_transfers = total_transfers_query.scalar() or 0
     total_sales = _get_sale_count_by_meters(db, total_sales_query)
+    total_sales_unweighted = total_sales_query.count()
     total_records = total_transfers
-    conversion_rate = _safe_div(total_sales, total_records)
+    conversion_rate = _safe_div(total_sales_unweighted, total_records)
 
     agent_stats_list = []
     for agent in agents:
@@ -131,8 +132,9 @@ def get_team_stats(
         ac = ac_q.scalar() or 0
         at = at_q.scalar() or 0
         as_ = _get_sale_count_by_meters(db, as_q)
+        as_unweighted = as_q.count()
         a_total = at
-        a_cr = _safe_div(as_, a_total)
+        a_cr = _safe_div(as_unweighted, a_total)
         agent_stats_list.append(AgentStats(
             agent=AgentOut(
                 id=agent.id, name=agent.name, email=agent.email,
@@ -194,7 +196,7 @@ def get_agent_detail(
     at = len(transfers)
     as_ = sum(max(1, (len(s.customer.electricity_meters) if s.customer else 0) + (len(s.customer.gas_meters) if s.customer else 0)) for s in sales)
     a_total = ac + at
-    a_cr = _safe_div(as_, a_total)
+    a_cr = _safe_div(len(sales), a_total)
 
     return AgentDetail(
         agent=AgentOut(
