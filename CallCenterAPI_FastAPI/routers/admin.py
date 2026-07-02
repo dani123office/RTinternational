@@ -1153,7 +1153,10 @@ def admin_sales(
     total = q.count()
     total_pages = max(1, (total + per_page - 1) // per_page)
     skip = (page - 1) * per_page
-    items = [_sale_out(s, s.customer) for s in q.order_by(Sale.created_at.desc()).offset(skip).limit(per_page).all()]
+    items = []
+    for s in q.order_by(Sale.created_at.desc()).offset(skip).limit(per_page).all():
+        cust = db.query(Customer).filter(Customer.id == s.customer_id).first()
+        items.append(_sale_out(s, cust))
     return {"items": items, "total": total, "page": page, "totalPages": total_pages}
 
 
