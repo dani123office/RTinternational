@@ -250,7 +250,7 @@ export default function AdminAgentDetail() {
         <div className="rt-page">
           <div className="rt-card p-10 text-center">
             <p className="text-slate-400 text-sm">{error || 'Agent not found.'}</p>
-            <Link to="/admin/agents" className="mt-4 text-indigo-600 text-sm font-medium inline-block">← Back to Staff</Link>
+            <Link to="/admin" className="mt-4 text-indigo-600 text-sm font-medium inline-block">← Back to Dashboard</Link>
           </div>
         </div>
       </>
@@ -312,8 +312,8 @@ export default function AdminAgentDetail() {
         <div style={{ maxWidth: '960px', margin: '0 auto' }}>
 
           <div className="rt-page-header flex justify-between items-center" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
-            <Link to="/admin/staff" className="flex items-center gap-1.5 text-sm text-slate-500 no-underline hover:text-slate-800 transition-colors">
-              <ArrowLeft size={16} /> Back to Staff
+            <Link to="/admin" className="flex items-center gap-1.5 text-sm text-slate-500 no-underline hover:text-slate-800 transition-colors">
+              <ArrowLeft size={16} /> Back to Dashboard
             </Link>
             <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
               <span style={{ fontSize: '11px', fontWeight: 700, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Month:</span>
