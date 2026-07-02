@@ -69,7 +69,7 @@ export default function AdminAgentDetail() {
   const { toast } = useToast()
   const { selectedAgent, loadAdminAgentDetail, isLoading, error } = useAdminStore()
 
-  const [activeTab, setActiveTab] = useState('Transfers')
+  const [activeTab, setActiveTab] = useState('Sales')
   const [statusFilter, setStatusFilter] = useState('')
   const [showEditModal, setShowEditModal] = useState(false)
 
