@@ -38,9 +38,15 @@ export default function AdminDashboard() {
   }, [])
 
   const [selectedMonth, setSelectedMonth] = useState(() => {
+    const saved = localStorage.getItem('adminSelectedMonth')
+    if (saved) return saved
     const d = new Date()
     return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`
   })
+
+  useEffect(() => {
+    localStorage.setItem('adminSelectedMonth', selectedMonth)
+  }, [selectedMonth])
 
   const monthsList = useMemo(() => {
     const list = []

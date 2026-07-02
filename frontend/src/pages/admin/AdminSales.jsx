@@ -13,8 +13,30 @@ export default function AdminSales() {
   const [loading, setLoading] = useState(false)
   const [agents, setAgents] = useState([])
   const [searchQuery, setSearchQuery] = useState('')
-  const [fromDate, setFromDate] = useState(() => sessionStorage.getItem('admin_sales_from_date') || '')
-  const [toDate, setToDate] = useState(() => sessionStorage.getItem('admin_sales_to_date') || '')
+  const [fromDate, setFromDate] = useState(() => {
+    const dashboardMonth = localStorage.getItem('adminSelectedMonth') || 'all'
+    const lastDashMonth = sessionStorage.getItem('admin_sales_last_dashboard_month')
+    if (dashboardMonth !== lastDashMonth) {
+      sessionStorage.setItem('admin_sales_last_dashboard_month', dashboardMonth)
+      if (dashboardMonth !== 'all') {
+        const [year, month] = dashboardMonth.split('-').map(Number)
+        const firstDay = `${year}-${String(month).padStart(2, '0')}-01`
+        const lastDayDate = new Date(year, month, 0)
+        const lastDay = `${year}-${String(month).padStart(2, '0')}-${String(lastDayDate.getDate()).padStart(2, '0')}`
+        sessionStorage.setItem('admin_sales_from_date', firstDay)
+        sessionStorage.setItem('admin_sales_to_date', lastDay)
+        return firstDay
+      } else {
+        sessionStorage.setItem('admin_sales_from_date', '')
+        sessionStorage.setItem('admin_sales_to_date', '')
+        return ''
+      }
+    }
+    return sessionStorage.getItem('admin_sales_from_date') || ''
+  })
+  const [toDate, setToDate] = useState(() => {
+    return sessionStorage.getItem('admin_sales_to_date') || ''
+  })
   const [employeeId, setEmployeeId] = useState(() => sessionStorage.getItem('admin_sales_employee_id') || '')
 
   useEffect(() => {
