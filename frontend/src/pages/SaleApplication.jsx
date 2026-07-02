@@ -363,6 +363,7 @@ export default function SaleApplication() {
         mprn: firstMprn,
         msn: firstMsn,
         scheduledDateTime: form.date ? `${form.date}T${form.time || '10:00'}:00` : null,
+        createdAt: form.saleDate ? `${form.saleDate}T12:00:00` : null,
       }
 
       let finalTransferId = editIds.transferId || state.transferId

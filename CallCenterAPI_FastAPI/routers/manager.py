@@ -455,6 +455,7 @@ def create_manager_transfer(
             mprn=data.mprn,
             msn=data.msn,
             notes=data.notes,
+            created_at=data.createdAt or datetime.now(),
         )
         db.add(t)
         db.commit()
@@ -688,6 +689,11 @@ def update_transfer(
         for key, val in data.items():
             attr = _to_snake(key)
             if hasattr(t, attr):
+                if attr == "created_at" and isinstance(val, str):
+                    try:
+                        val = datetime.fromisoformat(val.replace("Z", "+00:00"))
+                    except Exception:
+                        pass
                 setattr(t, attr, val)
         db.commit()
         db.refresh(t)

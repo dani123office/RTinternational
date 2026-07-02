@@ -610,6 +610,7 @@ class ManagerCallbackCreate(BaseModel):
 class ManagerTransferCreate(BaseModel):
     employeeId: int
     customerId: int
+    createdAt: Optional[datetime] = Field(None, description="Custom transfer creation date/time")
     utilityType: str = "electricity"
     supplier: Optional[str] = None
     status: Optional[str] = "pending"
@@ -1364,6 +1365,7 @@ class TransferOut(BaseModel):
 class TransferCreate(BaseModel):
     employeeId: Optional[int] = Field(None, description="Employee ID (auto-set from JWT on server)")
     customerId: int = Field(..., description="Customer ID is required")
+    createdAt: Optional[datetime] = Field(None, description="Custom transfer creation date/time")
     callBackId: Optional[int] = Field(None, description="Linked callback ID if created from callback")
     utilityType: str = Field("electricity", description="Utility type (electricity or gas)")
     supplier: Optional[str] = Field(None, max_length=255, description="Supplier to transfer to")
@@ -1414,6 +1416,7 @@ class TransferCreate(BaseModel):
 
 class TransferUpdate(BaseModel):
     utilityType: Optional[str] = Field(None, description="Utility type (electricity or gas)")
+    createdAt: Optional[datetime] = Field(None, description="Custom transfer creation date/time")
     callBackId: Optional[int] = None
     supplier: Optional[str] = Field(None, max_length=255)
     status: Optional[str] = Field(

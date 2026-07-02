@@ -172,6 +172,7 @@ def create_transfer(dto: TransferCreate, request: Request, current_user: User = 
             mprn=dto.mprn,
             msn=dto.msn,
             notes=dto.notes,
+            created_at=dto.createdAt or datetime.now(),
         )
         if dto.supplier:
             if dto.utilityType == "gas":
@@ -293,6 +294,8 @@ def update_transfer(id: int, dto: TransferUpdate, request: Request, current_user
             transfer.notes = dto.notes
         if dto.callBackId is not None:
             transfer.call_back_id = dto.callBackId
+        if dto.createdAt is not None:
+            transfer.created_at = dto.createdAt
 
         if dto.offeredElectricityRates is not None:
             if dto.offeredElectricityRates:
