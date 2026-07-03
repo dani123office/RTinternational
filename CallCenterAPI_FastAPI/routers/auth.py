@@ -14,33 +14,47 @@ from ..utils.email import send_otp_email, generate_otp
 
 router = APIRouter(prefix="/api/auth", tags=["auth"])
 
-SECRET_KEY = os.environ.get("RT_JWT_SECRET")
+SECRET_KEY = (
+    os.environ.get("RT_JWT_SECRET")
+    or os.environ.get("JWT_SECRET")
+    or os.environ.get("SECRET_KEY")
+)
 _is_production = bool(os.environ.get("VERCEL")) or os.environ.get("RT_ENV", "").lower() in ("production", "prod")
 if not SECRET_KEY:
-    if _is_production:
-        raise RuntimeError("RT_JWT_SECRET must be configured in production")
-    SECRET_KEY = secrets.token_urlsafe(64)
+    if not _is_production:
+        SECRET_KEY = secrets.token_urlsafe(64)
 ALGORITHM = "HS256"
 TOKEN_EXPIRE_HOURS = 24
 REFRESH_EXPIRE_DAYS = 7
 
 
+def _get_secret_key_or_fail() -> str:
+    if SECRET_KEY:
+        return SECRET_KEY
+    raise HTTPException(
+        status_code=503,
+        detail="Authentication service unavailable"
+    )
+
+
 def _create_token(user_id: int) -> str:
+    key = _get_secret_key_or_fail()
     payload = {
         "userId": user_id,
         "type": "access",
         "exp": datetime.utcnow() + timedelta(hours=TOKEN_EXPIRE_HOURS),
     }
-    return jwt.encode(payload, SECRET_KEY, algorithm=ALGORITHM)
+    return jwt.encode(payload, key, algorithm=ALGORITHM)
 
 
 def _create_refresh_token(user_id: int) -> str:
+    key = _get_secret_key_or_fail()
     payload = {
         "userId": user_id,
         "type": "refresh",
         "exp": datetime.utcnow() + timedelta(days=REFRESH_EXPIRE_DAYS),
     }
-    return jwt.encode(payload, SECRET_KEY, algorithm=ALGORITHM)
+    return jwt.encode(payload, key, algorithm=ALGORITHM)
 
 
 def get_current_user(
@@ -53,7 +67,7 @@ def get_current_user(
         scheme, token = authorization.split()
         if scheme.lower() != "bearer":
             raise HTTPException(status_code=401, detail="Invalid auth scheme")
-        payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
+        payload = jwt.decode(token, _get_secret_key_or_fail(), algorithms=[ALGORITHM])
         user_id = payload.get("userId")
         if not user_id:
             raise HTTPException(status_code=401, detail="Invalid token")
@@ -151,7 +165,7 @@ def refresh_token(db: Session = Depends(get_db), authorization: str = Header(Non
         scheme, token = authorization.split()
         if scheme.lower() != "bearer":
             raise HTTPException(status_code=401, detail="Invalid auth scheme")
-        payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
+        payload = jwt.decode(token, _get_secret_key_or_fail(), algorithms=[ALGORITHM])
         if payload.get("type") != "refresh":
             raise HTTPException(status_code=401, detail="Invalid token type")
         user_id = payload.get("userId")
