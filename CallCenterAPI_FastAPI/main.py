@@ -1,6 +1,7 @@
 import os
 import socket
 import re
+import ipaddress
 from pathlib import Path
 from datetime import datetime
 from dotenv import load_dotenv
@@ -41,17 +42,90 @@ class InMemoryRateLimiter:
 
 
 _rate_limiter = InMemoryRateLimiter(max_requests=300, window_seconds=60)
+_auth_rate_limiter = InMemoryRateLimiter(max_requests=15, window_seconds=60)
+
+
+def _parse_trusted_proxies() -> list[str]:
+    raw = os.environ.get("RT_TRUSTED_PROXIES", "127.0.0.1,::1")
+    return [x.strip() for x in raw.split(",") if x.strip()]
+
+
+TRUSTED_PROXIES = _parse_trusted_proxies()
+TRUST_PROXY_HOPS = max(int(os.environ.get("RT_TRUST_PROXY_HOPS", "1")), 1)
+
+
+def _get_client_identifier(request: Request) -> str:
+    remote = request.client.host if request.client else "unknown"
+
+    remote_ip = None
+    try:
+        remote_ip = ipaddress.ip_address(remote)
+    except ValueError:
+        remote_ip = None
+
+    is_trusted_proxy = False
+    if remote_ip is not None:
+        for entry in TRUSTED_PROXIES:
+            try:
+                if "/" in entry:
+                    if remote_ip in ipaddress.ip_network(entry, strict=False):
+                        is_trusted_proxy = True
+                        break
+                elif remote_ip == ipaddress.ip_address(entry):
+                    is_trusted_proxy = True
+                    break
+            except ValueError:
+                continue
+
+    xff = request.headers.get("x-forwarded-for", "")
+    if is_trusted_proxy and xff:
+        hops = [h.strip() for h in xff.split(",") if h.strip()]
+        if len(hops) < TRUST_PROXY_HOPS:
+            return remote
+        idx = len(hops) - TRUST_PROXY_HOPS
+        candidate = hops[idx]
+        try:
+            ipaddress.ip_address(candidate)
+            return candidate
+        except ValueError:
+            pass
+    return remote
 
 
 class RateLimitMiddleware(BaseHTTPMiddleware):
     async def dispatch(self, request: Request, call_next):
-        client_ip = request.client.host if request.client else "unknown"
-        if not _rate_limiter.check(client_ip):
+        client_id = _get_client_identifier(request)
+        is_auth_endpoint = request.url.path in {
+            "/api/auth/login",
+            "/api/auth/refresh",
+            "/api/auth/forgot-password",
+            "/api/auth/reset-password",
+            "/api/auth/send-otp",
+            "/api/auth/verify-otp",
+        }
+        limiter = _auth_rate_limiter if is_auth_endpoint else _rate_limiter
+        bucket = f"{'auth' if is_auth_endpoint else 'default'}:{client_id}"
+        if not limiter.check(bucket):
             return JSONResponse(
                 status_code=429,
                 content={"detail": "Rate limit exceeded. Try again later."}
             )
         return await call_next(request)
+
+
+class SecurityHeadersMiddleware(BaseHTTPMiddleware):
+    async def dispatch(self, request: Request, call_next):
+        response = await call_next(request)
+        response.headers["X-Content-Type-Options"] = "nosniff"
+        response.headers["X-Frame-Options"] = "DENY"
+        response.headers["Referrer-Policy"] = "no-referrer"
+        response.headers["Permissions-Policy"] = "camera=(), microphone=(), geolocation=()"
+        response.headers[
+            "Content-Security-Policy"
+        ] = "default-src 'self'; base-uri 'self'; frame-ancestors 'none'; form-action 'self'; img-src 'self' data: https:; style-src 'self' 'unsafe-inline'; script-src 'self' 'unsafe-inline'; connect-src 'self' https:"
+        if request.url.scheme == "https" or os.environ.get("VERCEL"):
+            response.headers["Strict-Transport-Security"] = "max-age=31536000; includeSubDomains"
+        return response
 
 
 def _humanize_field(loc):
@@ -185,18 +259,26 @@ async def generic_exception_handler(request, exc):
     traceback.print_exc(file=sys.stderr)
     return JSONResponse(
         status_code=500,
-        content={"detail": f"Internal Server Error: {str(exc)}"}
+        content={"detail": "Internal Server Error"}
     )
 
 
-RT_CORS = os.environ.get("RT_CORS_ORIGINS", "http://localhost:5173,http://127.0.0.1:5173").split(",")
+RT_CORS = [
+    origin.strip()
+    for origin in os.environ.get(
+        "RT_CORS_ORIGINS", "http://localhost:5173,http://127.0.0.1:5173"
+    ).split(",")
+    if origin.strip() and "*" not in origin
+]
+ORIGIN_REGEX = None
 if os.environ.get("VERCEL"):
     RT_CORS.append("https://rt-international.vercel.app")
-    RT_CORS.append("https://rt-international-*.vercel.app")
+    ORIGIN_REGEX = r"^https://rt-international-[a-z0-9-]+\.vercel\.app$"
 
 app.add_middleware(
     CORSMiddleware,
     allow_origins=RT_CORS,
+    allow_origin_regex=ORIGIN_REGEX,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -204,6 +286,7 @@ app.add_middleware(
 
 app.add_middleware(RateLimitMiddleware)
 app.add_middleware(SQLInjectionMiddleware)
+app.add_middleware(SecurityHeadersMiddleware)
 
 @app.get("/api/health")
 def health():

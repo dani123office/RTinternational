@@ -44,7 +44,8 @@ app.*.map.json
 /android/app/profile
 /android/app/release
 
-testsprite_tests\tmp\config.json
+testsprite_tests/tmp/config.json
+testsprite_tests/tmp/**
 
 .vercel
 

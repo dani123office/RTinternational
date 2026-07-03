@@ -14,7 +14,12 @@ from ..utils.email import send_otp_email, generate_otp
 
 router = APIRouter(prefix="/api/auth", tags=["auth"])
 
-SECRET_KEY = os.environ.get("RT_JWT_SECRET", "rt-international-secret-key-2026")
+SECRET_KEY = os.environ.get("RT_JWT_SECRET")
+_is_production = bool(os.environ.get("VERCEL")) or os.environ.get("RT_ENV", "").lower() in ("production", "prod")
+if not SECRET_KEY:
+    if _is_production:
+        raise RuntimeError("RT_JWT_SECRET must be configured in production")
+    SECRET_KEY = secrets.token_urlsafe(64)
 ALGORITHM = "HS256"
 TOKEN_EXPIRE_HOURS = 24
 REFRESH_EXPIRE_DAYS = 7
@@ -296,12 +301,16 @@ def forgot_password(request: ForgotPasswordRequest, db: Session = Depends(get_db
     reset_link = f"/reset-password?token={token}"
 
     # In production, send this link via email.
-    # For development, return it in response.
-    return {
+    # In development, tokens can be exposed by enabling RT_EXPOSE_RESET_TOKEN=true.
+    response = {
         "message": "If this email exists, a reset link has been sent.",
-        "resetLink": reset_link,
-        "token": token,
     }
+    expose_reset = os.environ.get("RT_EXPOSE_RESET_TOKEN")
+    should_expose = ((expose_reset or "").lower() == "true") and (not _is_production)
+    if should_expose:
+        response["resetLink"] = reset_link
+        response["token"] = token
+    return response
 
 
 @router.post("/reset-password")
