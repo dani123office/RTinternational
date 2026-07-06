@@ -1305,6 +1305,8 @@ def admin_salary_slip(
     agent = db.query(User).filter(User.id == user_id).first()
     if not agent:
         raise HTTPException(status_code=404, detail="Agent not found")
+    if agent.is_active != True:
+        raise HTTPException(status_code=400, detail="Cannot generate salary slip for inactive/disabled user")
 
     now = datetime.now()
     m = month or now.month

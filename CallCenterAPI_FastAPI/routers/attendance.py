@@ -315,9 +315,13 @@ def team_today(
         team = db.query(User).filter(
             User.manager_id == current_user.id,
             User.role == "agent",
+            User.is_active == True,
         ).all()
     else:
-        team = db.query(User).filter(User.role == "agent").all()
+        team = db.query(User).filter(
+            User.role == "agent",
+            User.is_active == True,
+        ).all()
 
     result = []
     for agent in team:
@@ -411,7 +415,7 @@ def attendance_feed(
     if current_user.role not in ("manager", "admin"):
         raise HTTPException(status_code=403, detail="Only managers and admins can view attendance feed")
 
-    query = db.query(Attendance, User).join(User, Attendance.user_id == User.id)
+    query = db.query(Attendance, User).join(User, Attendance.user_id == User.id).filter(User.is_active == True)
 
     if current_user.role == "manager":
         query = query.filter(User.manager_id == current_user.id, User.role == "agent")
@@ -464,7 +468,7 @@ def attendance_export(
     if current_user.role not in ("manager", "admin"):
         raise HTTPException(status_code=403, detail="Only managers and admins can export attendance")
 
-    query = db.query(Attendance, User).join(User, Attendance.user_id == User.id)
+    query = db.query(Attendance, User).join(User, Attendance.user_id == User.id).filter(User.is_active == True)
 
     if current_user.role == "manager":
         query = query.filter(User.manager_id == current_user.id, User.role == "agent")
@@ -550,7 +554,7 @@ def late_arrivals(
     if current_user.role not in ("manager", "admin"):
         raise HTTPException(status_code=403, detail="Only managers and admins can view late arrivals")
 
-    query = db.query(Attendance, User).join(User, Attendance.user_id == User.id)
+    query = db.query(Attendance, User).join(User, Attendance.user_id == User.id).filter(User.is_active == True)
 
     if current_user.role == "manager":
         query = query.filter(User.manager_id == current_user.id, User.role == "agent")

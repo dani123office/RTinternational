@@ -41,6 +41,8 @@ def create_loan(
         target_user = db.query(User).filter(User.id == dto.userId).first()
         if not target_user:
             raise HTTPException(status_code=404, detail="Target user not found")
+        if target_user.is_active != True:
+            raise HTTPException(status_code=400, detail="Cannot create loan for inactive/disabled user")
         if target_user.role not in ("agent", "manager"):
             raise HTTPException(status_code=400, detail="Loans can only be created for agents or managers")
 
