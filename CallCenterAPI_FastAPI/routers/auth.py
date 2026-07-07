@@ -24,7 +24,7 @@ if not SECRET_KEY:
     if not _is_production:
         SECRET_KEY = secrets.token_urlsafe(64)
 ALGORITHM = "HS256"
-TOKEN_EXPIRE_HOURS = 24
+TOKEN_EXPIRE_MINUTES = 15
 REFRESH_EXPIRE_DAYS = 7
 
 
@@ -42,7 +42,7 @@ def _create_token(user_id: int) -> str:
     payload = {
         "userId": user_id,
         "type": "access",
-        "exp": datetime.utcnow() + timedelta(hours=TOKEN_EXPIRE_HOURS),
+        "exp": datetime.utcnow() + timedelta(minutes=TOKEN_EXPIRE_MINUTES),
     }
     return jwt.encode(payload, key, algorithm=ALGORITHM)
 
