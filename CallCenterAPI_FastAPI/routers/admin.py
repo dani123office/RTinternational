@@ -6,7 +6,7 @@ from typing import Optional
 from fastapi import APIRouter, Depends, HTTPException, Query, Request
 from fastapi.responses import Response
 from sqlalchemy.orm import Session
-from sqlalchemy import func, extract
+from sqlalchemy import func, extract, or_
 from ..database import get_db
 from ..models import User, Customer, CallBack, Transfer, Sale, ActivityLog, Attendance, LeaveRequest, LoanRequest, Notification, EmailVerification, StaffOTP, ElectricityMeter, GasMeter
 from .auth import require_admin
@@ -840,18 +840,30 @@ def admin_callbacks(
     employee_id: int | None = Query(None, description="Filter by employee"),
     page: int = Query(1, ge=1, description="Page number"),
     per_page: int = Query(20, ge=1, le=500, description="Items per page"),
+    search: str | None = Query(None, description="Search across all time"),
     admin: User = Depends(require_admin),
     db: Session = Depends(get_db),
 ):
-    q = db.query(CallBack)
+    q = db.query(CallBack).outerjoin(Customer, CallBack.customer_id == Customer.id).outerjoin(User, CallBack.employee_id == User.id)
     if status:
         q = q.filter(CallBack.status == status)
-    if from_date:
-        from_dt = datetime.combine(from_date, datetime.min.time())
-        q = q.filter(CallBack.created_at >= from_dt)
-    if to_date:
-        to_dt = datetime.combine(to_date, datetime.max.time())
-        q = q.filter(CallBack.created_at <= to_dt)
+    if search:
+        search_pattern = f"%{search}%"
+        q = q.filter(
+            or_(
+                Customer.business_name.ilike(search_pattern),
+                Customer.owner_name.ilike(search_pattern),
+                User.name.ilike(search_pattern),
+                CallBack.notes.ilike(search_pattern)
+            )
+        )
+    else:
+        if from_date:
+            from_dt = datetime.combine(from_date, datetime.min.time())
+            q = q.filter(CallBack.created_at >= from_dt)
+        if to_date:
+            to_dt = datetime.combine(to_date, datetime.max.time())
+            q = q.filter(CallBack.created_at <= to_dt)
     if employee_id:
         q = q.filter(CallBack.employee_id == employee_id)
     total = q.count()
@@ -988,18 +1000,31 @@ def admin_transfers(
     employee_id: int | None = Query(None, description="Filter by employee"),
     page: int = Query(1, ge=1, description="Page number"),
     per_page: int = Query(20, ge=1, le=500, description="Items per page"),
+    search: str | None = Query(None, description="Search across all time"),
     admin: User = Depends(require_admin),
     db: Session = Depends(get_db),
 ):
-    q = db.query(Transfer)
+    q = db.query(Transfer).outerjoin(Customer, Transfer.customer_id == Customer.id).outerjoin(User, Transfer.employee_id == User.id)
     if status:
         q = q.filter(Transfer.status == status)
-    if from_date:
-        from_dt = datetime.combine(from_date, datetime.min.time())
-        q = q.filter(Transfer.created_at >= from_dt)
-    if to_date:
-        to_dt = datetime.combine(to_date, datetime.max.time())
-        q = q.filter(Transfer.created_at <= to_dt)
+    if search:
+        search_pattern = f"%{search}%"
+        q = q.filter(
+            or_(
+                Customer.business_name.ilike(search_pattern),
+                Customer.owner_name.ilike(search_pattern),
+                User.name.ilike(search_pattern),
+                Transfer.notes.ilike(search_pattern),
+                Transfer.utility_type.ilike(search_pattern)
+            )
+        )
+    else:
+        if from_date:
+            from_dt = datetime.combine(from_date, datetime.min.time())
+            q = q.filter(Transfer.created_at >= from_dt)
+        if to_date:
+            to_dt = datetime.combine(to_date, datetime.max.time())
+            q = q.filter(Transfer.created_at <= to_dt)
     if employee_id:
         q = q.filter(Transfer.employee_id == employee_id)
     total = q.count()
@@ -1136,18 +1161,31 @@ def admin_sales(
     employee_id: int | None = Query(None, description="Filter by employee"),
     page: int = Query(1, ge=1, description="Page number"),
     per_page: int = Query(20, ge=1, le=500, description="Items per page"),
+    search: str | None = Query(None, description="Search across all time"),
     admin: User = Depends(require_admin),
     db: Session = Depends(get_db),
 ):
-    q = db.query(Sale)
+    q = db.query(Sale).outerjoin(Customer, Sale.customer_id == Customer.id).outerjoin(User, Sale.employee_id == User.id)
     if status:
         q = q.filter(Sale.cot_status == status)
-    if from_date:
-        from_dt = datetime.combine(from_date, datetime.min.time())
-        q = q.filter(Sale.created_at >= from_dt)
-    if to_date:
-        to_dt = datetime.combine(to_date, datetime.max.time())
-        q = q.filter(Sale.created_at <= to_dt)
+    if search:
+        search_pattern = f"%{search}%"
+        q = q.filter(
+            or_(
+                Customer.business_name.ilike(search_pattern),
+                Customer.owner_name.ilike(search_pattern),
+                Sale.owner_full_name.ilike(search_pattern),
+                User.name.ilike(search_pattern),
+                Sale.notes.ilike(search_pattern)
+            )
+        )
+    else:
+        if from_date:
+            from_dt = datetime.combine(from_date, datetime.min.time())
+            q = q.filter(Sale.created_at >= from_dt)
+        if to_date:
+            to_dt = datetime.combine(to_date, datetime.max.time())
+            q = q.filter(Sale.created_at <= to_dt)
     if employee_id:
         q = q.filter(Sale.employee_id == employee_id)
     total = q.count()

@@ -13,6 +13,7 @@ export default function AdminTransfers() {
   const [loading, setLoading] = useState(false)
   const [agents, setAgents] = useState([])
   const [searchQuery, setSearchQuery] = useState('')
+  const [isFirstLoad, setIsFirstLoad] = useState(true)
   const [fromDate, setFromDate] = useState(() => {
     const dashboardMonth = localStorage.getItem('adminSelectedMonth') || 'all'
     const lastDashMonth = sessionStorage.getItem('admin_transfers_last_dashboard_month')
@@ -48,8 +49,12 @@ export default function AdminTransfers() {
   function loadTransfers(p = 1) {
     setLoading(true)
     const params = { page: p, per_page: 20 }
-    if (fromDate) params.from_date = fromDate
-    if (toDate) params.to_date = toDate
+    if (searchQuery.trim()) {
+      params.search = searchQuery.trim()
+    } else {
+      if (fromDate) params.from_date = fromDate
+      if (toDate) params.to_date = toDate
+    }
     if (employeeId) params.employee_id = employeeId
 
     sessionStorage.setItem('admin_transfers_from_date', fromDate)
@@ -64,12 +69,17 @@ export default function AdminTransfers() {
   }
 
   useEffect(() => {
-    if (mounted.current) return
-    mounted.current = true
-    const savedPage = Number(sessionStorage.getItem('admin_transfers_page') || '1')
-    loadTransfers(savedPage)
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [])
+    if (isFirstLoad) {
+      setIsFirstLoad(false)
+      const savedPage = Number(sessionStorage.getItem('admin_transfers_page') || '1')
+      loadTransfers(savedPage)
+      return
+    }
+    const delayDebounceFn = setTimeout(() => {
+      loadTransfers(1)
+    }, 500)
+    return () => clearTimeout(delayDebounceFn)
+  }, [searchQuery])
 
   const handleFilter = () => loadTransfers(1)
 
@@ -98,13 +108,7 @@ export default function AdminTransfers() {
     return new Date(d).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })
   }
 
-  const q = searchQuery.toLowerCase().trim()
-  const filteredItems = q
-    ? data.items.filter((t) =>
-        [t.customer?.businessName, t.customer?.ownerName, t.ownerFullName, t.agentName, t.notes, t.utilityType]
-          .some((f) => f && f.toLowerCase().includes(q))
-      )
-    : data.items
+  const filteredItems = data.items
 
   return (
     <>

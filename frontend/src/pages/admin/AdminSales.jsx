@@ -13,6 +13,7 @@ export default function AdminSales() {
   const [loading, setLoading] = useState(false)
   const [agents, setAgents] = useState([])
   const [searchQuery, setSearchQuery] = useState('')
+  const [isFirstLoad, setIsFirstLoad] = useState(true)
   const [fromDate, setFromDate] = useState(() => {
     const dashboardMonth = localStorage.getItem('adminSelectedMonth') || 'all'
     const lastDashMonth = sessionStorage.getItem('admin_sales_last_dashboard_month')
@@ -48,8 +49,12 @@ export default function AdminSales() {
   function loadSales(p = 1) {
     setLoading(true)
     const params = { page: p, per_page: 20 }
-    if (fromDate) params.from_date = fromDate
-    if (toDate) params.to_date = toDate
+    if (searchQuery.trim()) {
+      params.search = searchQuery.trim()
+    } else {
+      if (fromDate) params.from_date = fromDate
+      if (toDate) params.to_date = toDate
+    }
     if (employeeId) params.employee_id = employeeId
 
     sessionStorage.setItem('admin_sales_from_date', fromDate)
@@ -64,12 +69,17 @@ export default function AdminSales() {
   }
 
   useEffect(() => {
-    if (mounted.current) return
-    mounted.current = true
-    const savedPage = Number(sessionStorage.getItem('admin_sales_page') || '1')
-    loadSales(savedPage)
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [])
+    if (isFirstLoad) {
+      setIsFirstLoad(false)
+      const savedPage = Number(sessionStorage.getItem('admin_sales_page') || '1')
+      loadSales(savedPage)
+      return
+    }
+    const delayDebounceFn = setTimeout(() => {
+      loadSales(1)
+    }, 500)
+    return () => clearTimeout(delayDebounceFn)
+  }, [searchQuery])
 
   const handleFilter = () => loadSales(1)
 
@@ -98,13 +108,7 @@ export default function AdminSales() {
     return new Date(d).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })
   }
 
-  const q = searchQuery.toLowerCase().trim()
-  const filteredItems = q
-    ? data.items.filter((s) =>
-        [s.customer?.businessName, s.customer?.ownerName, s.ownerFullName, s.agentName, s.notes]
-          .some((f) => f && f.toLowerCase().includes(q))
-      )
-    : data.items
+  const filteredItems = data.items
 
   return (
     <>
