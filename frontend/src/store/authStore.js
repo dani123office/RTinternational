@@ -32,7 +32,8 @@ const storage = {
 }
 
 const storedToken = storage.get('token')
-const expired = storedToken && isTokenExpired(storedToken)
+const storedRefreshToken = storage.get('refreshToken')
+const expired = storedToken && isTokenExpired(storedToken) && (!storedRefreshToken || isTokenExpired(storedRefreshToken))
 if (expired) {
   ;['token', 'refreshToken', 'user', 'rememberMe'].forEach(key => {
     localStorage.removeItem(key)
