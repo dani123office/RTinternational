@@ -103,6 +103,8 @@ Fix 500 errors (local and Vercel) in the RT International call center FastAPI ap
 
 37. **Fixed SQLite activity_logs autoincrement issue** — changed `ActivityLog.id` type from `BigInteger` to `Integer` in `models.py` and recreated the table in the git-tracked `callcenter.db`. Also populated email verification records for the default test users to allow login on clean checkouts.
 
+38. **Added Agent Auto-Dialer** — Created a dedicated 'Auto Dialer' page for agents to upload and run call campaigns from CSV/TXT lists. Integrated dial triggering via `tel:` protocol (initiating calls in Vonage Business Communications desktop app), added queue and history tabs, persisted state in `localStorage` across refreshes, and integrated pre-fill redirects to Callback, Transfer, and Sale forms.
+
 ## Root Causes (continued)
 - **Activity logging never worked**: `log_activity()` function was defined in `utils/logger.py` but never imported or called from any router. Activity logs table was always empty. No audit trail existed despite the schema being fully set up. → Fixed by adding `log_activity()` calls after all create/update/delete endpoints across all 10 routers.
 - **No containerized development**: No Dockerfile or docker-compose.yml existed, making it harder for new developers to set up a consistent local environment. → Fixed by adding Dockerfile (Python 3.12-slim) and docker-compose.yml (API + frontend).
@@ -112,6 +114,7 @@ Fix 500 errors (local and Vercel) in the RT International call center FastAPI ap
 - **Customer duplication by postcode allowed**: Previously, if two different agents entered a customer with the same postcode, the backend would simply update the existing customer profile and return it without warning, causing agent conflict and data leakage. → Fixed by raising a 400 Bad Request if the existing postcode customer belongs to another agent.
 - **Duplicate postcode error sanitized**: The exception details sanitizer rewrote the validation error `This customer belongs to agent: name` to a generic error `We could not complete your request` because it contained a colon and was not in the `safe_prefixes` whitelist. → Fixed by adding it to `safe_prefixes`.
 - **IntegrityError on activity logging (SQLite)**: SQLite does not auto-increment columns defined as `BIGINT PRIMARY KEY`, causing `NOT NULL constraint failed: activity_logs.id` on server database insertions. → Fixed by changing datatype to `Integer` and dropping the old table so uvicorn can recreate it with standard autoincrement.
+- **Lack of auto-dialer for notepad/excel sheets**: Previously, agents had to manually type phone numbers from spreadsheets or notepad into Vonage to dial them. → Fixed by building a client-side Auto-Dialer campaign queue workspace with Vonage 'tel:' protocol execution and pre-fill redirects.
 
 ## Verification
 1. Push to GitHub → Vercel auto-deploys

@@ -35,6 +35,7 @@ const NAV_ITEMS = {
   agent: [
     { to: '/', icon: LayoutDashboard, label: 'Dashboard' },
     { to: '/attendance', icon: Clock, label: 'Attendance' },
+    { to: '/dialer', icon: PhoneCall, label: 'Auto Dialer' },
     { to: '/callbacks', icon: PhoneCall, label: 'Callbacks' },
     { to: '/transfers', icon: ArrowLeftRight, label: 'Transfers' },
     { to: '/sales', icon: PoundSterling, label: 'Sales' },

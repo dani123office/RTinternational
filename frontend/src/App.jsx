@@ -23,6 +23,7 @@ import CustomerDetail from '@/pages/CustomerDetail'
 import Loans from '@/pages/Loans'
 import LeaveRequests from '@/pages/LeaveRequests'
 import ProfileSettings from '@/pages/ProfileSettings'
+import AutoDialer from '@/pages/AutoDialer'
 import TeamDashboard from '@/pages/manager/TeamDashboard'
 import ManagerAttendance from '@/pages/manager/ManagerAttendance'
 import AttendanceFeed from '@/pages/manager/AttendanceFeed'
@@ -83,6 +84,7 @@ export default function App() {
       <Route path="/" element={<ProtectedRoute><AppLayout /></ProtectedRoute>}>
         <Route index element={<RoleRoute allowedRoles={['agent']}><Dashboard /></RoleRoute>} />
         <Route path="attendance" element={<RoleRoute allowedRoles={['agent']}><Attendance /></RoleRoute>} />
+        <Route path="dialer" element={<RoleRoute allowedRoles={['agent']}><AutoDialer /></RoleRoute>} />
         <Route path="profile" element={<ProfileSettings />} />
         <Route path="callbacks" element={<RoleRoute allowedRoles={['agent', 'admin']}><Callbacks /></RoleRoute>} />
         <Route path="callbacks/add" element={<RoleRoute allowedRoles={['agent']}><AddCallback /></RoleRoute>} />
