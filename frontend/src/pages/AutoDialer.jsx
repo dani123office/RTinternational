@@ -286,7 +286,11 @@ export default function AutoDialer() {
   // Initiate dialing using the system protocol
   const triggerDial = (phoneNum) => {
     if (!phoneNum) return
-    window.location.href = `tel:${phoneNum}`
+    const link = document.createElement('a')
+    link.href = `tel:${phoneNum}`
+    document.body.appendChild(link)
+    link.click()
+    document.body.removeChild(link)
     toast(`Dialing ${phoneNum} via Vonage...`, 'info')
   }
 
