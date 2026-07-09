@@ -105,6 +105,8 @@ Fix 500 errors (local and Vercel) in the RT International call center FastAPI ap
 
 38. **Added Agent Auto-Dialer** — Created a dedicated 'Auto Dialer' page for agents to upload and run call campaigns from CSV/TXT lists. Integrated dial triggering via `tel:` protocol (initiating calls in Vonage Business Communications desktop app), added queue and history tabs, persisted state in `localStorage` across refreshes, and integrated pre-fill redirects to Callback, Transfer, and Sale forms.
 
+39. **Multi-Campaign Support in Auto-Dialer** — Redesigned the `AutoDialer.jsx` campaign flow from a single active campaign to a multi-campaign dashboard model. Agents can now upload multiple CSV/TXT files, each creating a campaign card showing creation time, live progress bar, remaining leads count, and delete actions. Clicking a campaign card switches the active dialer to that campaign, with a 'Back to Dashboard' button allowing agents to switch between different campaigns on the fly. Progress and campaigns are fully persisted in `localStorage`.
+
 ## Root Causes (continued)
 - **Activity logging never worked**: `log_activity()` function was defined in `utils/logger.py` but never imported or called from any router. Activity logs table was always empty. No audit trail existed despite the schema being fully set up. → Fixed by adding `log_activity()` calls after all create/update/delete endpoints across all 10 routers.
 - **No containerized development**: No Dockerfile or docker-compose.yml existed, making it harder for new developers to set up a consistent local environment. → Fixed by adding Dockerfile (Python 3.12-slim) and docker-compose.yml (API + frontend).

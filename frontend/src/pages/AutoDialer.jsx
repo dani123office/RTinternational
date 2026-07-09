@@ -4,42 +4,30 @@ import { useToast } from '@/components/ui/toastContext'
 import {
   Upload, Play, Phone, SkipForward, ChevronLeft, RotateCcw,
   List, CheckCircle2, XCircle, ArrowLeftRight, PhoneCall,
-  PoundSterling, FileSpreadsheet, FileText, Check, AlertCircle, Info
+  PoundSterling, FileSpreadsheet, FileText, Check, AlertCircle, Info, Trash2
 } from 'lucide-react'
 import { APP_STYLES } from '@/lib/styles'
-
-// Custom local storage keys
-const STORAGE_KEY = 'rt_dialer_campaign'
 
 export default function AutoDialer() {
   const navigate = useNavigate()
   const { toast } = useToast()
 
-  // Campaign State
-  const [campaign, setCampaign] = useState(() => {
-    const saved = localStorage.getItem(STORAGE_KEY)
+  // Campaigns list state
+  const [campaigns, setCampaigns] = useState(() => {
+    const saved = localStorage.getItem('rt_dialer_campaigns')
     if (saved) {
       try {
         return JSON.parse(saved)
       } catch (e) {
-        console.error('Failed to parse campaign from storage', e)
+        console.error('Failed to parse campaigns from storage', e)
       }
     }
-    return {
-      leads: [],
-      currentIndex: 0,
-      history: [],
-      isActive: false,
-      mapping: {
-        businessName: '',
-        ownerName: '',
-        phone: '',
-        postcode: '',
-        notes: ''
-      },
-      headers: [],
-      rawRows: []
-    }
+    return []
+  })
+
+  // Active Campaign ID state
+  const [activeCampaignId, setActiveCampaignId] = useState(() => {
+    return localStorage.getItem('rt_dialer_active_campaign_id') || null
   })
 
   // UI State
@@ -51,15 +39,84 @@ export default function AutoDialer() {
     const saved = localStorage.getItem('rt_autodial_next')
     return saved === 'true'
   })
-  
-  const prevIndexRef = useRef(campaign.currentIndex)
 
-  // Save campaign state to local storage whenever it changes
+  // Save campaigns to storage
   useEffect(() => {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(campaign))
-  }, [campaign])
+    localStorage.setItem('rt_dialer_campaigns', JSON.stringify(campaigns))
+  }, [campaigns])
 
-  // Helper to split CSV row, taking into account quoted values
+  // Save active campaign ID to storage
+  useEffect(() => {
+    if (activeCampaignId) {
+      localStorage.setItem('rt_dialer_active_campaign_id', activeCampaignId)
+    } else {
+      localStorage.removeItem('rt_dialer_active_campaign_id')
+    }
+  }, [activeCampaignId])
+
+  const activeCampaign = campaigns.find(c => c.id === activeCampaignId) || null
+
+  const prevIndexRef = useRef(0)
+
+  // Update active campaign helper
+  const updateActiveCampaign = (updater) => {
+    setCampaigns(prev => prev.map(c => {
+      if (c.id === activeCampaignId) {
+        return typeof updater === 'function' ? updater(c) : { ...c, ...updater }
+      }
+      return c
+    }))
+  }
+
+  // Delete Campaign helper
+  const deleteCampaign = (id, e) => {
+    if (e) e.stopPropagation()
+    if (window.confirm('Are you sure you want to delete this campaign? All dialer progress and history will be lost.')) {
+      setCampaigns(prev => prev.filter(c => c.id !== id))
+      if (activeCampaignId === id) {
+        setActiveCampaignId(null)
+      }
+      toast('Campaign deleted successfully', 'info')
+    }
+  }
+
+  // Active Lead Information
+  const currentLead = activeCampaign && activeCampaign.leads ? activeCampaign.leads[activeCampaign.currentIndex] || null : null
+  const totalLeads = activeCampaign && activeCampaign.leads ? activeCampaign.leads.length : 0
+  const progressPercent = activeCampaign && totalLeads > 0 ? Math.round((activeCampaign.currentIndex / totalLeads) * 100) : 0
+
+  // Initiate dialing using the system protocol
+  const triggerDial = (phoneNum) => {
+    if (!phoneNum) return
+    const link = document.createElement('a')
+    link.href = `tel:${phoneNum}`
+    document.body.appendChild(link)
+    link.click()
+    document.body.removeChild(link)
+    toast(`Dialing ${phoneNum} via Vonage...`, 'info')
+  }
+
+  useEffect(() => {
+    localStorage.setItem('rt_autodial_next', autoDialNext)
+  }, [autoDialNext])
+
+  // Trigger auto dial next
+  useEffect(() => {
+    if (activeCampaign && activeCampaign.isActive && autoDialNext && activeCampaign.leads.length > 0) {
+      if (activeCampaign.currentIndex > prevIndexRef.current) {
+        const nextLead = activeCampaign.leads[activeCampaign.currentIndex]
+        if (nextLead) {
+          const timer = setTimeout(() => {
+            triggerDial(nextLead.phone)
+          }, 1000)
+          return () => clearTimeout(timer)
+        }
+      }
+    }
+    prevIndexRef.current = activeCampaign ? activeCampaign.currentIndex : 0
+  }, [activeCampaign?.currentIndex, activeCampaign?.isActive, autoDialNext])
+
+  // Split CSV helper
   const parseRow = (rowText) => {
     const result = []
     let insideQuote = false
@@ -87,6 +144,28 @@ export default function AutoDialer() {
     if (lines.length === 0) {
       toast('The uploaded file is empty', 'error')
       return
+    }
+
+    const campaignId = 'camp_' + Date.now()
+    const campaignName = fileName.replace(/\.[^/.]+$/, "") // strip extension
+
+    let newCampaign = {
+      id: campaignId,
+      name: campaignName,
+      leads: [],
+      currentIndex: 0,
+      history: [],
+      isActive: false,
+      mapping: {
+        businessName: '',
+        ownerName: '',
+        phone: '',
+        postcode: '',
+        notes: ''
+      },
+      headers: [],
+      rawRows: [],
+      createdAt: new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })
     }
 
     if (isCsv) {
@@ -134,16 +213,12 @@ export default function AutoDialer() {
       if (!mapping.phone && headers.length > 0) mapping.phone = headers.find(h => h.toLowerCase().includes('tel') || h.toLowerCase().includes('phone')) || headers[0]
       if (!mapping.businessName && headers.length > 0) mapping.businessName = headers.find(h => h.toLowerCase().includes('name')) || headers[0]
 
-      setCampaign(prev => ({
-        ...prev,
-        headers,
-        rawRows,
-        mapping,
-        leads: [],
-        currentIndex: 0,
-        history: [],
-        isActive: false
-      }))
+      newCampaign.headers = headers
+      newCampaign.rawRows = rawRows
+      newCampaign.mapping = mapping
+      
+      setCampaigns(prev => [...prev, newCampaign])
+      setActiveCampaignId(campaignId) // Go straight to column mapping
       toast('CSV file uploaded and parsed successfully!', 'success')
     } else {
       // Text file mode: assume one phone number per line
@@ -171,16 +246,14 @@ export default function AutoDialer() {
         notes: ''
       }))
 
-      setCampaign(prev => ({
-        ...prev,
-        headers: ['Phone'],
-        rawRows,
-        mapping,
-        leads,
-        currentIndex: 0,
-        history: [],
-        isActive: true // Skip mapping screen for raw text lists
-      }))
+      newCampaign.headers = ['Phone']
+      newCampaign.rawRows = rawRows
+      newCampaign.mapping = mapping
+      newCampaign.leads = leads
+      newCampaign.isActive = true // Skip mapping screen
+
+      setCampaigns(prev => [...prev, newCampaign])
+      setActiveCampaignId(campaignId) // Go straight to dialer
       toast('Text list loaded. Campaign started!', 'success')
     }
   }
@@ -224,14 +297,14 @@ export default function AutoDialer() {
 
   // Start Campaign
   const startCampaign = () => {
-    const { mapping, rawRows } = campaign
+    if (!activeCampaign) return
+    const { mapping, rawRows } = activeCampaign
     if (!mapping.phone) {
       toast('You must select a Phone Number column mapping', 'error')
       return
     }
 
     const leads = rawRows.map(row => {
-      // Find row keys matching selected mapping headers
       const getVal = (headerName) => {
         if (!headerName) return ''
         const key = headerName.trim().toLowerCase().replace(/[^a-z0-9]/g, '')
@@ -252,77 +325,18 @@ export default function AutoDialer() {
       return
     }
 
-    setCampaign(prev => ({
-      ...prev,
+    updateActiveCampaign({
       leads,
       currentIndex: 0,
       history: [],
       isActive: true
-    }))
+    })
     toast(`Campaign started with ${leads.length} leads!`, 'success')
   }
 
-  // Reset Campaign
-  const resetCampaign = () => {
-    if (window.confirm('Are you sure you want to delete this campaign? All dialer progress and history will be lost.')) {
-      setCampaign({
-        leads: [],
-        currentIndex: 0,
-        history: [],
-        isActive: false,
-        mapping: {
-          businessName: '',
-          ownerName: '',
-          phone: '',
-          postcode: '',
-          notes: ''
-        },
-        headers: [],
-        rawRows: []
-      })
-      localStorage.removeItem(STORAGE_KEY)
-      toast('Campaign cleared', 'info')
-    }
-  }
-
-  // Active Lead Information
-  const currentLead = campaign.leads[campaign.currentIndex] || null
-  const totalLeads = campaign.leads.length
-  const progressPercent = totalLeads > 0 ? Math.round((campaign.currentIndex / totalLeads) * 100) : 0
-
-  // Initiate dialing using the system protocol
-  const triggerDial = (phoneNum) => {
-    if (!phoneNum) return
-    const link = document.createElement('a')
-    link.href = `tel:${phoneNum}`
-    document.body.appendChild(link)
-    link.click()
-    document.body.removeChild(link)
-    toast(`Dialing ${phoneNum} via Vonage...`, 'info')
-  }
-
-  useEffect(() => {
-    localStorage.setItem('rt_autodial_next', autoDialNext)
-  }, [autoDialNext])
-
-  useEffect(() => {
-    if (campaign.isActive && autoDialNext && campaign.leads.length > 0) {
-      if (campaign.currentIndex > prevIndexRef.current) {
-        const nextLead = campaign.leads[campaign.currentIndex]
-        if (nextLead) {
-          const timer = setTimeout(() => {
-            triggerDial(nextLead.phone)
-          }, 1000)
-          return () => clearTimeout(timer)
-        }
-      }
-    }
-    prevIndexRef.current = campaign.currentIndex
-  }, [campaign.currentIndex, campaign.isActive, autoDialNext])
-
   // Record outcome and go to next
   const recordOutcome = (outcome, details = '') => {
-    if (!currentLead) return
+    if (!activeCampaign || !currentLead) return
 
     const logEntry = {
       ...currentLead,
@@ -331,7 +345,7 @@ export default function AutoDialer() {
       timestamp: new Date().toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', second: '2-digit', hour12: true })
     }
 
-    setCampaign(prev => {
+    updateActiveCampaign(prev => {
       const nextIndex = prev.currentIndex + 1
       const isFinished = nextIndex >= prev.leads.length
 
@@ -343,7 +357,7 @@ export default function AutoDialer() {
       }
     })
 
-    if (campaign.currentIndex + 1 >= totalLeads) {
+    if (activeCampaign.currentIndex + 1 >= totalLeads) {
       toast('Auto-Dialer Campaign Completed!', 'success')
     } else {
       toast(`Outcome saved: ${outcome}`, 'success')
@@ -352,9 +366,8 @@ export default function AutoDialer() {
 
   // Conversion Redirect Helpers
   const handleConvert = (route, outcomeLabel) => {
-    if (!currentLead) return
+    if (!activeCampaign || !currentLead) return
 
-    // Standard prefill structure expected by AddCallback, AddTransfer, and SaleApplication
     const prefillData = {
       businessName: currentLead.businessName,
       ownerName: currentLead.ownerName,
@@ -365,14 +378,13 @@ export default function AutoDialer() {
       utilityType: 'electricity'
     }
 
-    // Save current outcome to history and advance in background before leaving
     const logEntry = {
       ...currentLead,
       outcome: outcomeLabel,
       timestamp: new Date().toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', second: '2-digit', hour12: true })
     }
 
-    setCampaign(prev => {
+    updateActiveCampaign(prev => {
       const nextIndex = prev.currentIndex + 1
       const isFinished = nextIndex >= prev.leads.length
 
@@ -384,35 +396,45 @@ export default function AutoDialer() {
       }
     })
 
-    // Navigate to page with prefilled state
     navigate(route, { state: { prefillData } })
+  }
+
+  // Reset/Clear campaign inside mapping
+  const cancelMapping = () => {
+    if (activeCampaignId) {
+      setCampaigns(prev => prev.filter(c => c.id !== activeCampaignId))
+      setActiveCampaignId(null)
+      toast('Campaign upload cancelled', 'info')
+    }
   }
 
   return (
     <>
       <style>{APP_STYLES}</style>
       <div className="rt-page">
-        <div style={{ maxWidth: '1000px', margin: '0 auto' }}>
+        <div style={{ maxWidth: '1200px', margin: '0 auto' }}>
           
           {/* Header */}
           <div className="rt-fade" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '28px' }}>
             <div>
               <h1 style={{ fontSize: '22px', fontWeight: 800, color: '#0f172a', letterSpacing: '-0.5px', margin: 0 }}>Agent Auto-Dialer</h1>
-              <p style={{ fontSize: '13px', color: '#64748b', margin: '3px 0 0' }}>Upload spreadsheets or notepad files to dial leads quickly via Vonage</p>
+              <p style={{ fontSize: '13px', color: '#64748b', margin: '3px 0 0' }}>Manage multiple call campaigns and dial leads quickly via Vonage</p>
             </div>
-            {campaign.rawRows.length > 0 && (
-              <button onClick={resetCampaign} className="rt-btn-primary" style={{ background: 'linear-gradient(135deg, #ef4444, #dc2626)', boxShadow: '0 4px 18px rgba(239, 68, 68, 0.35)', flex: 'none', padding: '10px 20px', fontSize: '13px' }}>
-                <RotateCcw size={14} /> Reset Dialer
+            {activeCampaignId && (
+              <button onClick={() => setActiveCampaignId(null)} className="rt-btn-primary" style={{ background: '#f1f5f9', color: '#475569', boxShadow: 'none', flex: 'none', padding: '10px 18px', fontSize: '13px' }}>
+                <ChevronLeft size={14} /> Back to Dashboard
               </button>
             )}
           </div>
 
-          {/* STAGE 1: UPLOAD FILE */}
-          {!campaign.isActive && campaign.rawRows.length === 0 && (
-            <div className="rt-fade rt-d1">
+          {/* STAGE 1: CAMPAIGNS DASHBOARD (activeCampaignId is null) */}
+          {!activeCampaignId && (
+            <div className="rt-fade rt-d1 flex flex-col gap-8">
+              
+              {/* Uploader Card */}
               <div 
                 className={`rt-card ${dragActive ? 'border-indigo-500 bg-indigo-50/20' : ''}`}
-                style={{ borderStyle: 'dashed', borderWidth: '2px', padding: '60px 40px', textAlign: 'center', cursor: 'pointer', transition: 'all 0.2s' }}
+                style={{ borderStyle: 'dashed', borderWidth: '2px', padding: '40px 30px', textAlign: 'center', cursor: 'pointer', transition: 'all 0.2s' }}
                 onDragEnter={handleDrag}
                 onDragOver={handleDrag}
                 onDragLeave={handleDrag}
@@ -426,27 +448,111 @@ export default function AutoDialer() {
                   accept=".csv,.txt" 
                   style={{ display: 'none' }} 
                 />
-                <div style={{ width: '64px', height: '64px', borderRadius: '18px', background: 'rgba(99,102,241,0.08)', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 20px' }}>
-                  <Upload size={28} color="#6366f1" />
+                <div style={{ width: '56px', height: '56px', borderRadius: '16px', background: 'rgba(99,102,241,0.08)', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 16px' }}>
+                  <Upload size={24} color="#6366f1" />
                 </div>
-                <h3 style={{ fontSize: '18px', fontWeight: 700, color: '#0f172a', margin: '0 0 6px' }}>Drag & Drop Excel or Notepad list</h3>
-                <p style={{ fontSize: '13px', color: '#64748b', margin: '0 auto 24px', maxWidth: '380px' }}>
+                <h3 style={{ fontSize: '16px', fontWeight: 700, color: '#0f172a', margin: '0 0 4px' }}>Upload a new CSV/TXT Leads List</h3>
+                <p style={{ fontSize: '12.5px', color: '#64748b', margin: '0 auto 16px', maxWidth: '380px' }}>
                   Supports **CSV** spreadsheets (with headers) or raw **TXT** notepad files (one phone number per line).
                 </p>
-                <button className="rt-btn-primary" style={{ margin: '0 auto', padding: '12px 24px', fontSize: '13px' }}>
+                <button className="rt-btn-primary" style={{ margin: '0 auto', padding: '10px 20px', fontSize: '12.5px', height: 'auto', minHeight: 'unset' }}>
                   Browse File
                 </button>
+              </div>
+
+              {/* Campaigns List */}
+              <div>
+                <h3 style={{ fontSize: '15px', fontWeight: 800, color: '#0f172a', marginBottom: '16px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <List size={18} className="text-indigo-500" /> Active Campaigns ({campaigns.length})
+                </h3>
+
+                {campaigns.length === 0 ? (
+                  <div className="rt-card flex flex-col items-center justify-center" style={{ padding: '60px 20px', textAlign: 'center', background: '#fafbfc' }}>
+                    <div style={{ width: '48px', height: '48px', borderRadius: '50%', background: '#f1f5f9', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 12px' }} className="flex justify-center items-center">
+                      <FileText size={20} color="#94a3b8" />
+                    </div>
+                    <p style={{ fontSize: '13px', color: '#64748b', margin: 0, fontWeight: 500 }}>No campaigns loaded yet. Upload a list file to start calling leads.</p>
+                  </div>
+                ) : (
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
+                    {campaigns.map((c) => {
+                      const campTotal = c.leads ? c.leads.length : 0
+                      const campCalled = c.currentIndex
+                      const campProgress = campTotal > 0 ? Math.round((campCalled / campTotal) * 100) : 0
+                      const isMappingPending = !c.isActive
+
+                      return (
+                        <div 
+                          key={c.id} 
+                          onClick={() => setActiveCampaignId(c.id)}
+                          className="rt-card hover:border-indigo-200 hover:shadow-md transition-all cursor-pointer flex flex-col justify-between"
+                          style={{ minHeight: '170px' }}
+                        >
+                          <div>
+                            <div className="flex items-start justify-between gap-3 mb-3">
+                              <div className="flex items-center gap-2.5 min-w-0">
+                                <div className="p-2 bg-indigo-50 text-indigo-600 rounded-lg shrink-0">
+                                  <FileSpreadsheet size={18} />
+                                </div>
+                                <div className="min-w-0">
+                                  <h4 style={{ fontSize: '13.5px', fontWeight: 700, color: '#0f172a', margin: 0 }} className="truncate capitalize">
+                                    {c.name}
+                                  </h4>
+                                  <span style={{ fontSize: '10.5px', color: '#94a3b8', fontWeight: 600 }}>
+                                    Created: {c.createdAt || 'Just now'}
+                                  </span>
+                                </div>
+                              </div>
+                              <button 
+                                onClick={(e) => deleteCampaign(c.id, e)}
+                                className="p-1.5 text-slate-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-all border-none cursor-pointer"
+                                title="Delete Campaign"
+                              >
+                                <Trash2 size={15} />
+                              </button>
+                            </div>
+
+                            {isMappingPending ? (
+                              <div className="flex items-center gap-1.5 text-xs text-amber-600 font-bold bg-amber-50 px-2.5 py-1 rounded-md w-fit mb-4">
+                                <AlertCircle size={13} /> Column Mapping Pending
+                              </div>
+                            ) : (
+                              <div className="mb-4">
+                                <div className="flex justify-between items-center text-xs font-semibold text-slate-500 mb-1.5">
+                                  <span>Progress: {campCalled} / {campTotal} Called</span>
+                                  <span>{campProgress}%</span>
+                                </div>
+                                <div style={{ width: '100%', height: '6px', background: '#f1f5f9', borderRadius: '3px', overflow: 'hidden' }}>
+                                  <div style={{ width: `${campProgress}%`, height: '100%', background: 'linear-gradient(135deg,#6366f1,#818cf8)', borderRadius: '3px' }} />
+                                </div>
+                              </div>
+                            )}
+                          </div>
+
+                          <div className="flex items-center justify-between pt-3 border-t border-slate-50 mt-auto">
+                            <span style={{ fontSize: '11px', color: '#64748b', fontWeight: 600 }}>
+                              {isMappingPending ? 'Setup required' : `${campTotal - campCalled} leads remaining`}
+                            </span>
+                            <span className="text-xs font-bold text-indigo-600 flex items-center gap-0.5 group-hover:translate-x-0.5 transition-all">
+                              {isMappingPending ? 'Configure' : 'Resume'} →
+                            </span>
+                          </div>
+                        </div>
+                      )
+                    })}
+                  </div>
+                )}
               </div>
             </div>
           )}
 
-          {/* STAGE 2: COLUMN MAPPING */}
-          {!campaign.isActive && campaign.rawRows.length > 0 && (
+          {/* STAGE 2: COLUMN MAPPING (activeCampaignId set, activeCampaign.isActive is false) */}
+          {activeCampaign && !activeCampaign.isActive && (
             <div className="rt-fade rt-d1 rt-card" style={{ padding: '24px', marginBottom: '24px' }}>
               <div className="flex items-center gap-3 mb-6 pb-4 border-b border-slate-100">
                 <FileSpreadsheet color="#6366f1" size={24} />
                 <div>
-                  <h3 style={{ fontSize: '16px', fontWeight: 700, color: '#0f172a', margin: 0 }}>Map spreadsheet columns</h3>
+                  <h3 style={{ fontSize: '16px', fontWeight: 700, color: '#0f172a', margin: 0 }}>Map spreadsheet columns — {activeCampaign.name}</h3>
                   <p style={{ fontSize: '12.5px', color: '#64748b', margin: '2px 0 0' }}>Select which columns correspond to contact fields. CRM will attempt to auto-detect them.</p>
                 </div>
               </div>
@@ -455,67 +561,67 @@ export default function AutoDialer() {
                 <div>
                   <label className="rt-label">Phone Number <span className="rt-required">*</span></label>
                   <select 
-                    value={campaign.mapping.phone} 
-                    onChange={(e) => setCampaign(p => ({ ...p, mapping: { ...p.mapping, phone: e.target.value } }))}
+                    value={activeCampaign.mapping.phone} 
+                    onChange={(e) => updateActiveCampaign(p => ({ ...p, mapping: { ...p.mapping, phone: e.target.value } }))}
                     className="rt-input"
                   >
                     <option value="">-- Select Column --</option>
-                    {campaign.headers.map(h => <option key={h} value={h}>{h}</option>)}
+                    {activeCampaign.headers.map(h => <option key={h} value={h}>{h}</option>)}
                   </select>
                 </div>
 
                 <div>
                   <label className="rt-label">Business Name</label>
                   <select 
-                    value={campaign.mapping.businessName} 
-                    onChange={(e) => setCampaign(p => ({ ...p, mapping: { ...p.mapping, businessName: e.target.value } }))}
+                    value={activeCampaign.mapping.businessName} 
+                    onChange={(e) => updateActiveCampaign(p => ({ ...p, mapping: { ...p.mapping, businessName: e.target.value } }))}
                     className="rt-input"
                   >
                     <option value="">-- None (Auto Label) --</option>
-                    {campaign.headers.map(h => <option key={h} value={h}>{h}</option>)}
+                    {activeCampaign.headers.map(h => <option key={h} value={h}>{h}</option>)}
                   </select>
                 </div>
 
                 <div>
                   <label className="rt-label">Owner / Contact Person</label>
                   <select 
-                    value={campaign.mapping.ownerName} 
-                    onChange={(e) => setCampaign(p => ({ ...p, mapping: { ...p.mapping, ownerName: e.target.value } }))}
+                    value={activeCampaign.mapping.ownerName} 
+                    onChange={(e) => updateActiveCampaign(p => ({ ...p, mapping: { ...p.mapping, ownerName: e.target.value } }))}
                     className="rt-input"
                   >
                     <option value="">-- None --</option>
-                    {campaign.headers.map(h => <option key={h} value={h}>{h}</option>)}
+                    {activeCampaign.headers.map(h => <option key={h} value={h}>{h}</option>)}
                   </select>
                 </div>
 
                 <div>
                   <label className="rt-label">Postcode / ZIP</label>
                   <select 
-                    value={campaign.mapping.postcode} 
-                    onChange={(e) => setCampaign(p => ({ ...p, mapping: { ...p.mapping, postcode: e.target.value } }))}
+                    value={activeCampaign.mapping.postcode} 
+                    onChange={(e) => updateActiveCampaign(p => ({ ...p, mapping: { ...p.mapping, postcode: e.target.value } }))}
                     className="rt-input"
                   >
                     <option value="">-- None --</option>
-                    {campaign.headers.map(h => <option key={h} value={h}>{h}</option>)}
+                    {activeCampaign.headers.map(h => <option key={h} value={h}>{h}</option>)}
                   </select>
                 </div>
 
                 <div className="md:col-span-2">
                   <label className="rt-label">Notes / Additional Info</label>
                   <select 
-                    value={campaign.mapping.notes} 
-                    onChange={(e) => setCampaign(p => ({ ...p, mapping: { ...p.mapping, notes: e.target.value } }))}
+                    value={activeCampaign.mapping.notes} 
+                    onChange={(e) => updateActiveCampaign(p => ({ ...p, mapping: { ...p.mapping, notes: e.target.value } }))}
                     className="rt-input"
                   >
                     <option value="">-- None --</option>
-                    {campaign.headers.map(h => <option key={h} value={h}>{h}</option>)}
+                    {activeCampaign.headers.map(h => <option key={h} value={h}>{h}</option>)}
                   </select>
                 </div>
               </div>
 
               <div className="flex justify-end gap-3 pt-4 border-t border-slate-100">
                 <button 
-                  onClick={() => setCampaign(p => ({ ...p, rawRows: [], headers: [] }))}
+                  onClick={cancelMapping}
                   className="rt-btn-primary" 
                   style={{ background: '#f1f5f9', color: '#475569', boxShadow: 'none' }}
                 >
@@ -524,16 +630,16 @@ export default function AutoDialer() {
                 <button 
                   onClick={startCampaign}
                   className="rt-btn-primary"
-                  disabled={!campaign.mapping.phone}
+                  disabled={!activeCampaign.mapping.phone}
                 >
-                  <Play size={15} /> Start Call Campaign ({campaign.rawRows.length} Leads)
+                  <Play size={15} /> Start Call Campaign ({activeCampaign.rawRows.length} Leads)
                 </button>
               </div>
             </div>
           )}
 
-          {/* STAGE 3: ACTIVE CAMPAIGN DIALER */}
-          {campaign.isActive && campaign.leads.length > 0 && (
+          {/* STAGE 3: ACTIVE CAMPAIGN DIALER (activeCampaignId set, activeCampaign.isActive is true) */}
+          {activeCampaign && activeCampaign.isActive && activeCampaign.leads.length > 0 && (
             <div className="rt-fade grid grid-cols-1 lg:grid-cols-3 gap-6">
               
               {/* LEFT & CENTER PANEL (Active Lead + Call Actions) */}
@@ -542,8 +648,8 @@ export default function AutoDialer() {
                 {/* Progress bar */}
                 <div className="rt-card" style={{ padding: '16px 20px' }}>
                   <div className="flex justify-between items-center mb-2.5 text-xs font-bold text-slate-500">
-                    <span>CAMPAIGN PROGRESS</span>
-                    <span>{campaign.currentIndex + 1} / {totalLeads} LEADS ({progressPercent}%)</span>
+                    <span className="capitalize">{activeCampaign.name} — Progress</span>
+                    <span>{activeCampaign.currentIndex + 1} / {totalLeads} LEADS ({progressPercent}%)</span>
                   </div>
                   <div style={{ width: '100%', height: '8px', background: '#f1f5f9', borderRadius: '4px', overflow: 'hidden' }}>
                     <div style={{ width: `${progressPercent}%`, height: '100%', background: 'linear-gradient(135deg,#6366f1,#7c3aed)', borderRadius: '4px', transition: 'width 0.3s ease' }} />
@@ -664,16 +770,16 @@ export default function AutoDialer() {
                     {/* Pagination / Navigation Footer */}
                     <div className="p-4 bg-slate-50 border-t border-slate-100 rounded-b-16 flex items-center justify-between">
                       <button 
-                        onClick={() => setCampaign(p => ({ ...p, currentIndex: Math.max(0, p.currentIndex - 1) }))}
-                        disabled={campaign.currentIndex === 0}
+                        onClick={() => updateActiveCampaign(p => ({ ...p, currentIndex: Math.max(0, p.currentIndex - 1) }))}
+                        disabled={activeCampaign.currentIndex === 0}
                         className="flex items-center gap-1 text-xs font-bold text-slate-500 disabled:opacity-30 cursor-pointer"
                       >
                         <ChevronLeft size={16} /> Back
                       </button>
-                      <span className="text-xs text-slate-400 font-semibold">LEAD INDEX: {campaign.currentIndex + 1} / {totalLeads}</span>
+                      <span className="text-xs text-slate-400 font-semibold">LEAD INDEX: {activeCampaign.currentIndex + 1} / {totalLeads}</span>
                       <button 
-                        onClick={() => setCampaign(p => ({ ...p, currentIndex: Math.min(totalLeads - 1, p.currentIndex + 1) }))}
-                        disabled={campaign.currentIndex === totalLeads - 1}
+                        onClick={() => updateActiveCampaign(p => ({ ...p, currentIndex: Math.min(totalLeads - 1, p.currentIndex + 1) }))}
+                        disabled={activeCampaign.currentIndex === totalLeads - 1}
                         className="flex items-center gap-1 text-xs font-bold text-slate-500 disabled:opacity-30 cursor-pointer"
                       >
                         Skip <SkipForward size={14} />
@@ -687,9 +793,14 @@ export default function AutoDialer() {
                     </div>
                     <h3 style={{ fontSize: '16px', fontWeight: 700, color: '#0f172a', margin: '0 0 4px' }}>Campaign Completed!</h3>
                     <p style={{ fontSize: '13px', color: '#64748b', margin: '0 0 20px' }}>You have finished calling all leads in this campaign.</p>
-                    <button onClick={resetCampaign} className="rt-btn-primary" style={{ margin: '0 auto' }}>
-                      Upload New List
-                    </button>
+                    <div className="flex gap-3 justify-center">
+                      <button onClick={() => updateActiveCampaign(p => ({ ...p, currentIndex: 0, history: [], isActive: true }))} className="rt-btn-primary" style={{ padding: '10px 20px', fontSize: '12.5px', height: 'auto', minHeight: 'unset' }}>
+                        Reset Progress
+                      </button>
+                      <button onClick={() => setActiveCampaignId(null)} className="rt-btn-primary" style={{ background: '#f1f5f9', color: '#475569', boxShadow: 'none', padding: '10px 20px', fontSize: '12.5px', height: 'auto', minHeight: 'unset' }}>
+                        Back to Dashboard
+                      </button>
+                    </div>
                   </div>
                 )}
               </div>
@@ -707,7 +818,7 @@ export default function AutoDialer() {
                       borderRadius: '16px 0 0 0'
                     }}
                   >
-                    <span className="flex items-center justify-center gap-1.5"><List size={14} /> Dialer Queue ({totalLeads - campaign.currentIndex})</span>
+                    <span className="flex items-center justify-center gap-1.5"><List size={14} /> Dialer Queue ({totalLeads - activeCampaign.currentIndex})</span>
                   </button>
                   <button 
                     onClick={() => setActiveTab('history')}
@@ -719,7 +830,7 @@ export default function AutoDialer() {
                       borderRadius: '0 16px 0 0'
                     }}
                   >
-                    <span className="flex items-center justify-center gap-1.5"><CheckCircle2 size={14} /> Call History ({campaign.history.length})</span>
+                    <span className="flex items-center justify-center gap-1.5"><CheckCircle2 size={14} /> Call History ({activeCampaign.history.length})</span>
                   </button>
                 </div>
 
@@ -728,13 +839,13 @@ export default function AutoDialer() {
                   {/* TAB 1: QUEUE LIST */}
                   {activeTab === 'queue' && (
                     <div className="flex flex-col gap-2.5">
-                      {campaign.leads.slice(campaign.currentIndex).map((lead, idx) => {
-                        const actualIdx = campaign.currentIndex + idx
-                        const isActiveLead = actualIdx === campaign.currentIndex
+                      {activeCampaign.leads.slice(activeCampaign.currentIndex).map((lead, idx) => {
+                        const actualIdx = activeCampaign.currentIndex + idx
+                        const isActiveLead = actualIdx === activeCampaign.currentIndex
                         return (
                           <div 
                             key={actualIdx}
-                            onClick={() => setCampaign(p => ({ ...p, currentIndex: actualIdx }))}
+                            onClick={() => updateActiveCampaign({ currentIndex: actualIdx })}
                             className={`p-3 rounded-xl border transition-all cursor-pointer ${isActiveLead ? 'border-indigo-200 bg-indigo-50/40 shadow-sm' : 'border-slate-100 hover:border-slate-300'}`}
                           >
                             <div className="flex items-center justify-between gap-2 min-w-0">
@@ -750,7 +861,7 @@ export default function AutoDialer() {
                           </div>
                         )
                       })}
-                      {campaign.leads.slice(campaign.currentIndex).length === 0 && (
+                      {activeCampaign.leads.slice(activeCampaign.currentIndex).length === 0 && (
                         <p className="text-center text-xs text-slate-400 font-semibold py-8">Queue is empty</p>
                       )}
                     </div>
@@ -759,7 +870,7 @@ export default function AutoDialer() {
                   {/* TAB 2: HISTORY LIST */}
                   {activeTab === 'history' && (
                     <div className="flex flex-col gap-2.5">
-                      {campaign.history.map((log, idx) => {
+                      {activeCampaign.history.map((log, idx) => {
                         const isSuccess = log.outcome.includes('Created') || log.outcome.includes('Scheduled') || log.outcome.includes('Initiated')
                         const isNotInterested = log.outcome === 'Not Interested'
                         const isNoAnswer = log.outcome === 'No Answer / Busy'
@@ -785,7 +896,7 @@ export default function AutoDialer() {
                           </div>
                         )
                       })}
-                      {campaign.history.length === 0 && (
+                      {activeCampaign.history.length === 0 && (
                         <p className="text-center text-xs text-slate-400 font-semibold py-8">No calls logged yet</p>
                       )}
                     </div>
