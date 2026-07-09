@@ -46,6 +46,13 @@ export default function AutoDialer() {
   const [dragActive, setDragActive] = useState(false)
   const [activeTab, setActiveTab] = useState('queue') // 'queue' | 'history'
   const fileInputRef = useRef(null)
+  
+  const [autoDialNext, setAutoDialNext] = useState(() => {
+    const saved = localStorage.getItem('rt_autodial_next')
+    return saved === 'true'
+  })
+  
+  const prevIndexRef = useRef(campaign.currentIndex)
 
   // Save campaign state to local storage whenever it changes
   useEffect(() => {
@@ -294,6 +301,25 @@ export default function AutoDialer() {
     toast(`Dialing ${phoneNum} via Vonage...`, 'info')
   }
 
+  useEffect(() => {
+    localStorage.setItem('rt_autodial_next', autoDialNext)
+  }, [autoDialNext])
+
+  useEffect(() => {
+    if (campaign.isActive && autoDialNext && campaign.leads.length > 0) {
+      if (campaign.currentIndex > prevIndexRef.current) {
+        const nextLead = campaign.leads[campaign.currentIndex]
+        if (nextLead) {
+          const timer = setTimeout(() => {
+            triggerDial(nextLead.phone)
+          }, 1000)
+          return () => clearTimeout(timer)
+        }
+      }
+    }
+    prevIndexRef.current = campaign.currentIndex
+  }, [campaign.currentIndex, campaign.isActive, autoDialNext])
+
   // Record outcome and go to next
   const recordOutcome = (outcome, details = '') => {
     if (!currentLead) return
@@ -532,9 +558,20 @@ export default function AutoDialer() {
                         <div className="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-[pulse_1.5s_infinite]" />
                         <span className="rt-card-title">Active Calling Lead</span>
                       </div>
-                      <span className="text-xs font-bold px-2.5 py-1 rounded-lg bg-indigo-50 text-indigo-600">
-                        PENDING DIAL
-                      </span>
+                      <div className="flex items-center gap-4">
+                        <label className="flex items-center gap-2 cursor-pointer select-none">
+                          <input
+                            type="checkbox"
+                            checked={autoDialNext}
+                            onChange={(e) => setAutoDialNext(e.target.checked)}
+                            className="w-3.5 h-3.5 accent-indigo-600 cursor-pointer"
+                          />
+                          <span style={{ fontSize: '11px', fontWeight: 700, color: '#475569' }}>AUTO-DIAL NEXT</span>
+                        </label>
+                        <span className="text-xs font-bold px-2.5 py-1 rounded-lg bg-indigo-50 text-indigo-600">
+                          PENDING DIAL
+                        </span>
+                      </div>
                     </div>
 
                     <div className="rt-card-body flex-1">
