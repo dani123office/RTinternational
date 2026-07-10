@@ -1032,19 +1032,19 @@ export default function AgentDetail() {
                                   <div className="flex flex-wrap items-center gap-2 pt-2 border-t border-slate-200/50">
                                     <span style={{ fontSize: '11px', fontWeight: 700, color: '#64748b' }}>Outcomes:</span>
                                     <span className="text-xs font-bold px-2 py-0.5 rounded bg-slate-200/60 text-slate-700" title="Busy / No Answer">
-                                      Busy: {c.outcomeStats.no_answer || 0}
+                                      Busy: {c.outcomeStats?.no_answer || 0}
                                     </span>
                                     <span className="text-xs font-bold px-2 py-0.5 rounded bg-red-50 text-red-600" title="Not Interested">
-                                      Not Int: {c.outcomeStats.not_interested || 0}
+                                      Not Int: {c.outcomeStats?.not_interested || 0}
                                     </span>
                                     <span className="text-xs font-bold px-2 py-0.5 rounded bg-indigo-50 text-indigo-600" title="Callbacks">
-                                      Callbacks: {c.outcomeStats.callback || 0}
+                                      Callbacks: {c.outcomeStats?.callback || 0}
                                     </span>
                                     <span className="text-xs font-bold px-2 py-0.5 rounded bg-emerald-50 text-emerald-600" title="Transfers">
-                                      Transfers: {c.outcomeStats.transfer || 0}
+                                      Transfers: {c.outcomeStats?.transfer || 0}
                                     </span>
                                     <span className="text-xs font-bold px-2 py-0.5 rounded bg-amber-50 text-amber-600" title="Sales">
-                                      Sales: {c.outcomeStats.sale || 0}
+                                      Sales: {c.outcomeStats?.sale || 0}
                                     </span>
                                   </div>
                                 </div>

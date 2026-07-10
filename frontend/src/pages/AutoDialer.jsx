@@ -107,7 +107,7 @@ export default function AutoDialer() {
           
           setDbCampaigns(prev => prev.map(c => {
             if (c.id === activeCampaignId) {
-              return { ...c, leads, currentIndex: firstPendingIdx }
+              return { ...c, leads, currentIndex: firstPendingIdx, history: [] }
             }
             return c
           }))
@@ -1037,7 +1037,7 @@ export default function AutoDialer() {
                       borderRadius: '0 16px 0 0'
                     }}
                   >
-                    <span className="flex items-center justify-center gap-1.5"><CheckCircle2 size={14} /> Call History ({activeCampaign.history.length})</span>
+                    <span className="flex items-center justify-center gap-1.5"><CheckCircle2 size={14} /> Call History ({(activeCampaign.history || []).length})</span>
                   </button>
                 </div>
 
@@ -1077,7 +1077,7 @@ export default function AutoDialer() {
                   {/* TAB 2: HISTORY LIST */}
                   {activeTab === 'history' && (
                     <div className="flex flex-col gap-2.5">
-                      {activeCampaign.history.map((log, idx) => {
+                      {(activeCampaign.history || []).map((log, idx) => {
                         const isSuccess = log.outcome.includes('Created') || log.outcome.includes('Scheduled') || log.outcome.includes('Initiated')
                         const isNotInterested = log.outcome === 'Not Interested'
                         const isNoAnswer = log.outcome === 'No Answer / Busy'
@@ -1103,7 +1103,7 @@ export default function AutoDialer() {
                           </div>
                         )
                       })}
-                      {activeCampaign.history.length === 0 && (
+                      {(activeCampaign.history || []).length === 0 && (
                         <p className="text-center text-xs text-slate-400 font-semibold py-8">No calls logged yet</p>
                       )}
                     </div>
