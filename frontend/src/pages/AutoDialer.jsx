@@ -190,9 +190,9 @@ export default function AutoDialer() {
 
   // Trigger auto dial next
   useEffect(() => {
-    if (activeCampaign && activeCampaign.isActive && autoDialNext && activeCampaign.leads.length > 0) {
+    if (activeCampaign && activeCampaign.isActive && autoDialNext && activeCampaign.leads?.length > 0) {
       if (activeCampaign.currentIndex > prevIndexRef.current) {
-        const nextLead = activeCampaign.leads[activeCampaign.currentIndex]
+        const nextLead = activeCampaign.leads?.[activeCampaign.currentIndex]
         if (nextLead) {
           const timer = setTimeout(() => {
             triggerDial(nextLead.phone)
@@ -202,7 +202,7 @@ export default function AutoDialer() {
       }
     }
     prevIndexRef.current = activeCampaign ? activeCampaign.currentIndex : 0
-  }, [activeCampaign?.currentIndex, activeCampaign?.isActive, autoDialNext])
+  }, [activeCampaign?.currentIndex, activeCampaign?.isActive, autoDialNext, activeCampaign?.leads])
 
   // Split CSV helper
   const parseRow = (rowText) => {
@@ -846,7 +846,7 @@ export default function AutoDialer() {
           )}
 
           {/* STAGE 3: ACTIVE CAMPAIGN DIALER (activeCampaignId set, activeCampaign.isActive is true) */}
-          {activeCampaign && activeCampaign.isActive && activeCampaign.leads.length > 0 && (
+          {activeCampaign && activeCampaign.isActive && totalLeads > 0 && (
             <div className="rt-fade grid grid-cols-1 lg:grid-cols-3 gap-6">
               
               {/* LEFT & CENTER PANEL (Active Lead + Call Actions) */}
@@ -1046,7 +1046,7 @@ export default function AutoDialer() {
                   {/* TAB 1: QUEUE LIST */}
                   {activeTab === 'queue' && (
                     <div className="flex flex-col gap-2.5">
-                      {activeCampaign.leads.slice(activeCampaign.currentIndex).map((lead, idx) => {
+                      {(activeCampaign.leads || []).slice(activeCampaign.currentIndex).map((lead, idx) => {
                         const actualIdx = activeCampaign.currentIndex + idx
                         const isActiveLead = actualIdx === activeCampaign.currentIndex
                         return (
@@ -1068,7 +1068,7 @@ export default function AutoDialer() {
                           </div>
                         )
                       })}
-                      {activeCampaign.leads.slice(activeCampaign.currentIndex).length === 0 && (
+                      {(activeCampaign.leads || []).slice(activeCampaign.currentIndex).length === 0 && (
                         <p className="text-center text-xs text-slate-400 font-semibold py-8">Queue is empty</p>
                       )}
                     </div>
