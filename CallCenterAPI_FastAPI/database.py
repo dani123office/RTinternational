@@ -132,6 +132,18 @@ def _ensure_tables():
     # would reappear on the next Vercel cold start.  Create users via /register
     # or the admin panel instead.
 
+    # For PostgreSQL in production, force alter CampaignLead column types to String(255)
+    if engine is not None and "postgresql" in str(engine.url):
+        try:
+            from sqlalchemy import text
+            with engine.connect() as conn:
+                conn.execute(text("ALTER TABLE campaign_leads ALTER COLUMN phone TYPE VARCHAR(255)"))
+                conn.execute(text("ALTER TABLE campaign_leads ALTER COLUMN postcode TYPE VARCHAR(255)"))
+                conn.commit()
+            print("Widen campaign_leads columns to 255 successfully.")
+        except Exception as ex:
+            print(f"Warning: Widen campaign_leads columns failed: {ex}")
+
     _db_initialized = True
 
 

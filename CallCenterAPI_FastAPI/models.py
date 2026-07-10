@@ -362,8 +362,8 @@ class CampaignLead(Base):
     campaign_id = Column(Integer, ForeignKey("campaigns.id", ondelete="CASCADE"), nullable=False, index=True)
     business_name = Column(String(255), nullable=False)
     owner_name = Column(String(255), nullable=True)
-    phone = Column(String(50), nullable=False)
-    postcode = Column(String(20), nullable=True)
+    phone = Column(String(255), nullable=False)
+    postcode = Column(String(255), nullable=True)
     notes = Column(Text, nullable=True)
     status = Column(String(20), nullable=False, default="pending")  # pending, called, skipped
     outcome = Column(String(50), nullable=True)  # no_answer, not_interested, callback, transfer, sale

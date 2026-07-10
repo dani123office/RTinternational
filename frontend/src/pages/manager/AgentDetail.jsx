@@ -556,7 +556,26 @@ export default function AgentDetail() {
         let leads = []
 
         if (isCSV) {
-          const rawHeaders = lines[0].split(',')
+          const parseRow = (rowText) => {
+            const result = []
+            let insideQuote = false
+            let currentCell = ''
+            for (let i = 0; i < rowText.length; i++) {
+              const char = rowText[i]
+              if (char === '"') {
+                insideQuote = !insideQuote
+              } else if (char === ',' && !insideQuote) {
+                result.push(currentCell.trim().replace(/^"|"$/g, ''))
+                currentCell = ''
+              } else {
+                currentCell += char
+              }
+            }
+            result.push(currentCell.trim().replace(/^"|"$/g, ''))
+            return result
+          }
+
+          const rawHeaders = parseRow(lines[0])
           const headers = rawHeaders.map(h => h.replace(/^["']|["']$/g, '').trim())
           
           // Auto-detect columns
@@ -582,7 +601,7 @@ export default function AgentDetail() {
           if (businessIdx === -1) businessIdx = 1 !== phoneIdx ? 1 : 0
 
           for (let i = 1; i < lines.length; i++) {
-            const row = lines[i].split(',').map(c => c.replace(/^["']|["']$/g, '').trim())
+            const row = parseRow(lines[i]).map(c => c.replace(/^["']|["']$/g, '').trim())
             if (row.length <= phoneIdx || !row[phoneIdx]) continue
 
             leads.push({
