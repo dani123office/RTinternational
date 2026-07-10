@@ -309,14 +309,81 @@ export default function AutoDialer() {
       setActiveCampaignId(campaignId) // Go straight to column mapping
       toast('CSV file uploaded and parsed successfully!', 'success')
     } else {
-      // Text file mode: assume one phone number per line
-      const rawRows = lines.map((line, index) => ({
-        phone: line.trim(),
-        businessName: `Lead #${index + 1}`,
-        ownerName: '',
-        postcode: '',
-        notes: ''
-      }))
+      // Text file mode: check if it's a labeled multi-line format
+      const isLabeled = /(tel|phone|company|contact|address|code|email):\s*/i.test(text)
+      
+      let rawRows = []
+      
+      if (isLabeled) {
+        // Split by blank lines or multiple newlines/dashed lines
+        const blocks = text.split(/(?:\r?\n){2,}|---+|===+/).map(b => b.trim()).filter(b => b !== '')
+        
+        rawRows = blocks.map((block, index) => {
+          const linesInBlock = block.split(/\r?\n/).map(l => l.trim()).filter(l => l !== '')
+          
+          let businessName = ''
+          let ownerName = ''
+          let phone = ''
+          let postcode = ''
+          let notesList = []
+          
+          linesInBlock.forEach(line => {
+            const colonIndex = line.indexOf(':')
+            if (colonIndex !== -1) {
+              const label = line.substring(0, colonIndex).trim().toLowerCase()
+              const value = line.substring(colonIndex + 1).trim()
+              
+              if (label === 'company' || label === 'business' || label === 'name') {
+                businessName = value
+              } else if (label === 'contact' || label === 'owner' || label === 'contact person' || label === 'attention') {
+                ownerName = value
+              } else if (label === 'tel' || label === 'phone' || label === 'mobile' || label === 'telephone') {
+                // Split by common delimiters and take first phone number
+                phone = value.split(/[,/|]/)[0].replace(/[^\d+]/g, '')
+              } else if (label === 'postcode' || label === 'zip' || label === 'zipcode') {
+                postcode = value
+              } else if (label === 'address') {
+                notesList.push(`Address: ${value}`)
+                // Try to extract UK postcode from address
+                const pcMatch = value.match(/\b([A-Z]{1,2}[0-9][A-Z0-9]?\s?[0-9][A-Z]{2})\b/i)
+                if (pcMatch) {
+                  postcode = pcMatch[1].toUpperCase()
+                }
+              } else {
+                notesList.push(`${line}`)
+              }
+            } else {
+              notesList.push(line)
+            }
+          })
+          
+          return {
+            businessName: businessName || `Lead #${index + 1}`,
+            ownerName: ownerName,
+            phone: phone,
+            postcode: postcode,
+            notes: notesList.join('\n')
+          }
+        }).filter(r => r.phone !== '')
+      } else {
+        // Fallback: one phone number per line
+        rawRows = lines.map((line, index) => {
+          // Clean the line to get a clean number
+          const cleanNum = line.trim().replace(/[^\d+]/g, '')
+          return {
+            phone: cleanNum,
+            businessName: `Lead #${index + 1}`,
+            ownerName: '',
+            postcode: '',
+            notes: line.trim() !== cleanNum ? `Raw line: ${line.trim()}` : ''
+          }
+        }).filter(r => r.phone !== '')
+      }
+
+      if (rawRows.length === 0) {
+        toast('No valid phone numbers found in the text file', 'error')
+        return
+      }
 
       const mapping = {
         businessName: 'businessName',
@@ -328,10 +395,10 @@ export default function AutoDialer() {
 
       const leads = rawRows.map(r => ({
         businessName: r.businessName,
-        ownerName: '',
+        ownerName: r.ownerName,
         phone: r.phone,
-        postcode: '',
-        notes: ''
+        postcode: r.postcode,
+        notes: r.notes
       }))
 
       newCampaign.headers = ['Phone']
@@ -342,7 +409,7 @@ export default function AutoDialer() {
 
       setCampaigns(prev => [...prev, newCampaign])
       setActiveCampaignId(campaignId) // Go straight to dialer
-      toast('Text list loaded. Campaign started!', 'success')
+      toast(`Text list loaded. Campaign started with ${leads.length} leads!`, 'success')
     }
   }
 
