@@ -49,8 +49,19 @@ def _get_campaign_stats(db: Session, c: Campaign) -> CampaignOut:
         "sale": 0
     }
     for outcome_type, count in outcomes:
-        if outcome_type in outcome_stats:
-            outcome_stats[outcome_type] = count
+        if not outcome_type:
+            continue
+        norm = outcome_type.lower()
+        if "busy" in norm or "no answer" in norm:
+            outcome_stats["no_answer"] += count
+        elif "not interested" in norm or "not int" in norm:
+            outcome_stats["not_interested"] += count
+        elif "callback" in norm:
+            outcome_stats["callback"] += count
+        elif "transfer" in norm:
+            outcome_stats["transfer"] += count
+        elif "sale" in norm:
+            outcome_stats["sale"] += count
 
     return CampaignOut(
         id=c.id,
