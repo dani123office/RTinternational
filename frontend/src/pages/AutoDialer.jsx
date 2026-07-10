@@ -544,31 +544,78 @@ export default function AutoDialer() {
 
   return (
     <>
-      <style>{APP_STYLES}</style>
+      <style>{APP_STYLES}{`
+        .ad-hero { background: linear-gradient(135deg, #4f46e5 0%, #7c3aed 50%, #6366f1 100%); border-radius: 20px; padding: 32px 36px; margin-bottom: 28px; position: relative; overflow: hidden; }
+        .ad-hero::before { content: ''; position: absolute; top: -40%; right: -15%; width: 300px; height: 300px; background: radial-gradient(circle, rgba(255,255,255,0.08) 0%, transparent 70%); border-radius: 50%; }
+        .ad-hero::after { content: ''; position: absolute; bottom: -30%; left: -10%; width: 250px; height: 250px; background: radial-gradient(circle, rgba(255,255,255,0.05) 0%, transparent 70%); border-radius: 50%; }
+        .ad-hero h1 { color: #fff; font-size: 24px; font-weight: 800; letter-spacing: -0.5px; margin: 0; position: relative; z-index: 1; }
+        .ad-hero p { color: rgba(255,255,255,0.75); font-size: 13.5px; margin: 4px 0 0; position: relative; z-index: 1; }
+        .ad-stat-row { display: flex; gap: 12px; margin-top: 20px; position: relative; z-index: 1; }
+        .ad-stat-pill { background: rgba(255,255,255,0.15); backdrop-filter: blur(8px); border: 1px solid rgba(255,255,255,0.2); border-radius: 12px; padding: 10px 16px; flex: 1; text-align: center; }
+        .ad-stat-pill .val { font-size: 20px; font-weight: 800; color: #fff; line-height: 1; }
+        .ad-stat-pill .lbl { font-size: 10.5px; color: rgba(255,255,255,0.7); font-weight: 600; margin-top: 3px; text-transform: uppercase; letter-spacing: 0.5px; }
+        .ad-upload { border: 2px dashed #e2e8f0; border-radius: 16px; padding: 28px 24px; text-align: center; cursor: pointer; transition: all 0.25s ease; background: #fafbff; }
+        .ad-upload:hover { border-color: #a5b4fc; background: #eef2ff; transform: translateY(-1px); box-shadow: 0 4px 16px rgba(99,102,241,0.08); }
+        .ad-upload.drag { border-color: #6366f1; background: #eef2ff; box-shadow: 0 0 0 3px rgba(99,102,241,0.15); }
+        .ad-section-title { font-size: 13px; font-weight: 700; color: #94a3b8; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 16px; display: flex; align-items: center; gap: 8px; }
+        .ad-camp-card { background: #fff; border: 1px solid #f1f5f9; border-radius: 16px; padding: 20px; cursor: pointer; transition: all 0.25s ease; position: relative; overflow: hidden; }
+        .ad-camp-card:hover { border-color: #c7d2fe; box-shadow: 0 8px 24px rgba(99,102,241,0.1); transform: translateY(-2px); }
+        .ad-camp-card .camp-badge { position: absolute; top: 0; right: 0; background: linear-gradient(135deg, #6366f1, #818cf8); color: #fff; font-size: 10px; font-weight: 700; padding: 4px 12px 4px 16px; border-radius: 0 0 0 12px; }
+        .ad-progress-bar { width: 100%; height: 8px; background: #f1f5f9; border-radius: 4px; overflow: hidden; }
+        .ad-progress-fill { height: 100%; border-radius: 4px; transition: width 0.5s ease; }
+        .ad-progress-fill.assigned { background: linear-gradient(90deg, #6366f1, #a78bfa); }
+        .ad-progress-fill.local { background: linear-gradient(90deg, #06b6d4, #22d3ee); }
+        .ad-outcome-row { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 12px; }
+        .ad-outcome-chip { font-size: 10.5px; font-weight: 700; padding: 3px 8px; border-radius: 6px; line-height: 1.4; }
+        .ad-empty { text-align: center; padding: 40px 20px; border-radius: 16px; background: linear-gradient(135deg, #fafbff 0%, #f8fafc 100%); border: 1px dashed #e2e8f0; }
+        .ad-empty-icon { width: 48px; height: 48px; border-radius: 50%; background: #f1f5f9; display: flex; align-items: center; justify-content: center; margin: 0 auto 12px; }
+      `}</style>
       <div className="rt-page">
         <div style={{ maxWidth: '1200px', margin: '0 auto' }}>
           
           {/* Header */}
-          <div className="rt-fade" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '28px' }}>
-            <div>
-              <h1 style={{ fontSize: '22px', fontWeight: 800, color: '#0f172a', letterSpacing: '-0.5px', margin: 0 }}>Agent Auto-Dialer</h1>
-              <p style={{ fontSize: '13px', color: '#64748b', margin: '3px 0 0' }}>Manage multiple call campaigns and dial leads quickly via Vonage</p>
+          {!activeCampaignId ? (
+            <div className="ad-hero rt-fade">
+              <h1>🎯 Auto-Dialer</h1>
+              <p>Manage call campaigns, dial leads via Vonage, and track outcomes in real-time</p>
+              <div className="ad-stat-row">
+                <div className="ad-stat-pill">
+                  <div className="val">{dbCampaigns.length}</div>
+                  <div className="lbl">Assigned</div>
+                </div>
+                <div className="ad-stat-pill">
+                  <div className="val">{campaigns.length}</div>
+                  <div className="lbl">Local</div>
+                </div>
+                <div className="ad-stat-pill">
+                  <div className="val">{dbCampaigns.reduce((s, c) => s + (c.totalLeads || 0), 0) + campaigns.reduce((s, c) => s + (c.leads?.length || 0), 0)}</div>
+                  <div className="lbl">Total Leads</div>
+                </div>
+                <div className="ad-stat-pill">
+                  <div className="val">{dbCampaigns.reduce((s, c) => s + (c.calledLeads || 0), 0) + campaigns.reduce((s, c) => s + (c.currentIndex || 0), 0)}</div>
+                  <div className="lbl">Called</div>
+                </div>
+              </div>
             </div>
-            {activeCampaignId && (
+          ) : (
+            <div className="rt-fade" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '28px' }}>
+              <div>
+                <h1 style={{ fontSize: '22px', fontWeight: 800, color: '#0f172a', letterSpacing: '-0.5px', margin: 0 }}>🎯 Auto-Dialer</h1>
+                <p style={{ fontSize: '13px', color: '#64748b', margin: '3px 0 0' }}>Active campaign session</p>
+              </div>
               <button onClick={() => setActiveCampaignId(null)} className="rt-btn-primary" style={{ background: '#f1f5f9', color: '#475569', boxShadow: 'none', flex: 'none', padding: '10px 18px', fontSize: '13px' }}>
                 <ChevronLeft size={14} /> Back to Dashboard
               </button>
-            )}
-          </div>
+            </div>
+          )}
 
           {/* STAGE 1: CAMPAIGNS DASHBOARD (activeCampaignId is null) */}
           {!activeCampaignId && (
             <div className="rt-fade rt-d1 flex flex-col gap-8">
               
-              {/* Uploader Card */}
+              {/* Upload Card — compact inline */}
               <div 
-                className={`rt-card ${dragActive ? 'border-indigo-500 bg-indigo-50/20' : ''}`}
-                style={{ borderStyle: 'dashed', borderWidth: '2px', padding: '40px 30px', textAlign: 'center', cursor: 'pointer', transition: 'all 0.2s' }}
+                className={`ad-upload ${dragActive ? 'drag' : ''}`}
                 onDragEnter={handleDrag}
                 onDragOver={handleDrag}
                 onDragLeave={handleDrag}
@@ -582,16 +629,18 @@ export default function AutoDialer() {
                   accept=".csv,.txt" 
                   style={{ display: 'none' }} 
                 />
-                <div style={{ width: '56px', height: '56px', borderRadius: '16px', background: 'rgba(99,102,241,0.08)', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 16px' }}>
-                  <Upload size={24} color="#6366f1" />
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '16px', flexWrap: 'wrap' }}>
+                  <div style={{ width: '44px', height: '44px', borderRadius: '12px', background: 'linear-gradient(135deg, #eef2ff, #e0e7ff)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                    <Upload size={20} color="#6366f1" />
+                  </div>
+                  <div style={{ textAlign: 'left' }}>
+                    <p style={{ fontSize: '14px', fontWeight: 700, color: '#1e293b', margin: 0 }}>Upload CSV or TXT File</p>
+                    <p style={{ fontSize: '12px', color: '#94a3b8', margin: '2px 0 0' }}>Drag & drop or click to browse — spreadsheets with headers or notepad phone lists</p>
+                  </div>
+                  <button className="rt-btn-primary" style={{ padding: '9px 22px', fontSize: '12.5px', height: 'auto', minHeight: 'unset', flexShrink: 0, borderRadius: '10px' }}>
+                    Browse File
+                  </button>
                 </div>
-                <h3 style={{ fontSize: '16px', fontWeight: 700, color: '#0f172a', margin: '0 0 4px' }}>Upload a new CSV/TXT Leads List</h3>
-                <p style={{ fontSize: '12.5px', color: '#64748b', margin: '0 auto 16px', maxWidth: '380px' }}>
-                  Supports **CSV** spreadsheets (with headers) or raw **TXT** notepad files (one phone number per line).
-                </p>
-                <button className="rt-btn-primary" style={{ margin: '0 auto', padding: '10px 20px', fontSize: '12.5px', height: 'auto', minHeight: 'unset' }}>
-                  Browse File
-                </button>
               </div>
 
               {/* Campaigns List */}
@@ -599,17 +648,20 @@ export default function AutoDialer() {
                 
                 {/* 1. ASSIGNED CAMPAIGNS (DATABASE-DRIVEN) */}
                 <div>
-                  <h3 style={{ fontSize: '15px', fontWeight: 800, color: '#0f172a', marginBottom: '16px', display: 'flex', alignItems: 'center', gap: '8px' }}>
-                    <PhoneCall size={18} className="text-indigo-500" /> Assigned by Manager ({dbCampaigns.length})
-                  </h3>
+                  <div className="ad-section-title">
+                    <PhoneCall size={15} /> Assigned by Manager · {dbCampaigns.length}
+                  </div>
 
                   {loadingDb ? (
-                    <div className="rt-card py-8 text-center text-sm text-slate-400">
-                      Loading assigned campaigns...
+                    <div className="ad-empty">
+                      <div className="ad-empty-icon"><PhoneCall size={20} color="#94a3b8" /></div>
+                      <p style={{ fontSize: '13px', color: '#94a3b8', fontWeight: 600, margin: 0 }}>Loading assigned campaigns...</p>
                     </div>
                   ) : dbCampaigns.length === 0 ? (
-                    <div className="rt-card py-8 text-center text-sm text-slate-400" style={{ background: '#fafbfc' }}>
-                      No campaigns assigned to you by your manager yet.
+                    <div className="ad-empty">
+                      <div className="ad-empty-icon"><PhoneCall size={20} color="#94a3b8" /></div>
+                      <p style={{ fontSize: '13px', color: '#94a3b8', fontWeight: 600, margin: 0 }}>No campaigns assigned yet</p>
+                      <p style={{ fontSize: '11.5px', color: '#cbd5e1', margin: '4px 0 0' }}>Your manager will assign call lists here when ready</p>
                     </div>
                   ) : (
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
@@ -617,48 +669,53 @@ export default function AutoDialer() {
                         const campTotal = c.totalLeads
                         const campCalled = c.calledLeads
                         const campProgress = campTotal > 0 ? Math.round((campCalled / campTotal) * 100) : 0
+                        const stats = c.outcomeStats || {}
 
                         return (
                           <div 
                             key={c.id} 
                             onClick={() => setActiveCampaignId(c.id)}
-                            className="rt-card hover:border-indigo-200 hover:shadow-md transition-all cursor-pointer flex flex-col justify-between"
-                            style={{ minHeight: '170px' }}
+                            className="ad-camp-card"
                           >
-                            <div>
-                              <div className="flex items-start justify-between gap-3 mb-3">
-                                <div className="flex items-center gap-2.5 min-w-0">
-                                  <div className="p-2 bg-indigo-50 text-indigo-600 rounded-lg shrink-0">
-                                    <FileSpreadsheet size={18} />
-                                  </div>
-                                  <div className="min-w-0">
-                                    <h4 style={{ fontSize: '13.5px', fontWeight: 700, color: '#0f172a', margin: 0 }} className="truncate capitalize">
-                                      {c.name}
-                                    </h4>
-                                    <span style={{ fontSize: '10.5px', color: '#94a3b8', fontWeight: 600 }}>
-                                      Assigned: {new Date(c.createdAt).toLocaleDateString('en-GB')}
-                                    </span>
-                                  </div>
-                                </div>
+                            {campProgress > 0 && <div className="camp-badge">{campProgress}%</div>}
+                            
+                            <div className="flex items-center gap-2.5 mb-3">
+                              <div style={{ width: '36px', height: '36px', borderRadius: '10px', background: 'linear-gradient(135deg, #eef2ff, #e0e7ff)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                                <FileSpreadsheet size={17} color="#6366f1" />
                               </div>
-
-                              <div className="mb-4">
-                                <div className="flex justify-between items-center text-xs font-semibold text-slate-500 mb-1.5">
-                                  <span>Progress: {campCalled} / {campTotal} Called</span>
-                                  <span>{campProgress}%</span>
-                                </div>
-                                <div style={{ width: '100%', height: '6px', background: '#f1f5f9', borderRadius: '3px', overflow: 'hidden' }}>
-                                  <div style={{ width: `${campProgress}%`, height: '100%', background: 'linear-gradient(135deg,#6366f1,#818cf8)', borderRadius: '3px' }} />
-                                </div>
+                              <div className="min-w-0">
+                                <h4 style={{ fontSize: '14px', fontWeight: 700, color: '#0f172a', margin: 0 }} className="truncate capitalize">
+                                  {c.name}
+                                </h4>
+                                <span style={{ fontSize: '11px', color: '#94a3b8', fontWeight: 500 }}>
+                                  {new Date(c.createdAt).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })}
+                                </span>
                               </div>
                             </div>
 
-                            <div className="flex items-center justify-between pt-3 border-t border-slate-50 mt-auto">
-                              <span style={{ fontSize: '11px', color: '#64748b', fontWeight: 600 }}>
-                                {campTotal - campCalled} leads remaining
-                              </span>
-                              <span className="text-xs font-bold text-indigo-600 flex items-center gap-0.5 group-hover:translate-x-0.5 transition-all">
-                                Start Calling →
+                            {/* Progress */}
+                            <div className="mb-1">
+                              <div className="flex justify-between items-center text-xs font-semibold mb-1.5" style={{ color: '#64748b' }}>
+                                <span>{campCalled} / {campTotal} called</span>
+                                <span style={{ color: '#6366f1' }}>{campTotal - campCalled} left</span>
+                              </div>
+                              <div className="ad-progress-bar">
+                                <div className="ad-progress-fill assigned" style={{ width: `${campProgress}%` }} />
+                              </div>
+                            </div>
+
+                            {/* Outcome chips */}
+                            <div className="ad-outcome-row">
+                              {(stats.no_answer || 0) > 0 && <span className="ad-outcome-chip" style={{ background: '#f1f5f9', color: '#64748b' }}>📵 {stats.no_answer}</span>}
+                              {(stats.not_interested || 0) > 0 && <span className="ad-outcome-chip" style={{ background: '#fef2f2', color: '#dc2626' }}>✋ {stats.not_interested}</span>}
+                              {(stats.callback || 0) > 0 && <span className="ad-outcome-chip" style={{ background: '#eef2ff', color: '#4f46e5' }}>📞 {stats.callback}</span>}
+                              {(stats.transfer || 0) > 0 && <span className="ad-outcome-chip" style={{ background: '#ecfdf5', color: '#059669' }}>🔄 {stats.transfer}</span>}
+                              {(stats.sale || 0) > 0 && <span className="ad-outcome-chip" style={{ background: '#fffbeb', color: '#d97706' }}>💰 {stats.sale}</span>}
+                            </div>
+
+                            <div className="flex items-center justify-end pt-3 mt-3 border-t border-slate-100">
+                              <span style={{ fontSize: '12px', fontWeight: 700, color: '#6366f1', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                                {campCalled > 0 ? 'Continue' : 'Start'} Calling <Play size={12} />
                               </span>
                             </div>
                           </div>
@@ -670,13 +727,15 @@ export default function AutoDialer() {
 
                 {/* 2. LOCAL CAMPAIGNS (SELF-UPLOADED) */}
                 <div>
-                  <h3 style={{ fontSize: '15px', fontWeight: 800, color: '#0f172a', marginBottom: '16px', display: 'flex', alignItems: 'center', gap: '8px' }}>
-                    <List size={18} className="text-indigo-500" /> Local Campaigns ({campaigns.length})
-                  </h3>
+                  <div className="ad-section-title">
+                    <List size={15} /> Your Local Campaigns · {campaigns.length}
+                  </div>
 
                   {campaigns.length === 0 ? (
-                    <div className="rt-card flex flex-col items-center justify-center" style={{ padding: '40px 20px', textAlign: 'center', background: '#fafbfc' }}>
-                      <p style={{ fontSize: '13px', color: '#64748b', margin: 0, fontWeight: 500 }}>No local campaigns loaded yet. Upload a list file to start calling leads.</p>
+                    <div className="ad-empty">
+                      <div className="ad-empty-icon"><FileText size={20} color="#94a3b8" /></div>
+                      <p style={{ fontSize: '13px', color: '#94a3b8', fontWeight: 600, margin: 0 }}>No local campaigns</p>
+                      <p style={{ fontSize: '11.5px', color: '#cbd5e1', margin: '4px 0 0' }}>Upload a CSV or TXT file above to create one</p>
                     </div>
                   ) : (
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
@@ -690,56 +749,52 @@ export default function AutoDialer() {
                           <div 
                             key={c.id} 
                             onClick={() => setActiveCampaignId(c.id)}
-                            className="rt-card hover:border-indigo-200 hover:shadow-md transition-all cursor-pointer flex flex-col justify-between"
-                            style={{ minHeight: '170px' }}
+                            className="ad-camp-card"
                           >
-                            <div>
-                              <div className="flex items-start justify-between gap-3 mb-3">
-                                <div className="flex items-center gap-2.5 min-w-0">
-                                  <div className="p-2 bg-indigo-50 text-indigo-600 rounded-lg shrink-0">
-                                    <FileSpreadsheet size={18} />
-                                  </div>
-                                  <div className="min-w-0">
-                                    <h4 style={{ fontSize: '13.5px', fontWeight: 700, color: '#0f172a', margin: 0 }} className="truncate capitalize">
-                                      {c.name}
-                                    </h4>
-                                    <span style={{ fontSize: '10.5px', color: '#94a3b8', fontWeight: 600 }}>
-                                      Created: {c.createdAt || 'Just now'}
-                                    </span>
-                                  </div>
+                            {!isMappingPending && campProgress > 0 && <div className="camp-badge" style={{ background: 'linear-gradient(135deg, #06b6d4, #22d3ee)' }}>{campProgress}%</div>}
+                            
+                            <div className="flex items-start justify-between gap-3 mb-3">
+                              <div className="flex items-center gap-2.5 min-w-0">
+                                <div style={{ width: '36px', height: '36px', borderRadius: '10px', background: 'linear-gradient(135deg, #ecfdf5, #d1fae5)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                                  <FileSpreadsheet size={17} color="#059669" />
                                 </div>
-                                <button 
-                                  onClick={(e) => deleteCampaign(c.id, e)}
-                                  className="p-1.5 text-slate-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-all border-none cursor-pointer"
-                                  title="Delete Campaign"
-                                >
-                                  <Trash2 size={15} />
-                                </button>
+                                <div className="min-w-0">
+                                  <h4 style={{ fontSize: '14px', fontWeight: 700, color: '#0f172a', margin: 0 }} className="truncate capitalize">
+                                    {c.name}
+                                  </h4>
+                                  <span style={{ fontSize: '11px', color: '#94a3b8', fontWeight: 500 }}>
+                                    {c.createdAt || 'Just now'}
+                                  </span>
+                                </div>
                               </div>
-
-                              {isMappingPending ? (
-                                <div className="flex items-center gap-1.5 text-xs text-amber-600 font-bold bg-amber-50 px-2.5 py-1 rounded-md w-fit mb-4">
-                                  <AlertCircle size={13} /> Column Mapping Pending
-                                </div>
-                              ) : (
-                                <div className="mb-4">
-                                  <div className="flex justify-between items-center text-xs font-semibold text-slate-500 mb-1.5">
-                                    <span>Progress: {campCalled} / {campTotal} Called</span>
-                                    <span>{campProgress}%</span>
-                                  </div>
-                                  <div style={{ width: '100%', height: '6px', background: '#f1f5f9', borderRadius: '3px', overflow: 'hidden' }}>
-                                    <div style={{ width: `${campProgress}%`, height: '100%', background: 'linear-gradient(135deg,#6366f1,#818cf8)', borderRadius: '3px' }} />
-                                  </div>
-                                </div>
-                              )}
+                              <button 
+                                onClick={(e) => deleteCampaign(c.id, e)}
+                                className="p-1.5 text-slate-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-all border-none cursor-pointer"
+                                title="Delete Campaign"
+                              >
+                                <Trash2 size={14} />
+                              </button>
                             </div>
 
-                            <div className="flex items-center justify-between pt-3 border-t border-slate-50 mt-auto">
-                              <span style={{ fontSize: '11px', color: '#64748b', fontWeight: 600 }}>
-                                {isMappingPending ? 'Setup required' : `${campTotal - campCalled} leads remaining`}
-                              </span>
-                              <span className="text-xs font-bold text-indigo-600 flex items-center gap-0.5 group-hover:translate-x-0.5 transition-all">
-                                {isMappingPending ? 'Configure' : 'Resume'} →
+                            {isMappingPending ? (
+                              <div className="flex items-center gap-1.5 text-xs text-amber-600 font-bold bg-amber-50 px-2.5 py-1.5 rounded-lg w-fit mb-3">
+                                <AlertCircle size={13} /> Column Mapping Required
+                              </div>
+                            ) : (
+                              <div className="mb-1">
+                                <div className="flex justify-between items-center text-xs font-semibold mb-1.5" style={{ color: '#64748b' }}>
+                                  <span>{campCalled} / {campTotal} called</span>
+                                  <span style={{ color: '#06b6d4' }}>{campTotal - campCalled} left</span>
+                                </div>
+                                <div className="ad-progress-bar">
+                                  <div className="ad-progress-fill local" style={{ width: `${campProgress}%` }} />
+                                </div>
+                              </div>
+                            )}
+
+                            <div className="flex items-center justify-end pt-3 mt-3 border-t border-slate-100">
+                              <span style={{ fontSize: '12px', fontWeight: 700, color: isMappingPending ? '#d97706' : '#06b6d4', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                                {isMappingPending ? 'Configure' : campCalled > 0 ? 'Continue' : 'Start'} {isMappingPending ? <AlertCircle size={12} /> : <Play size={12} />}
                               </span>
                             </div>
                           </div>
