@@ -103,7 +103,7 @@ def check_in(
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
-    if current_user.role == "agent" and _is_mobile_device(request):
+    if _is_mobile_device(request):
         raise HTTPException(
             status_code=400,
             detail="Mobile devices are not allowed use office wifi/pc"
@@ -167,7 +167,7 @@ def check_out(
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
-    if current_user.role == "agent" and _is_mobile_device(request):
+    if _is_mobile_device(request):
         raise HTTPException(
             status_code=400,
             detail="Mobile devices are not allowed use office wifi/pc"
