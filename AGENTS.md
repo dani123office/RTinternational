@@ -106,6 +106,9 @@ Fix 500 errors (local and Vercel) in the RT International call center FastAPI ap
 38. **Added Agent Auto-Dialer** — Created a dedicated 'Auto Dialer' page for agents to upload and run call campaigns from CSV/TXT lists. Integrated dial triggering via `tel:` protocol (initiating calls in Vonage Business Communications desktop app), added queue and history tabs, persisted state in `localStorage` across refreshes, and integrated pre-fill redirects to Callback, Transfer, and Sale forms.
 
 39. **Multi-Campaign Support in Auto-Dialer** — Redesigned the `AutoDialer.jsx` campaign flow from a single active campaign to a multi-campaign dashboard model. Agents can now upload multiple CSV/TXT files, each creating a campaign card showing creation time, live progress bar, remaining leads count, and delete actions. Clicking a campaign card switches the active dialer to that campaign, with a 'Back to Dashboard' button allowing agents to switch between different campaigns on the fly. Progress and campaigns are fully persisted in `localStorage`.
+40. **Blocked mobile check-in and check-out** — added user-agent based restriction on `/api/attendance/check-in` and `/api/attendance/check-out` endpoints. If request user-agent matches common mobile identifiers and the user role is `agent`, backend returns a 400 Bad Request error. Exemption is in place for managers/admins.
+41. **Whitelisted mobile block error** — added `'Mobile devices are not allowed'` to `safe_prefixes` in `main.py` exception detail sanitizer.
+42. **Added automated tests for mobile blocking** — added `test_BT037_mobile_checkin_blocked`, `test_BT038_mobile_checkout_blocked`, and `test_BT039_manager_mobile_checkin_allowed` to `testsprite_tests/run_backend_tests.py`.
 
 ## Root Causes (continued)
 - **Activity logging never worked**: `log_activity()` function was defined in `utils/logger.py` but never imported or called from any router. Activity logs table was always empty. No audit trail existed despite the schema being fully set up. → Fixed by adding `log_activity()` calls after all create/update/delete endpoints across all 10 routers.
@@ -117,10 +120,12 @@ Fix 500 errors (local and Vercel) in the RT International call center FastAPI ap
 - **Duplicate postcode error sanitized**: The exception details sanitizer rewrote the validation error `This customer belongs to agent: name` to a generic error `We could not complete your request` because it contained a colon and was not in the `safe_prefixes` whitelist. → Fixed by adding it to `safe_prefixes`.
 - **IntegrityError on activity logging (SQLite)**: SQLite does not auto-increment columns defined as `BIGINT PRIMARY KEY`, causing `NOT NULL constraint failed: activity_logs.id` on server database insertions. → Fixed by changing datatype to `Integer` and dropping the old table so uvicorn can recreate it with standard autoincrement.
 - **Lack of auto-dialer for notepad/excel sheets**: Previously, agents had to manually type phone numbers from spreadsheets or notepad into Vonage to dial them. → Fixed by building a client-side Auto-Dialer campaign queue workspace with Vonage 'tel:' protocol execution and pre-fill redirects.
+- **Off-site mobile check-in abuse**: Agents were checking in from their phones on their way to the office (before arrival) and arriving late. → Fixed by blocking check-in/out requests from mobile user-agents for agent roles.
 
 ## Verification
 1. Push to GitHub → Vercel auto-deploys
 2. Check `https://rt-international.vercel.app/` for frontend (should load SPA)
 3. Check `https://rt-international.vercel.app/api/auth/users` (should 401 with JSON body, not 500)
 4. Check `https://rt-international.vercel.app/api/admin/audit-log` (should show activity entries, not empty array)
-5. GitHub Actions CI should run on push (`.github/workflows/ci.yml`) and verify `test_BT033_customer_duplication_prevented_by_postcode` passes.
+5. GitHub Actions CI should run on push (`.github/workflows/ci.yml`) and verify `test_BT037_mobile_checkin_blocked` and `test_BT038_mobile_checkout_blocked` pass.
+

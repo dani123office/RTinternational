@@ -204,6 +204,7 @@ def _clean_http_exception_detail(detail, status_code):
             'pending admin approval',
             'No manager assigned yet',
             'This customer belongs to',
+            'Mobile devices are not allowed',
         ]
         for prefix in safe_prefixes:
             if normalized.startswith(prefix):

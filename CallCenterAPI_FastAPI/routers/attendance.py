@@ -49,6 +49,12 @@ def _now_pkt():
 def _today_pkt():
     return _now_pkt().date()
 
+def _is_mobile_device(request: Request) -> bool:
+    user_agent = request.headers.get("user-agent", "").lower()
+    mobile_keywords = ["mobile", "android", "iphone", "ipad", "phone", "opera mini", "iemobile", "windows phone"]
+    return any(keyword in user_agent for keyword in mobile_keywords)
+
+
 def _attendance_to_out(a: Attendance) -> AttendanceOut:
     return AttendanceOut(
         id=a.id,
@@ -97,6 +103,12 @@ def check_in(
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
+    if current_user.role == "agent" and _is_mobile_device(request):
+        raise HTTPException(
+            status_code=400,
+            detail="Mobile devices are not allowed use office wifi/pc"
+        )
+
     now = _now_pkt()
     today = now.date()
 
@@ -143,8 +155,8 @@ def check_in(
     db.commit()
     db.refresh(record)
     log_activity(db, current_user.id, "checked_in", "attendance", record.id,
-                 f"Checked in at {now.strftime('%H:%M')}",
-                 get_client_ip(request))
+                     f"Checked in at {now.strftime('%H:%M')}",
+                     get_client_ip(request))
     return _attendance_to_out(record)
 
 
@@ -155,6 +167,12 @@ def check_out(
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
+    if current_user.role == "agent" and _is_mobile_device(request):
+        raise HTTPException(
+            status_code=400,
+            detail="Mobile devices are not allowed use office wifi/pc"
+        )
+
     now = _now_pkt()
     today = now.date()
 

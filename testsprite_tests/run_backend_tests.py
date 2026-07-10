@@ -880,6 +880,27 @@ class RTInternationalBackendTests(unittest.TestCase):
         self.assertEqual(loan_data.get("status"), "approved")
         self.assertEqual(loan_data.get("adminNotes"), "Created directly by admin")
 
+    def test_BT037_mobile_checkin_blocked(self):
+        headers = self.get_auth_header(self.agent_token)
+        headers["User-Agent"] = "Mozilla/5.0 (iPhone; CPU iPhone OS 15_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/15.0 Mobile/15E148 Safari/604.1"
+        r = requests.post(f"{BASE_URL}/api/attendance/check-in", json={"checkin_reason": "Mobile test"}, headers=headers, timeout=5.0)
+        self.assertEqual(r.status_code, 400)
+        self.assertIn("Mobile devices are not allowed use office wifi/pc", r.json().get("detail", ""))
+
+    def test_BT038_mobile_checkout_blocked(self):
+        headers = self.get_auth_header(self.agent_token)
+        headers["User-Agent"] = "Mozilla/5.0 (Linux; Android 10; SM-A505F) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.120 Mobile Safari/537.36"
+        r = requests.post(f"{BASE_URL}/api/attendance/check-out", json={"checkout_reason": "Mobile test"}, headers=headers, timeout=5.0)
+        self.assertEqual(r.status_code, 400)
+        self.assertIn("Mobile devices are not allowed use office wifi/pc", r.json().get("detail", ""))
+
+    def test_BT039_manager_mobile_checkin_allowed(self):
+        headers = self.get_auth_header(self.manager_token)
+        headers["User-Agent"] = "Mozilla/5.0 (iPhone; CPU iPhone OS 15_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/15.0 Mobile/15E148 Safari/604.1"
+        r = requests.post(f"{BASE_URL}/api/attendance/check-in", json={"checkin_reason": "Manager Mobile test"}, headers=headers, timeout=5.0)
+        if r.status_code == 400:
+            self.assertNotIn("Mobile devices are not allowed for check-in", r.json().get("detail", ""))
+
     # ==========================================
     # RATE LIMITING (BT024) - Executed LAST to avoid blocking and limiting other tests!
     # ==========================================
