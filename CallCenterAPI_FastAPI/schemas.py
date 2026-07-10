@@ -1781,3 +1781,52 @@ class LoanOut(BaseModel):
     updatedAt: datetime
 
     model_config = {"from_attributes": True}
+
+
+class CampaignLeadCreate(BaseModel):
+    businessName: str
+    ownerName: Optional[str] = None
+    phone: str
+    postcode: Optional[str] = None
+    notes: Optional[str] = None
+
+
+class CampaignCreate(BaseModel):
+    name: str
+    assignedToId: int
+    leads: List[CampaignLeadCreate]
+
+
+class CampaignLeadUpdate(BaseModel):
+    status: str = Field(..., pattern="^(pending|called|skipped)$")
+    outcome: Optional[str] = None
+    notes: Optional[str] = None
+
+
+class CampaignLeadOut(BaseModel):
+    id: int
+    campaignId: int
+    businessName: str
+    ownerName: Optional[str] = None
+    phone: str
+    postcode: Optional[str] = None
+    notes: Optional[str] = None
+    status: str
+    outcome: Optional[str] = None
+    calledAt: Optional[datetime] = None
+
+
+class CampaignOut(BaseModel):
+    id: int
+    name: str
+    assignedToId: int
+    assignedToName: Optional[str] = None
+    createdById: int
+    createdByName: Optional[str] = None
+    createdAt: datetime
+    status: str
+    totalLeads: int
+    calledLeads: int
+    pendingLeads: int
+    outcomeStats: dict
+

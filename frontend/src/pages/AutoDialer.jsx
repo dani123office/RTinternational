@@ -1,6 +1,7 @@
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect, useRef, useCallback } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useToast } from '@/components/ui/toastContext'
+import api, { endpoints } from '@/lib/api'
 import {
   Upload, Play, Phone, SkipForward, ChevronLeft, RotateCcw,
   List, CheckCircle2, XCircle, ArrowLeftRight, PhoneCall,
@@ -54,29 +55,116 @@ export default function AutoDialer() {
     }
   }, [activeCampaignId])
 
-  const activeCampaign = campaigns.find(c => c.id === activeCampaignId) || null
+  const [dbCampaigns, setDbCampaigns] = useState([])
+  const [loadingDb, setLoadingDb] = useState(false)
+
+  const loadDbCampaigns = useCallback(async () => {
+    setLoadingDb(true)
+    try {
+      const res = await api.get(endpoints.campaigns.base)
+      const mapped = res.data.map(c => ({
+        id: `db-${c.id}`,
+        dbId: c.id,
+        name: c.name,
+        isDb: true,
+        totalLeads: c.totalLeads,
+        calledLeads: c.calledLeads,
+        pendingLeads: c.pendingLeads,
+        isActive: c.status === 'active',
+        createdAt: c.createdAt,
+        outcomeStats: c.outcomeStats
+      }))
+      setDbCampaigns(mapped)
+    } catch (err) {
+      console.error(err)
+    } finally {
+      setLoadingDb(false)
+    }
+  }, [])
+
+  useEffect(() => {
+    loadDbCampaigns()
+  }, [loadDbCampaigns])
+
+  useEffect(() => {
+    if (activeCampaignId && activeCampaignId.toString().startsWith('db-')) {
+      const dbId = Number(activeCampaignId.replace('db-', ''))
+      const current = dbCampaigns.find(c => c.id === activeCampaignId)
+      if (current && !current.leads) {
+        api.get(endpoints.campaigns.leads(dbId)).then(res => {
+          const leads = res.data.map(l => ({
+            id: l.id,
+            businessName: l.businessName,
+            ownerName: l.ownerName || '',
+            phone: l.phone,
+            postcode: l.postcode || '',
+            notes: l.notes || '',
+            status: l.status,
+            outcome: l.outcome
+          }))
+          let firstPendingIdx = leads.findIndex(l => l.status === 'pending')
+          if (firstPendingIdx === -1) firstPendingIdx = 0
+          
+          setDbCampaigns(prev => prev.map(c => {
+            if (c.id === activeCampaignId) {
+              return { ...c, leads, currentIndex: firstPendingIdx }
+            }
+            return c
+          }))
+        }).catch(err => {
+          toast('Failed to load campaign leads', 'error')
+          setActiveCampaignId(null)
+        })
+      }
+    }
+  }, [activeCampaignId, dbCampaigns, toast])
+
+  const activeCampaign = campaigns.find(c => c.id === activeCampaignId) || dbCampaigns.find(c => c.id === activeCampaignId) || null
 
   const prevIndexRef = useRef(0)
 
   // Update active campaign helper
   const updateActiveCampaign = (updater) => {
-    setCampaigns(prev => prev.map(c => {
-      if (c.id === activeCampaignId) {
-        return typeof updater === 'function' ? updater(c) : { ...c, ...updater }
-      }
-      return c
-    }))
+    if (activeCampaign?.isDb) {
+      setDbCampaigns(prev => prev.map(c => {
+        if (c.id === activeCampaignId) {
+          return typeof updater === 'function' ? updater(c) : { ...c, ...updater }
+        }
+        return c
+      }))
+    } else {
+      setCampaigns(prev => prev.map(c => {
+        if (c.id === activeCampaignId) {
+          return typeof updater === 'function' ? updater(c) : { ...c, ...updater }
+        }
+        return c
+      }))
+    }
   }
 
   // Delete Campaign helper
-  const deleteCampaign = (id, e) => {
+  const deleteCampaign = async (id, e) => {
     if (e) e.stopPropagation()
     if (window.confirm('Are you sure you want to delete this campaign? All dialer progress and history will be lost.')) {
-      setCampaigns(prev => prev.filter(c => c.id !== id))
-      if (activeCampaignId === id) {
-        setActiveCampaignId(null)
+      if (id.toString().startsWith('db-')) {
+        const dbId = Number(id.replace('db-', ''))
+        try {
+          await api.delete(endpoints.campaigns.delete(dbId))
+          toast('Campaign deleted successfully', 'info')
+          loadDbCampaigns()
+          if (activeCampaignId === id) {
+            setActiveCampaignId(null)
+          }
+        } catch (err) {
+          toast('Failed to delete campaign', 'error')
+        }
+      } else {
+        setCampaigns(prev => prev.filter(c => c.id !== id))
+        if (activeCampaignId === id) {
+          setActiveCampaignId(null)
+        }
+        toast('Campaign deleted successfully', 'info')
       }
-      toast('Campaign deleted successfully', 'info')
     }
   }
 
@@ -335,7 +423,7 @@ export default function AutoDialer() {
   }
 
   // Record outcome and go to next
-  const recordOutcome = (outcome, details = '') => {
+  const recordOutcome = async (outcome, details = '') => {
     if (!activeCampaign || !currentLead) return
 
     const logEntry = {
@@ -343,6 +431,19 @@ export default function AutoDialer() {
       outcome,
       notes: details || currentLead.notes,
       timestamp: new Date().toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', second: '2-digit', hour12: true })
+    }
+
+    if (activeCampaign.isDb) {
+      try {
+        await api.put(endpoints.campaigns.updateLead(currentLead.id), {
+          status: 'called',
+          outcome: outcome,
+          notes: details || currentLead.notes
+        })
+        loadDbCampaigns()
+      } catch (err) {
+        toast('Failed to save outcome to database', 'error')
+      }
     }
 
     updateActiveCampaign(prev => {
@@ -364,6 +465,27 @@ export default function AutoDialer() {
     }
   }
 
+  // Handle lead skip with DB sync if necessary
+  const handleSkip = async () => {
+    if (!activeCampaign || !currentLead) return
+
+    if (activeCampaign.isDb) {
+      try {
+        await api.put(endpoints.campaigns.updateLead(currentLead.id), {
+          status: 'skipped'
+        })
+        loadDbCampaigns()
+      } catch (err) {
+        console.error(err)
+      }
+    }
+
+    updateActiveCampaign(p => ({
+      ...p,
+      currentIndex: Math.min(totalLeads - 1, p.currentIndex + 1)
+    }))
+  }
+
   // Conversion Redirect Helpers
   const handleConvert = (route, outcomeLabel) => {
     if (!activeCampaign || !currentLead) return
@@ -382,6 +504,18 @@ export default function AutoDialer() {
       ...currentLead,
       outcome: outcomeLabel,
       timestamp: new Date().toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', second: '2-digit', hour12: true })
+    }
+
+    if (activeCampaign.isDb) {
+      api.put(endpoints.campaigns.updateLead(currentLead.id), {
+        status: 'called',
+        outcome: outcomeLabel,
+        notes: currentLead.notes
+      }).then(() => {
+        loadDbCampaigns()
+      }).catch(err => {
+        console.error(err)
+      })
     }
 
     updateActiveCampaign(prev => {
@@ -461,62 +595,53 @@ export default function AutoDialer() {
               </div>
 
               {/* Campaigns List */}
-              <div>
-                <h3 style={{ fontSize: '15px', fontWeight: 800, color: '#0f172a', marginBottom: '16px', display: 'flex', alignItems: 'center', gap: '8px' }}>
-                  <List size={18} className="text-indigo-500" /> Active Campaigns ({campaigns.length})
-                </h3>
+              <div className="flex flex-col gap-8">
+                
+                {/* 1. ASSIGNED CAMPAIGNS (DATABASE-DRIVEN) */}
+                <div>
+                  <h3 style={{ fontSize: '15px', fontWeight: 800, color: '#0f172a', marginBottom: '16px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    <PhoneCall size={18} className="text-indigo-500" /> Assigned by Manager ({dbCampaigns.length})
+                  </h3>
 
-                {campaigns.length === 0 ? (
-                  <div className="rt-card flex flex-col items-center justify-center" style={{ padding: '60px 20px', textAlign: 'center', background: '#fafbfc' }}>
-                    <div style={{ width: '48px', height: '48px', borderRadius: '50%', background: '#f1f5f9', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 12px' }} className="flex justify-center items-center">
-                      <FileText size={20} color="#94a3b8" />
+                  {loadingDb ? (
+                    <div className="rt-card py-8 text-center text-sm text-slate-400">
+                      Loading assigned campaigns...
                     </div>
-                    <p style={{ fontSize: '13px', color: '#64748b', margin: 0, fontWeight: 500 }}>No campaigns loaded yet. Upload a list file to start calling leads.</p>
-                  </div>
-                ) : (
-                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
-                    {campaigns.map((c) => {
-                      const campTotal = c.leads ? c.leads.length : 0
-                      const campCalled = c.currentIndex
-                      const campProgress = campTotal > 0 ? Math.round((campCalled / campTotal) * 100) : 0
-                      const isMappingPending = !c.isActive
+                  ) : dbCampaigns.length === 0 ? (
+                    <div className="rt-card py-8 text-center text-sm text-slate-400" style={{ background: '#fafbfc' }}>
+                      No campaigns assigned to you by your manager yet.
+                    </div>
+                  ) : (
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
+                      {dbCampaigns.map((c) => {
+                        const campTotal = c.totalLeads
+                        const campCalled = c.calledLeads
+                        const campProgress = campTotal > 0 ? Math.round((campCalled / campTotal) * 100) : 0
 
-                      return (
-                        <div 
-                          key={c.id} 
-                          onClick={() => setActiveCampaignId(c.id)}
-                          className="rt-card hover:border-indigo-200 hover:shadow-md transition-all cursor-pointer flex flex-col justify-between"
-                          style={{ minHeight: '170px' }}
-                        >
-                          <div>
-                            <div className="flex items-start justify-between gap-3 mb-3">
-                              <div className="flex items-center gap-2.5 min-w-0">
-                                <div className="p-2 bg-indigo-50 text-indigo-600 rounded-lg shrink-0">
-                                  <FileSpreadsheet size={18} />
-                                </div>
-                                <div className="min-w-0">
-                                  <h4 style={{ fontSize: '13.5px', fontWeight: 700, color: '#0f172a', margin: 0 }} className="truncate capitalize">
-                                    {c.name}
-                                  </h4>
-                                  <span style={{ fontSize: '10.5px', color: '#94a3b8', fontWeight: 600 }}>
-                                    Created: {c.createdAt || 'Just now'}
-                                  </span>
+                        return (
+                          <div 
+                            key={c.id} 
+                            onClick={() => setActiveCampaignId(c.id)}
+                            className="rt-card hover:border-indigo-200 hover:shadow-md transition-all cursor-pointer flex flex-col justify-between"
+                            style={{ minHeight: '170px' }}
+                          >
+                            <div>
+                              <div className="flex items-start justify-between gap-3 mb-3">
+                                <div className="flex items-center gap-2.5 min-w-0">
+                                  <div className="p-2 bg-indigo-50 text-indigo-600 rounded-lg shrink-0">
+                                    <FileSpreadsheet size={18} />
+                                  </div>
+                                  <div className="min-w-0">
+                                    <h4 style={{ fontSize: '13.5px', fontWeight: 700, color: '#0f172a', margin: 0 }} className="truncate capitalize">
+                                      {c.name}
+                                    </h4>
+                                    <span style={{ fontSize: '10.5px', color: '#94a3b8', fontWeight: 600 }}>
+                                      Assigned: {new Date(c.createdAt).toLocaleDateString('en-GB')}
+                                    </span>
+                                  </div>
                                 </div>
                               </div>
-                              <button 
-                                onClick={(e) => deleteCampaign(c.id, e)}
-                                className="p-1.5 text-slate-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-all border-none cursor-pointer"
-                                title="Delete Campaign"
-                              >
-                                <Trash2 size={15} />
-                              </button>
-                            </div>
 
-                            {isMappingPending ? (
-                              <div className="flex items-center gap-1.5 text-xs text-amber-600 font-bold bg-amber-50 px-2.5 py-1 rounded-md w-fit mb-4">
-                                <AlertCircle size={13} /> Column Mapping Pending
-                              </div>
-                            ) : (
                               <div className="mb-4">
                                 <div className="flex justify-between items-center text-xs font-semibold text-slate-500 mb-1.5">
                                   <span>Progress: {campCalled} / {campTotal} Called</span>
@@ -526,22 +651,104 @@ export default function AutoDialer() {
                                   <div style={{ width: `${campProgress}%`, height: '100%', background: 'linear-gradient(135deg,#6366f1,#818cf8)', borderRadius: '3px' }} />
                                 </div>
                               </div>
-                            )}
-                          </div>
+                            </div>
 
-                          <div className="flex items-center justify-between pt-3 border-t border-slate-50 mt-auto">
-                            <span style={{ fontSize: '11px', color: '#64748b', fontWeight: 600 }}>
-                              {isMappingPending ? 'Setup required' : `${campTotal - campCalled} leads remaining`}
-                            </span>
-                            <span className="text-xs font-bold text-indigo-600 flex items-center gap-0.5 group-hover:translate-x-0.5 transition-all">
-                              {isMappingPending ? 'Configure' : 'Resume'} →
-                            </span>
+                            <div className="flex items-center justify-between pt-3 border-t border-slate-50 mt-auto">
+                              <span style={{ fontSize: '11px', color: '#64748b', fontWeight: 600 }}>
+                                {campTotal - campCalled} leads remaining
+                              </span>
+                              <span className="text-xs font-bold text-indigo-600 flex items-center gap-0.5 group-hover:translate-x-0.5 transition-all">
+                                Start Calling →
+                              </span>
+                            </div>
                           </div>
-                        </div>
-                      )
-                    })}
-                  </div>
-                )}
+                        )
+                      })}
+                    </div>
+                  )}
+                </div>
+
+                {/* 2. LOCAL CAMPAIGNS (SELF-UPLOADED) */}
+                <div>
+                  <h3 style={{ fontSize: '15px', fontWeight: 800, color: '#0f172a', marginBottom: '16px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    <List size={18} className="text-indigo-500" /> Local Campaigns ({campaigns.length})
+                  </h3>
+
+                  {campaigns.length === 0 ? (
+                    <div className="rt-card flex flex-col items-center justify-center" style={{ padding: '40px 20px', textAlign: 'center', background: '#fafbfc' }}>
+                      <p style={{ fontSize: '13px', color: '#64748b', margin: 0, fontWeight: 500 }}>No local campaigns loaded yet. Upload a list file to start calling leads.</p>
+                    </div>
+                  ) : (
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
+                      {campaigns.map((c) => {
+                        const campTotal = c.leads ? c.leads.length : 0
+                        const campCalled = c.currentIndex
+                        const campProgress = campTotal > 0 ? Math.round((campCalled / campTotal) * 100) : 0
+                        const isMappingPending = !c.isActive
+
+                        return (
+                          <div 
+                            key={c.id} 
+                            onClick={() => setActiveCampaignId(c.id)}
+                            className="rt-card hover:border-indigo-200 hover:shadow-md transition-all cursor-pointer flex flex-col justify-between"
+                            style={{ minHeight: '170px' }}
+                          >
+                            <div>
+                              <div className="flex items-start justify-between gap-3 mb-3">
+                                <div className="flex items-center gap-2.5 min-w-0">
+                                  <div className="p-2 bg-indigo-50 text-indigo-600 rounded-lg shrink-0">
+                                    <FileSpreadsheet size={18} />
+                                  </div>
+                                  <div className="min-w-0">
+                                    <h4 style={{ fontSize: '13.5px', fontWeight: 700, color: '#0f172a', margin: 0 }} className="truncate capitalize">
+                                      {c.name}
+                                    </h4>
+                                    <span style={{ fontSize: '10.5px', color: '#94a3b8', fontWeight: 600 }}>
+                                      Created: {c.createdAt || 'Just now'}
+                                    </span>
+                                  </div>
+                                </div>
+                                <button 
+                                  onClick={(e) => deleteCampaign(c.id, e)}
+                                  className="p-1.5 text-slate-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-all border-none cursor-pointer"
+                                  title="Delete Campaign"
+                                >
+                                  <Trash2 size={15} />
+                                </button>
+                              </div>
+
+                              {isMappingPending ? (
+                                <div className="flex items-center gap-1.5 text-xs text-amber-600 font-bold bg-amber-50 px-2.5 py-1 rounded-md w-fit mb-4">
+                                  <AlertCircle size={13} /> Column Mapping Pending
+                                </div>
+                              ) : (
+                                <div className="mb-4">
+                                  <div className="flex justify-between items-center text-xs font-semibold text-slate-500 mb-1.5">
+                                    <span>Progress: {campCalled} / {campTotal} Called</span>
+                                    <span>{campProgress}%</span>
+                                  </div>
+                                  <div style={{ width: '100%', height: '6px', background: '#f1f5f9', borderRadius: '3px', overflow: 'hidden' }}>
+                                    <div style={{ width: `${campProgress}%`, height: '100%', background: 'linear-gradient(135deg,#6366f1,#818cf8)', borderRadius: '3px' }} />
+                                  </div>
+                                </div>
+                              )}
+                            </div>
+
+                            <div className="flex items-center justify-between pt-3 border-t border-slate-50 mt-auto">
+                              <span style={{ fontSize: '11px', color: '#64748b', fontWeight: 600 }}>
+                                {isMappingPending ? 'Setup required' : `${campTotal - campCalled} leads remaining`}
+                              </span>
+                              <span className="text-xs font-bold text-indigo-600 flex items-center gap-0.5 group-hover:translate-x-0.5 transition-all">
+                                {isMappingPending ? 'Configure' : 'Resume'} →
+                              </span>
+                            </div>
+                          </div>
+                        )
+                      })}
+                    </div>
+                  )}
+                </div>
+
               </div>
             </div>
           )}
@@ -778,7 +985,7 @@ export default function AutoDialer() {
                       </button>
                       <span className="text-xs text-slate-400 font-semibold">LEAD INDEX: {activeCampaign.currentIndex + 1} / {totalLeads}</span>
                       <button 
-                        onClick={() => updateActiveCampaign(p => ({ ...p, currentIndex: Math.min(totalLeads - 1, p.currentIndex + 1) }))}
+                        onClick={handleSkip}
                         disabled={activeCampaign.currentIndex === totalLeads - 1}
                         className="flex items-center gap-1 text-xs font-bold text-slate-500 disabled:opacity-30 cursor-pointer"
                       >
