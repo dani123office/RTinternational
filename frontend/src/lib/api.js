@@ -189,12 +189,6 @@ export const endpoints = {
     slip: '/api/salary/slip',
     adminSlip: (userId) => `/api/admin/salary/slip/${userId}`,
   },
-  campaigns: {
-    base: '/api/campaigns',
-    leads: (id) => `/api/campaigns/${id}/leads`,
-    updateLead: (id) => `/api/campaigns/leads/${id}`,
-    delete: (id) => `/api/campaigns/${id}`,
-  },
   admin: {
     users: '/api/admin/users',
     managers: '/api/admin/managers',

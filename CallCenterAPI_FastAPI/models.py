@@ -339,33 +339,3 @@ class LoanRequest(Base):
     user = relationship("User", foreign_keys=[user_id], backref="loan_requests")
     admin = relationship("User", foreign_keys=[admin_id])
 
-
-class Campaign(Base):
-    __tablename__ = "campaigns"
-
-    id = Column(Integer, primary_key=True, index=True)
-    name = Column(String(255), nullable=False)
-    assigned_to_id = Column(Integer, ForeignKey("users.id", ondelete="CASCADE"), nullable=False, index=True)
-    created_by_id = Column(Integer, ForeignKey("users.id", ondelete="CASCADE"), nullable=False, index=True)
-    status = Column(String(20), nullable=False, default="active")  # active, completed, paused
-    created_at = Column(DateTime, default=datetime.now)
-
-    assigned_to = relationship("User", foreign_keys=[assigned_to_id], backref="assigned_campaigns")
-    created_by = relationship("User", foreign_keys=[created_by_id], backref="created_campaigns")
-    leads = relationship("CampaignLead", backref="campaign", cascade="all, delete-orphan")
-
-
-class CampaignLead(Base):
-    __tablename__ = "campaign_leads"
-
-    id = Column(Integer, primary_key=True, index=True)
-    campaign_id = Column(Integer, ForeignKey("campaigns.id", ondelete="CASCADE"), nullable=False, index=True)
-    business_name = Column(String(255), nullable=False)
-    owner_name = Column(String(255), nullable=True)
-    phone = Column(String(255), nullable=False)
-    postcode = Column(String(255), nullable=True)
-    notes = Column(Text, nullable=True)
-    status = Column(String(20), nullable=False, default="pending")  # pending, called, skipped
-    outcome = Column(String(50), nullable=True)  # no_answer, not_interested, callback, transfer, sale
-    called_at = Column(DateTime, nullable=True)
-
