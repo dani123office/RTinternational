@@ -1,0 +1,33 @@
+services:
+  db:
+    image: postgres:16-alpine
+    restart: always
+    environment:
+      POSTGRES_USER: rt_admin
+      POSTGRES_PASSWORD: RTinternational_db_2026
+      POSTGRES_DB: rt_callcenter
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
+
+  api:
+    build: .
+    restart: always
+    ports:
+      - "8000:8000"
+    environment:
+      - DATABASE_URL=postgresql+pg8000://rt_admin:RTinternational_db_2026@db:5432/rt_callcenter
+      - RT_JWT_SECRET=heGW3OkXlYsLLkxrC_5msl7rAkDalAB6K9R-SpFOrUlzEjte9EPXjIMfwrwqT2PZ
+      - RT_CORS_ORIGINS=http://localhost:5173,http://148.230.123.180,http://148.230.123.180:8000
+      - RT_TRUSTED_PROXIES=0.0.0.0/0
+      - RT_TRUST_PROXY_HOPS=1
+      - SMTP_EMAIL=danoffice52@gmail.com
+      - SMTP_PASSWORD=reothmatfyfbkvyz
+      - SMTP_PORT=587
+      - SMTP_SERVER=smtp.gmail.com
+    depends_on:
+      - db
+
+volumes:
+  postgres_data:
