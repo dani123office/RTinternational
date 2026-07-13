@@ -24,7 +24,12 @@ if DATABASE_URL:
     if "sslmode=require" in DATABASE_URL or "sslmode=prefer" in DATABASE_URL:
         ssl_required = True
     elif "localhost" not in DATABASE_URL and "127.0.0.1" not in DATABASE_URL and "sqlite" not in DATABASE_URL:
-        ssl_required = True
+        try:
+            parsed_host = urlparse(DATABASE_URL).hostname
+            if parsed_host != "db" and parsed_host != "postgres":
+                ssl_required = True
+        except Exception:
+            ssl_required = True
 
 # Strip all query params — pg8000 doesn't accept URL query params as connect() kwargs
 if DATABASE_URL and "?" in DATABASE_URL:
