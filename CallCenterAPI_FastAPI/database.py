@@ -138,6 +138,7 @@ def _ensure_tables():
     # or the admin panel instead.
 
     # For PostgreSQL in production, force alter CampaignLead column types to String(255)
+    # and reset primary key sequences to prevent duplicate key integrity errors
     if engine is not None and "postgresql" in str(engine.url):
         try:
             from sqlalchemy import text
@@ -148,6 +149,23 @@ def _ensure_tables():
             print("Widen campaign_leads columns to 255 successfully.")
         except Exception as ex:
             print(f"Warning: Widen campaign_leads columns failed: {ex}")
+
+        try:
+            from sqlalchemy import text
+            with engine.connect() as conn:
+                for table_name in Base.metadata.tables.keys():
+                    try:
+                        seq_name_res = conn.execute(text(f"SELECT pg_get_serial_sequence('{table_name}', 'id')"))
+                        seq_name = seq_name_res.scalar()
+                        if seq_name:
+                            conn.execute(text(f"SELECT setval('{seq_name}', COALESCE(max(id), 1), max(id) IS NOT NULL) FROM {table_name}"))
+                            conn.commit()
+                    except Exception:
+                        pass
+            print("Reset all table sequences successfully.")
+        except Exception as seq_ex:
+            print(f"Warning: Resetting PostgreSQL sequences failed: {seq_ex}")
+
 
     _db_initialized = True
 

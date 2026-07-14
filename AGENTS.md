@@ -110,6 +110,7 @@ Fix 500 errors (local and Vercel) in the RT International call center FastAPI ap
 41. **Whitelisted mobile block error** — added `'Mobile devices are not allowed'` to `safe_prefixes` in `main.py` exception detail sanitizer.
 42. **Added automated tests for mobile blocking** — added `test_BT037_mobile_checkin_blocked`, `test_BT038_mobile_checkout_blocked`, and `test_BT039_manager_mobile_checkin_blocked` to `testsprite_tests/run_backend_tests.py`.
 43. **Added Manager Campaign Assignment & Progress Tracking** — Created database schemas and FastAPI routes (`/api/campaigns`) for managers to upload CSV/TXT call lists and assign them to specific agents. Added a new 'Campaigns' tab to the manager's Agent Detail view, showing real-time dialing progress (total, called, remaining, and outcome breakdowns like Busy, Callback, Transfer, Sale). Upgraded the agent's Auto-Dialer page to display assigned campaigns alongside local ones, automatically sync dialing outcomes with the database, and support zero-click progression.
+44. **Added automatic PostgreSQL sequence resetting at startup** — implemented dynamic primary key sequence resetting under `_ensure_tables()` in `database.py`. For all tables using autoincrementing integer IDs, it resets the PostgreSQL serial/identity sequence value to match the actual maximum ID in the database table. This prevents duplicate key constraint violation errors (such as on `attendance_pkey`) caused by sequences falling out of sync with pre-populated records.
 
 ## Root Causes (continued)
 - **Activity logging never worked**: `log_activity()` function was defined in `utils/logger.py` but never imported or called from any router. Activity logs table was always empty. No audit trail existed despite the schema being fully set up. → Fixed by adding `log_activity()` calls after all create/update/delete endpoints across all 10 routers.
@@ -122,6 +123,7 @@ Fix 500 errors (local and Vercel) in the RT International call center FastAPI ap
 - **IntegrityError on activity logging (SQLite)**: SQLite does not auto-increment columns defined as `BIGINT PRIMARY KEY`, causing `NOT NULL constraint failed: activity_logs.id` on server database insertions. → Fixed by changing datatype to `Integer` and dropping the old table so uvicorn can recreate it with standard autoincrement.
 - **Lack of auto-dialer for notepad/excel sheets**: Previously, agents had to manually type phone numbers from spreadsheets or notepad into Vonage to dial them. → Fixed by building a client-side Auto-Dialer campaign queue workspace with Vonage 'tel:' protocol execution and pre-fill redirects.
 - **Off-site mobile check-in abuse**: Agents were checking in from their phones on their way to the office (before arrival) and arriving late. → Fixed by blocking check-in/out requests from mobile user-agents for all roles.
+- **PostgreSQL duplicate key violate unique constraint on attendance_pkey**: Restoring or seeding the PostgreSQL database with hardcoded IDs did not auto-advance the table's sequence generator. When a new insert was attempted without an explicit ID (e.g. check-in), PostgreSQL retrieved a sequence number that already existed in the table, resulting in a 500 IntegrityError. → Fixed by dynamically resetting sequences to `max(id)` at startup for all tables in PostgreSQL.
 
 ## Verification
 1. Push to GitHub → Vercel auto-deploys
@@ -129,4 +131,6 @@ Fix 500 errors (local and Vercel) in the RT International call center FastAPI ap
 3. Check `https://rt-international.vercel.app/api/auth/users` (should 401 with JSON body, not 500)
 4. Check `https://rt-international.vercel.app/api/admin/audit-log` (should show activity entries, not empty array)
 5. GitHub Actions CI should run on push (`.github/workflows/ci.yml`) and verify `test_BT037_mobile_checkin_blocked` and `test_BT038_mobile_checkout_blocked` pass.
+6. Verify attendance check-in/out works without throwing 500 duplicate key errors.
+
 
