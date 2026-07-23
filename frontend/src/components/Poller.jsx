@@ -10,16 +10,16 @@ export default function Poller({ interval = 60000 }) {
   const loadSales = useDataStore((s) => s.loadSales)
   const loadNotifications = useManagerStore((s) => s.loadNotifications)
   const user = useAuthStore((s) => s.user)
+  const token = useAuthStore((s) => s.token)
   const timerRef = useRef(null)
   const cancelledRef = useRef(false)
 
   useEffect(() => {
+    if (!token) return
     let mounted = true
 
     async function doRefresh() {
       if (!mounted) return
-      // skip if no token — avoids 401 → redirect loop
-      if (!localStorage.getItem('token') && !sessionStorage.getItem('token')) return
       try {
         // refresh critical lists used across the UI with cache-busting timestamp
         const _t = Date.now()
@@ -67,7 +67,7 @@ export default function Poller({ interval = 60000 }) {
       mounted = false
       stop()
     }
-  }, [interval, loadCallbacks, loadTransfers, loadSales, loadCustomers, loadNotifications, user])
+  }, [token, interval, loadCallbacks, loadTransfers, loadSales, loadCustomers, loadNotifications, user])
 
   return null
 }

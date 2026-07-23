@@ -235,8 +235,8 @@ export default function AdminDashboard() {
                   </div>
                 </div>
                 <div className="rt-card-body flex flex-col items-center">
-                  <div style={{ height: '170px' }} className="w-full">
-                    <ResponsiveContainer width="100%" height="100%" minWidth={1} minHeight={1}>
+                  <div className="w-full">
+                    <ResponsiveContainer width="100%" height={170} minWidth={1}>
                       <PieChart>
                         <Pie data={pipelinePieData} cx="50%" cy="50%" innerRadius={42} outerRadius={65} paddingAngle={4} dataKey="value" strokeWidth={0}>
                           {pipelinePieData.map((entry, idx) => <Cell key={idx} fill={entry.color} />)}

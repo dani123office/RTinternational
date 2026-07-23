@@ -336,8 +336,8 @@ export default function Dashboard() {
               <h2 className="rt-card-title">Pipeline Overview</h2>
             </div>
             <div className="rt-card-body" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
-              <div style={{ height: '300px' }} className="w-full">
-                <ResponsiveContainer width="100%" height="100%" minWidth={1} minHeight={1}>
+              <div className="w-full">
+                <ResponsiveContainer width="100%" height={300} minWidth={1}>
                   <PieChart>
                     <Pie data={pipelineData} cx="50%" cy="50%" innerRadius={52} outerRadius={80} paddingAngle={4} dataKey="value" strokeWidth={0}>
                       {pipelineData.map((entry, idx) => <Cell key={idx} fill={entry.color} />)}

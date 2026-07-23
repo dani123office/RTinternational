@@ -48,6 +48,7 @@ testsprite_tests/tmp/config.json
 testsprite_tests/tmp/**
 
 .vercel
+scratch/
 
 # Environment and secret files
 .env

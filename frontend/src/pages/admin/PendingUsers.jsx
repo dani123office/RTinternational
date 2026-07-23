@@ -1,7 +1,7 @@
-import { useEffect, useState, useCallback } from 'react'
+import { useEffect, useState, useCallback, useMemo, Fragment } from 'react'
 import { useAdminStore } from '@/store/adminStore'
 import api, { endpoints } from '@/lib/api'
-import { UserPlus, CheckCircle, XCircle, Loader2, UserRoundCog, CalendarCheck, Check, X, Wallet, ChevronLeft, ChevronRight, Clock, Eye, Pencil, Save, Trash2, Plus } from 'lucide-react'
+import { UserPlus, CheckCircle, XCircle, Loader2, UserRoundCog, CalendarCheck, Check, X, Wallet, ChevronLeft, ChevronRight, Clock, Eye, Pencil, Save, Trash2, Plus, ChevronDown, ChevronUp, Users } from 'lucide-react'
 import { APP_STYLES } from '@/lib/styles'
 import DataTable from '@/components/shared/DataTable'
 import LoadingSpinner from '@/components/shared/LoadingSpinner'
@@ -32,6 +32,67 @@ export default function PendingUsers() {
   const [loanReviewProcessing, setLoanReviewProcessing] = useState(null)
   const [loanHistory, setLoanHistory] = useState({ items: [], total: 0, page: 1, totalPages: 0 })
   const [loanHistoryLoading, setLoanHistoryLoading] = useState(false)
+  const [loanViewMode, setLoanViewMode] = useState('summary') // 'summary' or 'detailed'
+  const [expandedAgents, setExpandedAgents] = useState({})
+
+  const toggleAgentExpand = (userId) => {
+    setExpandedAgents((prev) => ({
+      ...prev,
+      [userId]: !prev[userId],
+    }))
+  }
+
+  const agentLoanSummaries = useMemo(() => {
+    if (!loanHistory.items || loanHistory.items.length === 0) return []
+
+    const map = {}
+    loanHistory.items.forEach((l) => {
+      const key = l.userId || l.userName || 'unknown'
+      if (!map[key]) {
+        map[key] = {
+          userId: l.userId,
+          userName: l.userName || `User #${l.userId}`,
+          totalApprovedAmount: 0,
+          totalPaidBack: 0,
+          netPendingBalance: 0,
+          approvedCount: 0,
+          totalLoansCount: 0,
+          loans: [],
+        }
+      }
+      map[key].totalLoansCount += 1
+      map[key].loans.push(l)
+
+      if (l.status === 'approved') {
+        const amt = Number(l.amount || 0)
+        const paid = Number(l.paidAmount || 0)
+        const pending = Math.max(0, amt - paid)
+        map[key].totalApprovedAmount += amt
+        map[key].totalPaidBack += paid
+        map[key].netPendingBalance += pending
+        map[key].approvedCount += 1
+      }
+    })
+
+    return Object.values(map)
+  }, [loanHistory.items])
+
+  const overallLoanStats = useMemo(() => {
+    let totalGranted = 0
+    let totalPaid = 0
+    let totalPending = 0
+    let activeBorrowers = 0
+
+    agentLoanSummaries.forEach((s) => {
+      totalGranted += s.totalApprovedAmount
+      totalPaid += s.totalPaidBack
+      totalPending += s.netPendingBalance
+      if (s.netPendingBalance > 0) activeBorrowers += 1
+    })
+
+    return { totalGranted, totalPaid, totalPending, activeBorrowers }
+  }, [agentLoanSummaries])
+
   const [leaveHistory, setLeaveHistory] = useState({ items: [], total: 0, page: 1, totalPages: 0 })
   const [leaveHistoryLoading, setLeaveHistoryLoading] = useState(false)
   const [deleteProcessing, setDeleteProcessing] = useState(null)
@@ -51,7 +112,7 @@ export default function PendingUsers() {
     api.get(endpoints.loans.pending)
       .then(res => { setLoansLoading(false); setPendingLoans(res.data || []) })
       .catch(() => setLoansLoading(false))
-    api.get(endpoints.loans.all, { params: { page: 1, per_page: 20 } })
+    api.get(endpoints.loans.all, { params: { page: 1, per_page: 100 } })
       .then(res => { setLoanHistoryLoading(false); setLoanHistory(res.data) })
       .catch(() => setLoanHistoryLoading(false))
     api.get(endpoints.leaves.all, { params: { page: 1, per_page: 20 } })
@@ -61,7 +122,7 @@ export default function PendingUsers() {
 
   const loadLoanHistory = useCallback((p) => {
     setLoanHistoryLoading(true)
-    api.get(endpoints.loans.all, { params: { page: p, per_page: 20 } })
+    api.get(endpoints.loans.all, { params: { page: p, per_page: 100 } })
       .then(res => { setLoanHistoryLoading(false); setLoanHistory(res.data) })
       .catch(() => setLoanHistoryLoading(false))
   }, [])
@@ -692,17 +753,82 @@ export default function PendingUsers() {
                 </div>
               </div>
 
-              {/* Loan History */}
+              {/* Loan History Header & Summary Stats */}
               <div className="rt-fade rt-card" style={{ marginTop: '24px' }}>
-                <div className="rt-card-header">
+                <div className="rt-card-header flex items-center justify-between flex-wrap gap-3">
                   <div className="flex items-center gap-2.5">
                     <div className="rt-card-icon" style={{ background: '#f1f5f9' }}>
                       <Wallet size={16} color="#64748b" />
                     </div>
-                    <h2 className="rt-card-title">Loan History ({loanHistory.total || 0})</h2>
+                    <div>
+                      <h2 className="rt-card-title">Loan History</h2>
+                      <p className="text-xs text-slate-400">
+                        {agentLoanSummaries.length} Borrowers &middot; {loanHistory.total || 0} Total Loans
+                      </p>
+                    </div>
+                  </div>
+
+                  {/* View Mode Toggle */}
+                  <div className="flex items-center bg-slate-100 p-1 rounded-xl border border-slate-200 text-xs font-semibold">
+                    <button
+                      type="button"
+                      onClick={() => setLoanViewMode('summary')}
+                      className={`px-3 py-1.5 rounded-lg border-0 cursor-pointer transition-all ${
+                        loanViewMode === 'summary'
+                          ? 'bg-white text-indigo-600 shadow-xs font-bold'
+                          : 'text-slate-600 hover:text-slate-900 bg-transparent'
+                      }`}
+                    >
+                      👤 Agent Totals Summary
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setLoanViewMode('detailed')}
+                      className={`px-3 py-1.5 rounded-lg border-0 cursor-pointer transition-all ${
+                        loanViewMode === 'detailed'
+                          ? 'bg-white text-indigo-600 shadow-xs font-bold'
+                          : 'text-slate-600 hover:text-slate-900 bg-transparent'
+                      }`}
+                    >
+                      📋 All Transactions ({loanHistory.total || 0})
+                    </button>
                   </div>
                 </div>
-                <div className="rt-card-body p-0 overflow-x-auto">
+
+                <div className="rt-card-body p-4">
+                  {/* Summary KPI Cards */}
+                  {!loanHistoryLoading && agentLoanSummaries.length > 0 && (
+                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-4">
+                      <div className="p-3.5 rounded-xl border border-slate-200 bg-gradient-to-br from-slate-50 to-white flex items-center justify-between">
+                        <div>
+                          <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Total Granted</p>
+                          <p className="text-base font-extrabold text-slate-900 mt-0.5">Rs. {overallLoanStats.totalGranted.toLocaleString()}</p>
+                        </div>
+                        <div className="w-8 h-8 rounded-lg bg-emerald-50 text-emerald-600 flex items-center justify-center font-bold">
+                          <Wallet size={16} />
+                        </div>
+                      </div>
+                      <div className="p-3.5 rounded-xl border border-slate-200 bg-gradient-to-br from-slate-50 to-white flex items-center justify-between">
+                        <div>
+                          <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Total Paid Back</p>
+                          <p className="text-base font-extrabold text-emerald-600 mt-0.5">Rs. {overallLoanStats.totalPaid.toLocaleString()}</p>
+                        </div>
+                        <div className="w-8 h-8 rounded-lg bg-green-50 text-green-600 flex items-center justify-center font-bold">
+                          <CheckCircle size={16} />
+                        </div>
+                      </div>
+                      <div className="p-3.5 rounded-xl border border-slate-200 bg-gradient-to-br from-indigo-50/40 to-white flex items-center justify-between">
+                        <div>
+                          <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Total Pending Balance</p>
+                          <p className="text-base font-extrabold text-indigo-600 mt-0.5">Rs. {overallLoanStats.totalPending.toLocaleString()}</p>
+                        </div>
+                        <div className="w-8 h-8 rounded-lg bg-indigo-100 text-indigo-600 flex items-center justify-center font-bold">
+                          <Clock size={16} />
+                        </div>
+                      </div>
+                    </div>
+                  )}
+
                   {loanHistoryLoading ? (
                     <p className="text-sm text-slate-400 text-center py-6">Loading history...</p>
                   ) : loanHistory.items?.length === 0 ? (
@@ -710,8 +836,176 @@ export default function PendingUsers() {
                       <Wallet size={28} color="#94a3b8" />
                       <p className="text-sm font-semibold text-slate-500 mt-3">No loan history</p>
                     </div>
+                  ) : loanViewMode === 'summary' ? (
+                    /* AGENT SUMMARY TABLE VIEW */
+                    <div className="overflow-x-auto">
+                      <table className="w-full text-sm">
+                        <thead>
+                          <tr className="border-b border-slate-100">
+                            <th className="text-left py-2.5 px-3 font-semibold text-slate-500 text-xs uppercase">Agent</th>
+                            <th className="text-left py-2.5 px-3 font-semibold text-slate-500 text-xs uppercase">Loans</th>
+                            <th className="text-left py-2.5 px-3 font-semibold text-slate-500 text-xs uppercase">Total Granted</th>
+                            <th className="text-left py-2.5 px-3 font-semibold text-slate-500 text-xs uppercase">Paid Back</th>
+                            <th className="text-left py-2.5 px-3 font-semibold text-slate-500 text-xs uppercase">Pending Balance</th>
+                            <th className="text-left py-2.5 px-3 font-semibold text-slate-500 text-xs uppercase">Status</th>
+                            <th className="text-left py-2.5 px-3 font-semibold text-slate-500 text-xs uppercase">Action</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {agentLoanSummaries.map((summary) => {
+                            const isExpanded = !!expandedAgents[summary.userId]
+                            const hasPending = summary.netPendingBalance > 0
+                            return (
+                              <Fragment key={summary.userId || summary.userName}>
+                                <tr className="hover:bg-slate-50/80 transition-colors border-b border-slate-100">
+                                  <td className="py-3 px-3 font-bold text-slate-900 text-xs">
+                                    <div className="flex items-center gap-2">
+                                      <div className="w-7 h-7 rounded-full bg-indigo-50 text-indigo-600 flex items-center justify-center font-bold text-xs border border-indigo-100">
+                                        {summary.userName ? summary.userName.charAt(0).toUpperCase() : 'U'}
+                                      </div>
+                                      <div>
+                                        <div className="font-bold text-slate-900">{summary.userName}</div>
+                                        <div className="text-[10px] text-slate-400 font-normal">
+                                          {summary.approvedCount} approved / {summary.totalLoansCount} total requests
+                                        </div>
+                                      </div>
+                                    </div>
+                                  </td>
+                                  <td className="py-3 px-3">
+                                    <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold bg-slate-100 text-slate-700">
+                                      {summary.loans.length} {summary.loans.length === 1 ? 'Loan' : 'Loans'}
+                                    </span>
+                                  </td>
+                                  <td className="py-3 px-3 font-bold text-slate-900 text-xs">
+                                    Rs. {summary.totalApprovedAmount.toLocaleString()}
+                                  </td>
+                                  <td className="py-3 px-3 text-xs text-green-600 font-semibold">
+                                    Rs. {summary.totalPaidBack.toLocaleString()}
+                                  </td>
+                                  <td className="py-3 px-3 text-xs text-indigo-600 font-bold text-sm">
+                                    Rs. {summary.netPendingBalance.toLocaleString()}
+                                  </td>
+                                  <td className="py-3 px-3">
+                                    <span
+                                      className={`inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-xs font-semibold ${
+                                        hasPending
+                                          ? 'bg-amber-50 text-amber-700 border border-amber-200'
+                                          : 'bg-emerald-50 text-emerald-700 border border-emerald-200'
+                                      }`}
+                                    >
+                                      {hasPending ? <Clock size={11} /> : <CheckCircle size={11} />}
+                                      {hasPending ? 'Active Balance' : 'Cleared'}
+                                    </span>
+                                  </td>
+                                  <td className="py-3 px-3">
+                                    <button
+                                      type="button"
+                                      onClick={() => toggleAgentExpand(summary.userId)}
+                                      className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-semibold cursor-pointer border border-slate-200 bg-white text-slate-700 hover:bg-slate-50 transition-all shadow-xs"
+                                    >
+                                      {isExpanded ? <ChevronUp size={13} /> : <ChevronDown size={13} />}
+                                      {isExpanded ? 'Hide' : 'View Loans'} ({summary.loans.length})
+                                    </button>
+                                  </td>
+                                </tr>
+                                {isExpanded && (
+                                  <tr className="bg-slate-50/90">
+                                    <td colSpan={7} className="p-3">
+                                      <div className="bg-white rounded-xl border border-slate-200 p-3 shadow-xs">
+                                        <div className="flex items-center justify-between mb-2 pb-2 border-b border-slate-100">
+                                          <span className="text-xs font-bold text-slate-700 flex items-center gap-1.5">
+                                            <Wallet size={13} className="text-indigo-600" /> Individual Loans for {summary.userName}
+                                          </span>
+                                          <span className="text-[11px] text-slate-500">
+                                            Total Net Pending: <strong className="text-indigo-600">Rs. {summary.netPendingBalance.toLocaleString()}</strong>
+                                          </span>
+                                        </div>
+                                        <table className="w-full text-xs">
+                                          <thead>
+                                            <tr className="text-slate-400 uppercase font-semibold text-[10px] bg-slate-50 border-b border-slate-100">
+                                              <th className="py-2 px-2 text-left">Date</th>
+                                              <th className="py-2 px-2 text-left">Reason / Remarks</th>
+                                              <th className="py-2 px-2 text-left">Total Amount</th>
+                                              <th className="py-2 px-2 text-left">Paid Back</th>
+                                              <th className="py-2 px-2 text-left">Pending</th>
+                                              <th className="py-2 px-2 text-left">Status</th>
+                                              <th className="py-2 px-2 text-left">Action</th>
+                                            </tr>
+                                          </thead>
+                                          <tbody>
+                                            {summary.loans.map((l) => {
+                                              const isApproved = l.status === 'approved'
+                                              const rem = isApproved ? (l.amount - (l.paidAmount || 0)) : 0
+                                              const s = l.status === 'approved'
+                                                ? { bg: '#dcfce7', color: '#16a34a', label: 'Approved' }
+                                                : l.status === 'rejected'
+                                                ? { bg: '#fee2e2', color: '#dc2626', label: 'Rejected' }
+                                                : { bg: '#fef3c7', color: '#d97706', label: 'Pending' }
+                                              return (
+                                                <tr key={l.id} className="border-t border-slate-100 hover:bg-slate-50/60">
+                                                  <td className="py-2 px-2 text-slate-600">
+                                                    {new Date(l.createdAt).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}
+                                                  </td>
+                                                  <td className="py-2 px-2 text-slate-700 max-w-[180px] truncate" title={l.reason}>
+                                                    <div>{l.reason || '-'}</div>
+                                                    {l.adminNotes && (
+                                                      <div className="text-[10px] text-amber-600 font-semibold">Remarks: {l.adminNotes}</div>
+                                                    )}
+                                                  </td>
+                                                  <td className="py-2 px-2 font-bold text-slate-900">Rs. {Number(l.amount).toLocaleString()}</td>
+                                                  <td className="py-2 px-2 text-green-600 font-semibold">
+                                                    {isApproved ? `Rs. ${Number(l.paidAmount || 0).toLocaleString()}` : '-'}
+                                                  </td>
+                                                  <td className="py-2 px-2 text-indigo-600 font-bold">
+                                                    {isApproved ? `Rs. ${Number(rem).toLocaleString()}` : '-'}
+                                                  </td>
+                                                  <td className="py-2 px-2">
+                                                    <span className="inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-semibold" style={{ background: s.bg, color: s.color }}>
+                                                      {s.label}
+                                                    </span>
+                                                  </td>
+                                                  <td className="py-2 px-2">
+                                                    <div className="flex items-center gap-1.5">
+                                                      {isApproved && rem > 0 && (
+                                                        <button
+                                                          type="button"
+                                                          onClick={() => openPaybackModal(l)}
+                                                          className="px-2.5 py-1 rounded-md text-[10px] font-semibold text-white border-0 cursor-pointer transition-all shadow-2xs"
+                                                          style={{ background: 'linear-gradient(135deg, #6366f1, #4f46e5)' }}
+                                                        >
+                                                          Payback
+                                                        </button>
+                                                      )}
+                                                      <button
+                                                        type="button"
+                                                        onClick={() => handleDeleteLoan(l.id)}
+                                                        disabled={deleteProcessing === l.id}
+                                                        className="p-1 rounded-md text-[10px] font-semibold text-white border-0 cursor-pointer disabled:opacity-50 transition-all"
+                                                        style={{ background: 'linear-gradient(135deg, #ef4444, #dc2626)' }}
+                                                        title="Delete Loan"
+                                                      >
+                                                        <Trash2 size={11} />
+                                                      </button>
+                                                    </div>
+                                                  </td>
+                                                </tr>
+                                              )
+                                            })}
+                                          </tbody>
+                                        </table>
+                                      </div>
+                                    </td>
+                                  </tr>
+                                )}
+                              </Fragment>
+                            )
+                          })}
+                        </tbody>
+                      </table>
+                    </div>
                   ) : (
-                    <>
+                    /* ALL DETAILED TRANSACTIONS VIEW */
+                    <div className="overflow-x-auto">
                       <table className="w-full text-sm">
                         <thead>
                           <tr style={{ borderBottom: '1px solid #f1f5f9' }}>
@@ -734,9 +1028,20 @@ export default function PendingUsers() {
                               : { bg: '#fef3c7', color: '#d97706', label: 'Pending' }
                             const isApproved = l.status === 'approved'
                             const remaining = isApproved ? (l.amount - (l.paidAmount || 0)) : 0
+
+                            const summaryInfo = agentLoanSummaries.find(a => a.userId === l.userId)
+                            const hasMultiple = summaryInfo && summaryInfo.loans.length > 1
+
                             return (
                               <tr key={l.id} className="hover:bg-slate-50 transition-colors" style={{ borderBottom: '1px solid #f8fafc' }}>
-                                <td className="py-2.5 px-3 font-semibold text-slate-800 text-xs">{l.userName || `User #${l.userId}`}</td>
+                                <td className="py-2.5 px-3">
+                                  <div className="font-semibold text-slate-800 text-xs">{l.userName || `User #${l.userId}`}</div>
+                                  {hasMultiple && (
+                                    <div className="text-[10px] text-indigo-600 font-semibold mt-0.5" title={`Total pending balance across ${summaryInfo.loans.length} loans`}>
+                                      Total Agent Pending: Rs. {summaryInfo.netPendingBalance.toLocaleString()} ({summaryInfo.loans.length} loans)
+                                    </div>
+                                  )}
+                                </td>
                                 <td className="py-2.5 px-3 font-bold text-slate-900 text-xs">Rs. {Number(l.amount).toLocaleString()}</td>
                                 <td className="py-2.5 px-3 text-xs text-green-600 font-semibold">{isApproved ? `Rs. ${Number(l.paidAmount || 0).toLocaleString()}` : '-'}</td>
                                 <td className="py-2.5 px-3 text-xs text-indigo-600 font-bold">{isApproved ? `Rs. ${Number(remaining).toLocaleString()}` : '-'}</td>
@@ -774,6 +1079,7 @@ export default function PendingUsers() {
                                   <div className="flex items-center gap-1.5">
                                     {isApproved && remaining > 0 && (
                                       <button
+                                        type="button"
                                         onClick={() => openPaybackModal(l)}
                                         className="flex items-center gap-1 px-2 py-1 rounded-lg text-xs font-semibold cursor-pointer border-0 text-white transition-all"
                                         style={{ background: 'linear-gradient(135deg, #6366f1, #4f46e5)' }}
@@ -803,7 +1109,7 @@ export default function PendingUsers() {
                           </div>
                         </div>
                       )}
-                    </>
+                    </div>
                   )}
                 </div>
               </div>

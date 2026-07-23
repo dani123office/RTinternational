@@ -551,54 +551,68 @@ def generate_extraction(text: str) -> dict:
         return regex_fallback_extraction(text, "Groq API key not configured")
 
     last_error_msg = ""
+    # Try active production models on Groq
+    models_to_try = [
+        "llama-3.3-70b-specdec",
+        "llama-3.3-70b-versatile",
+        "llama-3.1-70b-versatile"
+    ]
 
-    for attempt in range(MAX_RETRIES):
-        try:
-            logger.info(f"Extraction attempt {attempt + 1}/{MAX_RETRIES}")
+    for model_name in models_to_try:
+        for attempt in range(MAX_RETRIES):
+            try:
+                logger.info(f"Extraction attempt {attempt + 1}/{MAX_RETRIES} using model {model_name}")
 
-            response = groq_client.chat.completions.create(
-                model="llama-3.3-70b-versatile",
-                messages=[
-                    {"role": "system", "content": SYSTEM_PROMPT},
-                    {
-                        "role": "user",
-                        "content": (
-                            "Extract ALL data from this UK energy broker note. "
-                            "Return ONLY raw JSON.\n\n"
-                            f"{text}"
-                        )
-                    }
-                ],
-                temperature=0.0,
-                response_format={"type": "json_object"},
-            )
+                response = groq_client.chat.completions.create(
+                    model=model_name,
+                    messages=[
+                        {"role": "system", "content": SYSTEM_PROMPT},
+                        {
+                            "role": "user",
+                            "content": (
+                                "Extract ALL data from this UK energy broker note. "
+                                "Return ONLY raw JSON.\n\n"
+                                f"{text}"
+                            )
+                        }
+                    ],
+                    temperature=0.0,
+                    response_format={"type": "json_object"},
+                )
 
-            raw_text = response.choices[0].message.content
-            if not raw_text:
-                raise ValueError("Empty response from Groq")
+                raw_text = response.choices[0].message.content
+                if not raw_text:
+                    raise ValueError(f"Empty response from Groq using model {model_name}")
 
-            logger.info(f"AI response received. First 300 chars:\n{raw_text[:300]}")
+                logger.info(f"AI response received. First 300 chars:\n{raw_text[:300]}")
 
-            data = extract_json(raw_text)
-            data = clean_numeric_values(data)
+                data = extract_json(raw_text)
+                data = clean_numeric_values(data)
 
-            validated = ExtractionResponse(**data)
-            logger.info("Validation passed ✓")
-            return validated.model_dump()
+                validated = ExtractionResponse(**data)
+                logger.info(f"Validation passed ✓ using model {model_name}")
+                return validated.model_dump()
 
-        except ValidationError as e:
-            logger.warning(f"Pydantic validation error on attempt {attempt + 1}: {e}")
-            last_error_msg = f"AI returned data that failed schema validation: {str(e)}"
-            if attempt < MAX_RETRIES - 1:
-                time.sleep(0.5)
+            except ValidationError as e:
+                logger.warning(f"Pydantic validation error on attempt {attempt + 1} with {model_name}: {e}")
+                last_error_msg = f"AI returned data that failed schema validation: {str(e)}"
+                if attempt < MAX_RETRIES - 1:
+                    time.sleep(0.5)
 
-        except Exception as e:
-            logger.error(f"Unexpected error on attempt {attempt + 1}: {type(e).__name__}: {e}")
-            last_error_msg = f"Extraction error: {type(e).__name__}: {e}"
-            if attempt < MAX_RETRIES - 1:
-                time.sleep(0.5)
+            except Exception as e:
+                logger.error(f"Unexpected error on attempt {attempt + 1} with {model_name}: {type(e).__name__}: {e}")
+                last_error_msg = f"Extraction error with {model_name}: {type(e).__name__}: {e}"
+                
+                # If model is not found, deprecated or does not exist, switch to next model immediately without retrying
+                err_str = str(e).lower()
+                if any(phrase in err_str for phrase in ["not found", "deprecated", "does not exist", "400", "invalid_request_error"]):
+                    logger.warning(f"Model {model_name} appears to be unavailable/deprecated. Skipping to next candidate model.")
+                    break
+                
+                if attempt < MAX_RETRIES - 1:
+                    time.sleep(0.5)
 
-    # Fallback to regex extraction if all attempts fail
+    # Fallback to regex extraction if all models and attempts fail
     return regex_fallback_extraction(text, last_error_msg)
 
 # =========================================================

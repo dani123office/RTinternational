@@ -26,6 +26,7 @@ services:
       - SMTP_PASSWORD=reothmatfyfbkvyz
       - SMTP_PORT=587
       - SMTP_SERVER=smtp.gmail.com
+      - GROQ_API_KEY
     depends_on:
       - db
 

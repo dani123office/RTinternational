@@ -25,14 +25,84 @@ const clearAuthStorage = () => {
 const getToken = () => localStorage.getItem('token') || sessionStorage.getItem('token')
 const getRefreshToken = () => localStorage.getItem('refreshToken') || sessionStorage.getItem('refreshToken')
 
+const isTokenExpired = (token) => {
+  try {
+    let payloadPart = token.split('.')[1]
+    payloadPart = payloadPart.replace(/-/g, '+').replace(/_/g, '/')
+    const pad = payloadPart.length % 4
+    if (pad) {
+      payloadPart += '='.repeat(4 - pad)
+    }
+    const payload = JSON.parse(atob(payloadPart))
+    // Refresh slightly early (e.g. 10 seconds before actual expiration) to prevent race conditions
+    return payload.exp * 1000 - 10000 < Date.now()
+  } catch {
+    return true
+  }
+}
+
+const performRefresh = async (refreshToken) => {
+  const res = await axios.post('/api/auth/refresh', {}, {
+    headers: { Authorization: `Bearer ${refreshToken}` },
+  })
+  const { token: newToken, refreshToken: newRefreshToken } = res.data
+  const rememberMe = localStorage.getItem('rememberMe') === 'true'
+  if (rememberMe) {
+    localStorage.setItem('token', newToken)
+    localStorage.setItem('refreshToken', newRefreshToken)
+  } else {
+    sessionStorage.setItem('token', newToken)
+    sessionStorage.setItem('refreshToken', newRefreshToken)
+  }
+  return newToken
+}
+
 const api = axios.create({
   baseURL: '',
   headers: { 'Content-Type': 'application/json' },
   timeout: 60000,
 })
 
-api.interceptors.request.use((config) => {
-  const token = getToken()
+api.interceptors.request.use(async (config) => {
+  const isLoginRequest = config.url === '/api/auth/login'
+  const isRefreshRequest = config.url === '/api/auth/refresh'
+  
+  if (isLoginRequest || isRefreshRequest) {
+    return config
+  }
+
+  let token = getToken()
+  if (token && isTokenExpired(token)) {
+    const refreshToken = getRefreshToken()
+    if (refreshToken) {
+      if (isRefreshing) {
+        try {
+          token = await new Promise((resolve, reject) => {
+            failedQueue.push({ resolve, reject })
+          })
+        } catch {
+          // If refresh failed, let the request proceed to fail with 401
+        }
+      } else {
+        isRefreshing = true
+        try {
+          const newToken = await performRefresh(refreshToken)
+          processQueue(null, newToken)
+          isRefreshing = false
+          token = newToken
+        } catch (refreshError) {
+          processQueue(refreshError, null)
+          isRefreshing = false
+          if (!redirecting) {
+            redirecting = true
+            clearAuthStorage()
+            window.location.href = '/login'
+          }
+        }
+      }
+    }
+  }
+
   if (token) {
     config.headers.Authorization = `Bearer ${token}`
   }
@@ -69,18 +139,7 @@ api.interceptors.response.use(
       isRefreshing = true
 
       try {
-        const res = await axios.post('/api/auth/refresh', {}, {
-          headers: { Authorization: `Bearer ${refreshToken}` },
-        })
-        const { token: newToken, refreshToken: newRefreshToken } = res.data
-        const rememberMe = localStorage.getItem('rememberMe') === 'true'
-        if (rememberMe) {
-          localStorage.setItem('token', newToken)
-          localStorage.setItem('refreshToken', newRefreshToken)
-        } else {
-          sessionStorage.setItem('token', newToken)
-          sessionStorage.setItem('refreshToken', newRefreshToken)
-        }
+        const newToken = await performRefresh(refreshToken)
         originalRequest.headers.Authorization = `Bearer ${newToken}`
         processQueue(null, newToken)
         isRefreshing = false
