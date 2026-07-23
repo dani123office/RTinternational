@@ -67,7 +67,6 @@ export default function ManagerAttendance() {
   const [todayRecord, setTodayRecord] = useState(null)
   const [myStats, setMyStats] = useState({ presentCount: 0, lateCount: 0, absentCount: 0, totalDays: 0 })
   const [myHistory, setMyHistory] = useState({ items: [], total: 0, page: 1, totalPages: 0 })
-  const [myHistoryPage, setMyHistoryPage] = useState(1)
   const [checkinReason, setCheckinReason] = useState('')
   const [checkoutReason, setCheckoutReason] = useState('')
   const [actionLoading, setActionLoading] = useState(false)
@@ -106,14 +105,14 @@ export default function ManagerAttendance() {
         params: { month: now.getMonth() + 1, year: now.getFullYear() },
       })
       setMyStats(res.data)
-    } catch {}
+    } catch (err) { console.error(err) }
   }, [])
 
   const loadMyHistory = useCallback(async (page = 1) => {
     try {
       const res = await api.get(endpoints.attendance.myHistory, { params: { page, perPage: 15 } })
       setMyHistory(res.data)
-    } catch {}
+    } catch (err) { console.error(err) }
   }, [])
 
   /* ── check-in / check-out ── */
@@ -192,13 +191,20 @@ export default function ManagerAttendance() {
 
   /* ── team loaders ── */
   useEffect(() => {
-    const promises = [
-      api.get(endpoints.attendance.teamToday).then(res => setTeam(res.data)).catch(() => {}),
-    ]
-    if (isAdmin) {
-      promises.push(loadToday(), loadMyStats())
+    let mounted = true
+    const initData = async () => {
+      try {
+        const teamRes = await api.get(endpoints.attendance.teamToday).catch(() => ({ data: [] }))
+        if (mounted) setTeam(teamRes.data || [])
+        if (isAdmin) {
+          await Promise.all([loadToday(), loadMyStats()])
+        }
+      } finally {
+        if (mounted) setLoading(false)
+      }
     }
-    Promise.all(promises).finally(() => setLoading(false))
+    initData()
+    return () => { mounted = false }
   }, [loadToday, loadMyStats, isAdmin])
 
   const openHistory = async (member) => {

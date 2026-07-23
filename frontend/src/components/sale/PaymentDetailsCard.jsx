@@ -1,3 +1,3 @@
-export default function PaymentDetailsCard({ sale }) {
+export default function PaymentDetailsCard() {
   return null
 }

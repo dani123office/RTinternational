@@ -1,19 +1,18 @@
-import { useEffect, useState, useRef } from 'react'
+import { useEffect, useState, useRef, useCallback } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { ArrowLeftRight, ArrowRight, Download, Filter, ChevronLeft, ChevronRight, Search } from 'lucide-react'
+import { Download, Filter, ChevronLeft, ChevronRight, Search } from 'lucide-react'
 import api, { endpoints } from '@/lib/api'
 import { APP_STYLES } from '@/lib/styles'
 import StatusBadge from '@/components/shared/StatusBadge'
 
 export default function AdminTransfers() {
   const navigate = useNavigate()
-  const mounted = useRef(false)
 
   const [data, setData] = useState({ items: [], total: 0, page: 1, totalPages: 0 })
   const [loading, setLoading] = useState(false)
   const [agents, setAgents] = useState([])
   const [searchQuery, setSearchQuery] = useState('')
-  const [isFirstLoad, setIsFirstLoad] = useState(true)
+  const isFirstLoadRef = useRef(true)
   const [fromDate, setFromDate] = useState(() => {
     const dashboardMonth = localStorage.getItem('adminSelectedMonth') || 'all'
     const lastDashMonth = sessionStorage.getItem('admin_transfers_last_dashboard_month')
@@ -46,7 +45,7 @@ export default function AdminTransfers() {
       .catch(() => {})
   }, [])
 
-  function loadTransfers(p = 1) {
+  const loadTransfers = useCallback((p = 1) => {
     setLoading(true)
     const params = { page: p, per_page: 20 }
     if (searchQuery.trim()) {
@@ -66,11 +65,11 @@ export default function AdminTransfers() {
       .then(res => setData(res.data))
       .catch(() => {})
       .finally(() => setLoading(false))
-  }
+  }, [searchQuery, fromDate, toDate, employeeId])
 
   useEffect(() => {
-    if (isFirstLoad) {
-      setIsFirstLoad(false)
+    if (isFirstLoadRef.current) {
+      isFirstLoadRef.current = false
       const savedPage = Number(sessionStorage.getItem('admin_transfers_page') || '1')
       loadTransfers(savedPage)
       return
@@ -79,7 +78,7 @@ export default function AdminTransfers() {
       loadTransfers(1)
     }, 500)
     return () => clearTimeout(delayDebounceFn)
-  }, [searchQuery])
+  }, [searchQuery, loadTransfers])
 
   const handleFilter = () => loadTransfers(1)
 

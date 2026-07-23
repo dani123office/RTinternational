@@ -178,12 +178,7 @@ export default function AddCallback() {
     }
     return initState()
   })
-  const [localCallback, setLocalCallback] = useState(null)
-
   const callbackData = localCallback || (isEdit ? callbacks.find((c) => c.id === Number(id)) : null)
-  const linkedTransfer = callbackData?.transferId
-    ? transfers.find((t) => t.id === callbackData.transferId)
-    : null
 
   const upd = useCallback((field, value) => setForm((p) => ({...p, [field]:value})), [])
 

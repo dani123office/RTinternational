@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { useParams, useNavigate, Link } from 'react-router-dom'
-import { ArrowLeft, Mail, Phone, MapPin, FileText, Banknote, Calendar, Trash2 } from 'lucide-react'
+import { ArrowLeft, Mail, Phone, MapPin, FileText, Banknote, Trash2 } from 'lucide-react'
 import api, { endpoints } from '@/lib/api'
 import { APP_STYLES } from '@/lib/styles'
 import { useToast } from '@/components/ui/toastContext'
@@ -9,7 +9,6 @@ import { Button } from '@/components/ui/button'
 import { formatPaymentMethod } from '@/lib/formatters'
 import StatusBadge from '@/components/shared/StatusBadge'
 import LoadingSpinner from '@/components/shared/LoadingSpinner'
-import AccountDetailsCard from '@/components/shared/AccountDetailsCard'
 import MeterDetailsCard from '@/components/shared/MeterDetailsCard'
 
 function Field({ label, children }) {
@@ -42,7 +41,7 @@ export default function AdminSaleDetail() {
           const res = await api.get(`${endpoints.sales}/${id}`)
           setData(res.data)
         }
-      } catch (err) {
+      } catch {
         try {
           const res2 = await api.get(`${endpoints.sales}/${id}`)
           setData(res2.data)

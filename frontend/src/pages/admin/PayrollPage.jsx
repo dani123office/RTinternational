@@ -1,8 +1,7 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useCallback } from 'react'
 import api, { endpoints } from '@/lib/api'
-import { useAuthStore } from '@/store/authStore'
 import { APP_STYLES } from '@/lib/styles'
-import { FileText, DollarSign, Search } from 'lucide-react'
+import { FileText, DollarSign } from 'lucide-react'
 
 const MONTHS = [
   'January', 'February', 'March', 'April', 'May', 'June',
@@ -13,7 +12,6 @@ const CURRENT_YEAR = new Date().getFullYear()
 const YEARS = Array.from({ length: 7 }, (_, i) => CURRENT_YEAR - 3 + i)
 
 export default function PayrollPage() {
-  const { user } = useAuthStore()
   const [agents, setAgents] = useState([])
   const [selectedAgentId, setSelectedAgentId] = useState('')
   const [month, setMonth] = useState(String(new Date().getMonth() + 1))
@@ -23,11 +21,7 @@ export default function PayrollPage() {
   const [loading, setLoading] = useState(false)
   const [agentsLoading, setAgentsLoading] = useState(true)
 
-  useEffect(() => {
-    loadAgents()
-  }, [])
-
-  const loadAgents = async () => {
+  const loadAgents = useCallback(async () => {
     setAgentsLoading(true)
     try {
       const res = await api.get(endpoints.admin.agents)
@@ -36,9 +30,16 @@ export default function PayrollPage() {
       if (list.length > 0 && !selectedAgentId) {
         setSelectedAgentId(String(list[0].id))
       }
-    } catch { }
+    } catch (err) { console.error(err) }
     setAgentsLoading(false)
-  }
+  }, [selectedAgentId])
+
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      loadAgents()
+    }, 0)
+    return () => clearTimeout(timer)
+  }, [loadAgents])
 
   const handleGenerate = async () => {
     if (!selectedAgentId) return
@@ -62,7 +63,7 @@ export default function PayrollPage() {
       a.download = 'Salary_Slip.pdf'
       a.click()
       URL.revokeObjectURL(url)
-    } catch { }
+    } catch (err) { console.error(err) }
     setLoading(false)
   }
 

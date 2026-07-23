@@ -28,7 +28,7 @@ export default function Poller({ interval = 60000 }) {
         if (user?.role === 'manager' || user?.role === 'admin') {
           await loadNotifications({ _t })
         }
-      } catch (e) {
+      } catch {
         // ignore errors — individual loaders set their own error state
       }
     }
@@ -42,11 +42,11 @@ export default function Poller({ interval = 60000 }) {
         try {
           await doRefresh()
         } finally {
-          if (!mounted || cancelledRef.current) {
+          if (mounted && !cancelledRef.current) {
+            timerRef.current = setTimeout(run, interval)
+          } else {
             timerRef.current = null
-            return
           }
-          timerRef.current = setTimeout(run, interval)
         }
       }
 

@@ -21,8 +21,43 @@ def get_unique_postcode():
     return f"EC1A {digit}{letters}"
 
 class RTInternationalBackendTests(unittest.TestCase):
+    server_process = None
+
     @classmethod
     def setUpClass(cls):
+        import subprocess
+        import sys
+        import os
+
+        # Check if server is running on BASE_URL
+        is_running = False
+        try:
+            r = requests.get(f"{BASE_URL}/api/auth/users", timeout=2.0)
+            is_running = True
+        except Exception:
+            is_running = False
+
+        if not is_running:
+            print("Backend server not detected on 7219, starting uvicorn server...")
+            root_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
+            env = os.environ.copy()
+            env["PYTHONPATH"] = root_dir + os.pathsep + env.get("PYTHONPATH", "")
+            
+            cls.server_process = subprocess.Popen(
+                [sys.executable, "-m", "uvicorn", "CallCenterAPI_FastAPI.main:app", "--port", "7219"],
+                cwd=root_dir,
+                env=env,
+            )
+            # Wait for server to start
+            for _ in range(30):
+                time.sleep(0.5)
+                try:
+                    r = requests.get(f"{BASE_URL}/api/auth/users", timeout=1.0)
+                    print("Backend server is ready!")
+                    break
+                except Exception:
+                    pass
+
         cls.admin_email = "admin@test.com"
         cls.manager_email = "manager@test.com"
         cls.agent_email = "usman@test.com"
@@ -34,6 +69,13 @@ class RTInternationalBackendTests(unittest.TestCase):
         cls.manager_token = cls.get_token(cls.manager_email, cls.password)
         cls.agent_token = cls.get_token(cls.agent_email, cls.password)
         cls.other_agent_token = cls.get_token(cls.other_agent_email, cls.password)
+
+    @classmethod
+    def tearDownClass(cls):
+        if cls.server_process:
+            print("Stopping uvicorn server...")
+            cls.server_process.terminate()
+            cls.server_process.wait()
 
     @classmethod
     def get_token(cls, email, password):

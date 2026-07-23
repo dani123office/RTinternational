@@ -9,7 +9,6 @@ import { Button } from '@/components/ui/button'
 import StatusBadge from '@/components/shared/StatusBadge'
 import LoadingSpinner from '@/components/shared/LoadingSpinner'
 import MeterDetailsCard from '@/components/shared/MeterDetailsCard'
-import AccountDetailsCard from '@/components/shared/AccountDetailsCard'
 import OfferedRatesCard from '@/components/shared/OfferedRatesCard'
 
 function Field({ label, children }) {
@@ -36,7 +35,7 @@ export default function AdminCallbackDetail() {
       try {
         const res = await api.get(endpoints.admin.callbackDetail(id))
         setData(res.data)
-      } catch (err) {
+      } catch {
         // fallback to public endpoint
         try {
           const res2 = await api.get(`/api/callbacks/${id}`)

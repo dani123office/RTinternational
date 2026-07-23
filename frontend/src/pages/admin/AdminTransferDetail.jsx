@@ -9,7 +9,6 @@ import { Button } from '@/components/ui/button'
 import StatusBadge from '@/components/shared/StatusBadge'
 import LoadingSpinner from '@/components/shared/LoadingSpinner'
 import MeterDetailsCard from '@/components/shared/MeterDetailsCard'
-import AccountDetailsCard from '@/components/shared/AccountDetailsCard'
 import OfferedRatesCard from '@/components/shared/OfferedRatesCard'
 
 function Field({ label, children }) {

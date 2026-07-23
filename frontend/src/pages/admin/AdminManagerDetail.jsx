@@ -78,7 +78,6 @@ export default function AdminManagerDetail() {
     )
   }
 
-  const totalCallbacks = agents.reduce((s, a) => s + (a.callbacks || 0), 0)
   const totalTransfers = agents.reduce((s, a) => s + (a.transfers || 0), 0)
   const totalSales     = agents.reduce((s, a) => s + (a.sales || 0), 0)
   const conversion     = totalTransfers > 0 ? ((totalSales / totalTransfers) * 100).toFixed(1) : '0.0'

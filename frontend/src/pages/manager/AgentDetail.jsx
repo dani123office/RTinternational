@@ -94,7 +94,7 @@ export default function AgentDetail() {
   }, [])
 
   const [attendanceHistory, setAttendanceHistory] = useState({ items: [], total: 0, page: 1, totalPages: 0 })
-  const [attendancePage, setAttendancePage] = useState(1)
+  const [, setAttendancePage] = useState(1)
   const [attendanceLoading, setAttendanceLoading] = useState(false)
 
   const loadAttendance = useCallback(async (agentId, page = 1) => {
@@ -102,20 +102,25 @@ export default function AgentDetail() {
     try {
       const res = await api.get(endpoints.attendance.agentHistory(agentId), { params: { page, perPage: 10 } })
       setAttendanceHistory(res.data)
-    } catch {} finally { setAttendanceLoading(false) }
+    } catch (err) { console.error(err) } finally { setAttendanceLoading(false) }
   }, [])
 
   useEffect(() => {
-    if (id) {
-      loadAgentDetail(Number(id))
-      loadAttendance(Number(id), 1)
+    if (!id) return
+    let mounted = true
+    const initData = async () => {
+      if (mounted) {
+        await Promise.all([loadAgentDetail(Number(id)), loadAttendance(Number(id), 1)])
+      }
     }
+    initData()
+    return () => { mounted = false }
   }, [id, loadAgentDetail, loadAttendance])
 
   const agent     = selectedAgent?.agent
-  const callbacks = selectedAgent?.callbacks || []
-  const transfers = selectedAgent?.transfers || []
-  const sales     = selectedAgent?.sales     || []
+  const callbacks = useMemo(() => selectedAgent?.callbacks || [], [selectedAgent?.callbacks])
+  const transfers = useMemo(() => selectedAgent?.transfers || [], [selectedAgent?.transfers])
+  const sales     = useMemo(() => selectedAgent?.sales || [], [selectedAgent?.sales])
 
   const filterByMonth = useCallback((items) => {
     if (selectedMonth === 'all') return items
@@ -384,7 +389,9 @@ export default function AgentDetail() {
     )
   }
 
-  const activeItems = activeTab === 'Callbacks' ? filteredCallbacks : activeTab === 'Transfers' ? filteredTransfers : activeTab === 'Sales' ? filteredSales : []
+  const activeItems = useMemo(() => {
+    return activeTab === 'Callbacks' ? filteredCallbacks : activeTab === 'Transfers' ? filteredTransfers : activeTab === 'Sales' ? filteredSales : []
+  }, [activeTab, filteredCallbacks, filteredTransfers, filteredSales])
   const activeType  = activeTab === 'Callbacks' ? 'callback' : activeTab === 'Transfers' ? 'transfer' : 'sale'
 
   const filteredData = useMemo(() => {

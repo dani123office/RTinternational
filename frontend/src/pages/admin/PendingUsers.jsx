@@ -1,7 +1,7 @@
 import { useEffect, useState, useCallback, useMemo, Fragment } from 'react'
 import { useAdminStore } from '@/store/adminStore'
 import api, { endpoints } from '@/lib/api'
-import { UserPlus, CheckCircle, XCircle, Loader2, UserRoundCog, CalendarCheck, Check, X, Wallet, ChevronLeft, ChevronRight, Clock, Eye, Pencil, Save, Trash2, Plus, ChevronDown, ChevronUp, Users } from 'lucide-react'
+import { UserPlus, CheckCircle, XCircle, Loader2, UserRoundCog, CalendarCheck, Check, X, Wallet, ChevronLeft, ChevronRight, Clock, Eye, Trash2, Plus, ChevronDown, ChevronUp } from 'lucide-react'
 import { APP_STYLES } from '@/lib/styles'
 import DataTable from '@/components/shared/DataTable'
 import LoadingSpinner from '@/components/shared/LoadingSpinner'
@@ -10,7 +10,6 @@ import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs'
 export default function PendingUsers() {
   const { pendingUsers, managers, agents, loadPendingUsers, loadManagers, loadAgents, approveUser } = useAdminStore()
   const [loading, setLoading] = useState(true)
-  const [processing, setProcessing] = useState(null)
   const [error, setError] = useState('')
 
   // Create Loan state variables

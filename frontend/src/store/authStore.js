@@ -73,7 +73,7 @@ export const useAuthStore = create((set, get) => ({
     }
   },
 
-  register: async (name, email, password, role = 'agent', rememberMe = true,
+  register: async (name, email, password, role = 'agent',
     fatherName, cnic, phone, dateOfBirth, emergContactName, emergContactNumber,
     bankName, bankAccountNumber, jobCadre) => {
     set({ isLoading: true, error: null })

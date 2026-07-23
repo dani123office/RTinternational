@@ -185,7 +185,7 @@ export function useTransferForm(locationState, navigate) {
       const firstMsn = firstMeter?.meterSerial || null
       const firstAccountNumber = firstMeter?.accountNumber || null
 
-      const transfer = await createTransfer({
+      await createTransfer({
         customerId,
         accountNumber: firstAccountNumber,
         mpan: firstMpan,

@@ -43,7 +43,6 @@ function ClockCard({ label, timezone, sub, accent, flag }) {
 }
 
 export default function Attendance() {
-  const { user } = useAuthStore()
   const { toast } = useToast()
   const [, forceUpdate] = useState(0)
   useEffect(() => {
@@ -75,7 +74,7 @@ export default function Attendance() {
     try {
       const res = await api.get(endpoints.attendance.myHistory, { params: { page, perPage: 15 } })
       setHistory(res.data)
-    } catch {}
+    } catch (err) { console.error(err) }
   }, [])
 
   const loadStats = useCallback(async () => {

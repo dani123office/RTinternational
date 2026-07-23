@@ -6,7 +6,7 @@ import api, { endpoints } from '@/lib/api'
 import EditStaffModal from '@/components/admin/EditStaffModal'
 import {
   ArrowLeft, User, ArrowLeftRight, PoundSterling,
-  TrendingUp, Mail, Calendar, UserSquare2, CreditCard, Briefcase, DollarSign, Heart, BadgePercent, Building2,
+  TrendingUp, Mail, Calendar, UserSquare2, CreditCard, Briefcase, DollarSign, Heart,
   Clock, CalendarCheck,
 } from 'lucide-react'
 import { APP_STYLES } from '@/lib/styles'
@@ -103,8 +103,6 @@ export default function AdminAgentDetail() {
   const [attendanceLoading, setAttendanceLoading] = useState(false)
   const [leaveHistory, setLeaveHistory] = useState([])
   const [leaveLoading, setLeaveLoading] = useState(false)
-  const [attendanceStats, setAttendanceStats] = useState({ present: 0, late: 0 })
-  const [approvedLeaves, setApprovedLeaves] = useState(0)
 
   const handleSaveStaff = useCallback(async (payload) => {
     const res = await api.put(endpoints.admin.updateAgentStaff(Number(id)), payload)
@@ -131,9 +129,9 @@ export default function AdminAgentDetail() {
   }, [id])
 
   const agent     = selectedAgent?.agent
-  const callbacks = selectedAgent?.callbacks || []
-  const transfers = selectedAgent?.transfers || []
-  const sales     = selectedAgent?.sales || []
+  const callbacks = useMemo(() => selectedAgent?.callbacks || [], [selectedAgent?.callbacks])
+  const transfers = useMemo(() => selectedAgent?.transfers || [], [selectedAgent?.transfers])
+  const sales     = useMemo(() => selectedAgent?.sales || [], [selectedAgent?.sales])
 
   const filterByMonth = useCallback((items) => {
     if (selectedMonth === 'all') return items
@@ -149,7 +147,9 @@ export default function AdminAgentDetail() {
   const filteredTransfers = useMemo(() => filterByMonth(transfers), [transfers, filterByMonth])
   const filteredSales     = useMemo(() => filterByMonth(sales), [sales, filterByMonth])
 
-  const activeItems = activeTab === 'Callbacks' ? filteredCallbacks : activeTab === 'Transfers' ? filteredTransfers : filteredSales
+  const activeItems = useMemo(() => {
+    return activeTab === 'Callbacks' ? filteredCallbacks : activeTab === 'Transfers' ? filteredTransfers : filteredSales
+  }, [activeTab, filteredCallbacks, filteredTransfers, filteredSales])
 
   const filteredAttendanceByMonth = useMemo(() => {
     if (selectedMonth === 'all') return attendanceHistory
@@ -219,7 +219,7 @@ export default function AdminAgentDetail() {
     try {
       const res = await api.get(endpoints.attendance.agentHistory(Number(id)), { params: { page: 1, perPage: 20 } })
       setAttendanceHistory(res.data.items || [])
-    } catch {} finally { setAttendanceLoading(false) }
+    } catch (err) { console.error(err) } finally { setAttendanceLoading(false) }
   }, [id, activeTab])
 
   const loadLeaves = useCallback(async () => {
@@ -228,11 +228,24 @@ export default function AdminAgentDetail() {
     try {
       const res = await api.get(endpoints.leaves.agent(Number(id)), { params: { page: 1, perPage: 20 } })
       setLeaveHistory(res.data.items || [])
-    } catch {} finally { setLeaveLoading(false) }
+    } catch (err) { console.error(err) } finally { setLeaveLoading(false) }
   }, [id, activeTab])
 
-  useEffect(() => { loadAttendance() }, [loadAttendance])
-  useEffect(() => { loadLeaves() }, [loadLeaves])
+  useEffect(() => {
+    let active = true
+    if (activeTab === 'Attendance' && id && active) {
+      loadAttendance()
+    }
+    return () => { active = false }
+  }, [id, activeTab, loadAttendance])
+
+  useEffect(() => {
+    let active = true
+    if (activeTab === 'Leaves' && id && active) {
+      loadLeaves()
+    }
+    return () => { active = false }
+  }, [id, activeTab, loadLeaves])
 
   if (isLoading && !selectedAgent) {
     return (

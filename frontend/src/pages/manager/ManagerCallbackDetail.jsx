@@ -103,6 +103,10 @@ export default function ManagerCallbackDetail() {
                 <CustomerInfoCard customer={customer} />
               </div>
 
+              <div className="rt-fade rt-d3">
+                <AccountDetailsCard details={accountDetails} />
+              </div>
+
               <div className="rt-fade rt-d4">
                 <OfferedRatesCard transfer={mergedForRates} />
               </div>

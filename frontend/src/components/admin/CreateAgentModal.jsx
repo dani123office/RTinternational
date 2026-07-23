@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { X, User, Mail, Lock, Briefcase, DollarSign, CreditCard, Phone, Building2, BadgePercent, Calendar, Heart, Users } from 'lucide-react'
+import { X, User, Mail, Lock, Briefcase, CreditCard, Phone, Building2, BadgePercent, Calendar, Heart, Users } from 'lucide-react'
 
 const formatCNIC = (value) => {
   if (!value) return value;
