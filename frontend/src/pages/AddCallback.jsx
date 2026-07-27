@@ -132,6 +132,7 @@ export default function AddCallback() {
   const transfers = isManager ? managerStore.transfers : dataStore.transfers
 
   const [loading, setLoading] = useState(false)
+  const [localCallback, setLocalCallback] = useState(null)
   const [form, setForm] = useState(() => {
     const prefill = location.state?.prefillData
     if (prefill) {
