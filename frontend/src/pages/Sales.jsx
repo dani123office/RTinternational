@@ -22,6 +22,7 @@ const FILTERS = [
   { key: 'renewal', label: 'Renewal' },
   { key: 'outOfContract', label: 'Out of Contract' },
   { key: 'done', label: 'Sale Complete' },
+  { key: 'rejected', label: 'Rejected' },
 ]
 
 export default function Sales() {
@@ -65,6 +66,7 @@ export default function Sales() {
     renewal: filteredByMonthSales.filter((s) => s.cotStatus === 'renewal').length,
     outOfContract: filteredByMonthSales.filter((s) => s.cotStatus === 'outOfContract').length,
     done: filteredByMonthSales.filter((s) => s.cotStatus === 'done').length,
+    rejected: filteredByMonthSales.filter((s) => s.cotStatus === 'rejected').length,
   }), [filteredByMonthSales])
 
   const filteredSales = useMemo(() => {

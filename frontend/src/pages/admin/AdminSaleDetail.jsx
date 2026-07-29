@@ -84,6 +84,17 @@ export default function AdminSaleDetail() {
     }
   }
 
+  const handleCotStatusChange = async (e) => {
+    const newStatus = e.target.value
+    try {
+      const res = await api.put(`${endpoints.sales}/${id}`, { cotStatus: newStatus })
+      setData(res.data)
+      toast('Sale status updated successfully', 'success')
+    } catch (err) {
+      toast(err.response?.data?.detail || 'Failed to update sale status', 'error')
+    }
+  }
+
   if (loading) return (
     <>
       <style>{APP_STYLES}</style>
@@ -151,7 +162,22 @@ export default function AdminSaleDetail() {
               <div className="rt-card-header"><div className="rt-card-header-left"><div className="rt-card-icon"><Banknote size={15} /></div><span className="rt-card-title">Sale Details</span></div></div>
               <div className="rt-card-body">
                 <Field label="Agent">{s.agentName}</Field>
-                <Field label="Status"><StatusBadge status={s.cotStatus} type="sale" /></Field>
+                <Field label="Status">
+                  <select
+                    value={s.cotStatus || 'chasing'}
+                    onChange={handleCotStatusChange}
+                    className="rt-input text-xs py-1 px-2 font-medium"
+                    style={{ maxWidth: '160px', height: '30px' }}
+                  >
+                    <option value="chasing">Chasing</option>
+                    <option value="cotInProgress">COT In Progress</option>
+                    <option value="cotComplete">COT Complete</option>
+                    <option value="renewal">Renewal</option>
+                    <option value="outOfContract">Out of Contract</option>
+                    <option value="done">Sale Complete</option>
+                    <option value="rejected">Rejected</option>
+                  </select>
+                </Field>
                 <Field label="Type">{
                   s.saleType === 'cot' ? 'COT' : s.saleType === 'renewal' ? 'Renewal' : s.saleType === 'out_of_contract' ? 'Out of Contract' : 'COT'
                 }</Field>

@@ -15,6 +15,7 @@ import AccountDetailsCard from '@/components/shared/AccountDetailsCard'
 import MeterDetailsCard from '@/components/shared/MeterDetailsCard'
 import OfferedRatesCard from '@/components/shared/OfferedRatesCard'
 import ProgressTracker from '@/components/shared/ProgressTracker'
+import StatusBadge from '@/components/shared/StatusBadge'
 import { useAuthStore } from '@/store/authStore'
 
 function Card({ icon: Icon, title, headerRight, children, delay }) {
@@ -68,12 +69,21 @@ export default function SaleDetail() {
   } = useSaleDetail()
   const { user } = useAuthStore()
   const isManager = user?.role === 'manager'
+  const isAdmin = user?.role === 'admin'
   const isCotSale = sale?.saleType === 'cot' || !sale?.saleType
 
   const steps = useMemo(() => {
     const isRenewal = sale?.saleType === 'renewal' || sale?.cotStatus === 'renewal'
     const isOutOfContract = sale?.saleType === 'out_of_contract' || sale?.cotStatus === 'outOfContract'
     
+    if (sale?.cotStatus === 'rejected') {
+      return [
+        { key: 'submitted', label: 'Submitted' },
+        { key: 'chasing', label: 'Chasing' },
+        { key: 'rejected', label: 'Rejected' },
+      ]
+    }
+
     const baseSteps = [
       { key: 'submitted', label: 'Submitted' },
       { key: 'chasing', label: 'Chasing' },
@@ -169,14 +179,21 @@ export default function SaleDetail() {
             )}
 
             <Card icon={CheckCircle} title="Status" delay="rt-d2">
-              <Select value={sale.cotStatus} onChange={(e) => handleStatusChange(e.target.value)} className="rt-input" style={{maxWidth:'280px'}}>
-                <option value="chasing">Chasing</option>
-                <option value="cotInProgress">COT In Progress</option>
-                <option value="cotComplete">COT Complete</option>
-                <option value="renewal">Renewal</option>
-                <option value="outOfContract">Out of Contract</option>
-                <option value="done">Sale Complete</option>
-              </Select>
+              {isAdmin ? (
+                <Select value={sale.cotStatus} onChange={(e) => handleStatusChange(e.target.value)} className="rt-input" style={{maxWidth:'280px'}}>
+                  <option value="chasing">Chasing</option>
+                  <option value="cotInProgress">COT In Progress</option>
+                  <option value="cotComplete">COT Complete</option>
+                  <option value="renewal">Renewal</option>
+                  <option value="outOfContract">Out of Contract</option>
+                  <option value="done">Sale Complete</option>
+                  <option value="rejected">Rejected</option>
+                </Select>
+              ) : (
+                <div className="py-1">
+                  <StatusBadge status={sale.cotStatus} type="sale" />
+                </div>
+              )}
             </Card>
 
             {sale.notes && (

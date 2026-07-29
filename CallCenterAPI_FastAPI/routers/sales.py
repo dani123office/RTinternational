@@ -129,7 +129,7 @@ def create_sale(dto: SaleCreate, request: Request, current_user: User = Depends(
             bank_account_number=dto.bankAccountNumber,
             notes=dto.notes,
             sale_type=dto.saleType or "cot",
-            cot_status="done" if dto.saleType in ("renewal", "out_of_contract") else "chasing",
+            cot_status="chasing",
             created_at=dto.createdAt or datetime.now(),
         )
         db.add(sale)
@@ -189,13 +189,13 @@ def update_sale(id: int, dto: SaleUpdate, request: Request, current_user: User =
         if dto.bankAccountNumber is not None:
             sale.bank_account_number = dto.bankAccountNumber
         if dto.cotStatus is not None:
+            if current_user.role != "admin":
+                raise HTTPException(status_code=403, detail="Only admins can update sale status")
             sale.cot_status = dto.cotStatus
         if dto.cotDate is not None:
             sale.cot_date = dto.cotDate
         if dto.saleType is not None:
             sale.sale_type = dto.saleType
-            if dto.saleType in ("renewal", "out_of_contract"):
-                sale.cot_status = "done"
         if dto.notes is not None:
             sale.notes = dto.notes
         if dto.createdAt is not None:

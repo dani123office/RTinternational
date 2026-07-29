@@ -949,6 +949,108 @@ class RTInternationalBackendTests(unittest.TestCase):
         self.assertEqual(r.status_code, 400)
         self.assertIn("Mobile devices are not allowed use office wifi/pc", r.json().get("detail", ""))
 
+    def test_BT040_sale_default_status_is_chasing(self):
+        headers = self.get_auth_header(self.agent_token)
+        postcode = get_unique_postcode()
+        c_payload = {
+            "businessName": f"Chasing Sale Cust {rand_string()}",
+            "ownerName": "Test Owner",
+            "businessPhone": "07123456789",
+            "businessAddress": "123 Chasing St",
+            "postcode": postcode,
+            "utilityType": "electricity"
+        }
+        rc = requests.post(f"{BASE_URL}/api/customers", json=c_payload, headers=headers, timeout=5.0)
+        self.assertEqual(rc.status_code, 200, rc.text)
+        c_id = rc.json().get("id")
+        
+        s_payload = {
+            "customerId": c_id,
+            "ownerFullName": "Test Owner",
+            "homeAddress": "123 Chasing St",
+            "dateOfBirth": "1990-01-01",
+            "businessType": "sole_trader",
+            "billFrequency": "monthly",
+            "paymentMethod": "direct_debit",
+            "saleType": "cot",
+            "notes": "Testing default chasing status"
+        }
+        r = requests.post(f"{BASE_URL}/api/sales", json=s_payload, headers=headers, timeout=5.0)
+        self.assertEqual(r.status_code, 200, r.text)
+        data = r.json()
+        self.assertEqual(data.get("cotStatus"), "chasing")
+
+    def test_BT041_only_admin_can_update_sale_status(self):
+        headers_agent = self.get_auth_header(self.agent_token)
+        headers_admin = self.get_auth_header(self.admin_token)
+        postcode = get_unique_postcode()
+        
+        c_payload = {
+            "businessName": f"Status Update Cust {rand_string()}",
+            "ownerName": "Status Owner",
+            "businessPhone": "07123456789",
+            "businessAddress": "456 Status Rd",
+            "postcode": postcode,
+            "utilityType": "electricity"
+        }
+        rc = requests.post(f"{BASE_URL}/api/customers", json=c_payload, headers=headers_agent, timeout=5.0)
+        self.assertEqual(rc.status_code, 200, rc.text)
+        c_id = rc.json().get("id")
+        
+        s_payload = {
+            "customerId": c_id,
+            "ownerFullName": "Status Owner",
+            "homeAddress": "456 Status Rd",
+            "dateOfBirth": "1990-01-01",
+            "saleType": "cot"
+        }
+        rs = requests.post(f"{BASE_URL}/api/sales", json=s_payload, headers=headers_agent, timeout=5.0)
+        self.assertEqual(rs.status_code, 200, rs.text)
+        s_id = rs.json().get("id")
+        
+        # Agent attempt to update status -> 403 Forbidden
+        r_agent = requests.put(f"{BASE_URL}/api/sales/{s_id}", json={"cotStatus": "cotInProgress"}, headers=headers_agent, timeout=5.0)
+        self.assertEqual(r_agent.status_code, 403)
+        self.assertIn("Only admins can update sale status", r_agent.json().get("detail", ""))
+        
+        # Admin attempt to update status -> 200 OK
+        r_admin = requests.put(f"{BASE_URL}/api/sales/{s_id}", json={"cotStatus": "cotInProgress"}, headers=headers_admin, timeout=5.0)
+        self.assertEqual(r_admin.status_code, 200, r_admin.text)
+        self.assertEqual(r_admin.json().get("cotStatus"), "cotInProgress")
+
+    def test_BT042_admin_can_set_sale_status_rejected(self):
+        headers_agent = self.get_auth_header(self.agent_token)
+        headers_admin = self.get_auth_header(self.admin_token)
+        postcode = get_unique_postcode()
+        
+        c_payload = {
+            "businessName": f"Reject Cust {rand_string()}",
+            "ownerName": "Reject Owner",
+            "businessPhone": "07123456789",
+            "businessAddress": "789 Reject Blvd",
+            "postcode": postcode,
+            "utilityType": "electricity"
+        }
+        rc = requests.post(f"{BASE_URL}/api/customers", json=c_payload, headers=headers_agent, timeout=5.0)
+        self.assertEqual(rc.status_code, 200, rc.text)
+        c_id = rc.json().get("id")
+        
+        s_payload = {
+            "customerId": c_id,
+            "ownerFullName": "Reject Owner",
+            "homeAddress": "789 Reject Blvd",
+            "dateOfBirth": "1990-01-01",
+            "saleType": "cot"
+        }
+        rs = requests.post(f"{BASE_URL}/api/sales", json=s_payload, headers=headers_agent, timeout=5.0)
+        self.assertEqual(rs.status_code, 200, rs.text)
+        s_id = rs.json().get("id")
+        
+        # Admin sets status to rejected
+        r_reject = requests.put(f"{BASE_URL}/api/sales/{s_id}", json={"cotStatus": "rejected"}, headers=headers_admin, timeout=5.0)
+        self.assertEqual(r_reject.status_code, 200, r_reject.text)
+        self.assertEqual(r_reject.json().get("cotStatus"), "rejected")
+
     # ==========================================
     # RATE LIMITING (BT024) - Executed LAST to avoid blocking and limiting other tests!
     # ==========================================

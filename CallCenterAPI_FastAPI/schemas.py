@@ -1607,7 +1607,7 @@ class SaleUpdate(BaseModel):
     sortCode: Optional[str] = Field(None, max_length=10)
     bankAccountNumber: Optional[str] = Field(None, max_length=20)
     cotStatus: Optional[str] = Field(
-        None, description="COT status: cotInProgress, transferSubmitted, completed, hold"
+        None, description="COT status: chasing, cotInProgress, cotComplete, renewal, outOfContract, done, rejected"
     )
     cotDate: Optional[date] = None
     saleType: Optional[str] = Field(None, max_length=20, description="Sale type: cot, renewal, out_of_contract")

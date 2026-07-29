@@ -1,4 +1,4 @@
-import { Check } from 'lucide-react'
+import { Check, X } from 'lucide-react'
 
 export default function ProgressTracker({ currentStatus, steps }) {
   const currentIdx = steps.findIndex((s) => s.key === currentStatus)
@@ -9,18 +9,23 @@ export default function ProgressTracker({ currentStatus, steps }) {
       {steps.map((step, i) => {
         const isCompleted = i < active
         const isCurrent = i === active
+        const isRejected = step.key === 'rejected' && isCurrent
         const isLast = i === steps.length - 1
         return (
           <div key={step.key} className={`flex items-center min-w-0 ${isLast ? 'shrink-0' : 'flex-1'}`}>
             <div
               className="flex items-center gap-2 px-3 py-1.5 rounded-full whitespace-nowrap shrink-0"
               style={{
-                background: isCurrent ? '#ede9fe' : isCompleted ? '#d1fae5' : '#f1f5f9',
+                background: isRejected ? '#fee2e2' : isCurrent ? '#ede9fe' : isCompleted ? '#d1fae5' : '#f1f5f9',
               }}
             >
               {isCompleted ? (
                 <div className="w-[18px] h-[18px] rounded-full bg-green-500 flex items-center justify-center">
                   <Check size={10} color="white" />
+                </div>
+              ) : isRejected ? (
+                <div className="w-[18px] h-[18px] rounded-full bg-red-600 flex items-center justify-center">
+                  <X size={10} color="white" />
                 </div>
               ) : (
                 <div
@@ -34,7 +39,7 @@ export default function ProgressTracker({ currentStatus, steps }) {
                 className="text-[0.75rem]"
                 style={{
                   fontWeight: isCurrent ? 700 : 600,
-                  color: isCurrent ? '#5b21b6' : isCompleted ? '#065f46' : '#94a3b8',
+                  color: isRejected ? '#991b1b' : isCurrent ? '#5b21b6' : isCompleted ? '#065f46' : '#94a3b8',
                 }}
               >
                 {step.label}

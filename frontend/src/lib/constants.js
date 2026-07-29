@@ -19,6 +19,7 @@ export const STATUS_CONFIG = {
   submitted: { label: 'Submitted', bg: '#e0e7ff', color: '#3730a3' },
   approved: { label: 'Approved', bg: '#d1fae5', color: '#065f46' },
   rejected: { label: 'Rejected', bg: '#fee2e2', color: '#991b1b' },
+  reject: { label: 'Rejected', bg: '#fee2e2', color: '#991b1b' },
   dispute: { label: 'Dispute', bg: '#fef3c7', color: '#92400e' },
   renewal: { label: 'Renewal', bg: '#e0f2fe', color: '#0369a1' },
   outOfContract: { label: 'Out of Contract', bg: '#ffedd5', color: '#c2410c' },
@@ -72,6 +73,7 @@ export const SALE_FILTERS = [
   { key: 'renewal', label: 'Renewal' },
   { key: 'outOfContract', label: 'Out of Contract' },
   { key: 'done', label: 'Sale Complete' },
+  { key: 'rejected', label: 'Rejected' },
 ];
 
 export const SALE_TYPES = [

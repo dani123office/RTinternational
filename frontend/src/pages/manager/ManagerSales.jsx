@@ -28,6 +28,7 @@ const STATUS_OPTIONS = [
   { value: 'renewal', label: 'Renewal' },
   { value: 'outOfContract', label: 'Out of Contract' },
   { value: 'done', label: 'Sale Complete' },
+  { value: 'rejected', label: 'Rejected' },
   { value: 'hold', label: 'On Hold' },
 ]
 
@@ -53,6 +54,7 @@ export default function ManagerSales() {
     cotInProgress: sales.filter(s => s.cotStatus === 'cotInProgress').length,
     cotComplete: sales.filter(s => s.cotStatus === 'cotComplete').length,
     done: sales.filter(s => s.cotStatus === 'done').length,
+    rejected: sales.filter(s => s.cotStatus === 'rejected').length,
     hold: sales.filter(s => s.cotStatus === 'hold').length,
   }), [sales])
 

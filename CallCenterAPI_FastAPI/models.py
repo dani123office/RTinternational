@@ -229,7 +229,7 @@ class Sale(Base):
     account_title = Column(String(150), nullable=True)
     sort_code = Column(String(10), nullable=True)
     bank_account_number = Column(String(20), nullable=True)
-    cot_status = Column(String(20), nullable=False, default="submitted")
+    cot_status = Column(String(20), nullable=False, default="chasing")
     cot_date = Column(Date, nullable=True)
     cot_notes = Column(Text, nullable=True)
     sale_type = Column(String(20), nullable=False, default="cot")
