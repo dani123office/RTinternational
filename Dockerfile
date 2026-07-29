@@ -7,9 +7,6 @@ RUN pip install --no-cache-dir -r requirements.txt
 
 COPY . .
 
-# Copy built frontend assets into the FastAPI static directory so it serves them
-COPY frontend/dist ./CallCenterAPI_FastAPI/static
-
 EXPOSE 8000
 
 CMD ["uvicorn", "CallCenterAPI_FastAPI.main:app", "--host", "0.0.0.0", "--port", "8000"]
