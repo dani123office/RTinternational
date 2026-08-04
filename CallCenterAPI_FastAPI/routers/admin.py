@@ -156,6 +156,9 @@ def get_all_users(admin: User = Depends(require_admin), db: Session = Depends(ge
             "dateOfJoining": u.date_of_joining.isoformat() if u.date_of_joining else None,
             "emergContactName": u.emerg_contact_name,
             "emergContactNumber": u.emerg_contact_number,
+            "bankName": u.bank_name,
+            "bankAccountNumber": u.bank_account_number,
+            "jobCadre": u.job_cadre or "Full time",
             "createdAt": u.created_at.isoformat() if u.created_at else None,
         }
         for u in users
@@ -466,6 +469,38 @@ def update_user(
             if not mgr:
                 raise HTTPException(status_code=400, detail="Manager not found or inactive")
             user.manager_id = data.managerId
+        if data.phone is not None:
+            user.phone = data.phone
+        if data.fatherName is not None:
+            user.father_name = data.fatherName
+        if data.monthlySalary is not None:
+            user.monthly_salary = data.monthlySalary
+        if data.cnic is not None:
+            user.cnic = data.cnic
+        if data.department is not None:
+            user.department = data.department
+        if data.designation is not None:
+            user.designation = data.designation
+        if data.dateOfBirth is not None:
+            if isinstance(data.dateOfBirth, str) and data.dateOfBirth.strip():
+                user.date_of_birth = date.fromisoformat(data.dateOfBirth.strip())
+            elif isinstance(data.dateOfBirth, date):
+                user.date_of_birth = data.dateOfBirth
+        if data.dateOfJoining is not None:
+            if isinstance(data.dateOfJoining, str) and data.dateOfJoining.strip():
+                user.date_of_joining = date.fromisoformat(data.dateOfJoining.strip())
+            elif isinstance(data.dateOfJoining, date):
+                user.date_of_joining = data.dateOfJoining
+        if data.emergContactName is not None:
+            user.emerg_contact_name = data.emergContactName
+        if data.emergContactNumber is not None:
+            user.emerg_contact_number = data.emergContactNumber
+        if data.bankName is not None:
+            user.bank_name = data.bankName
+        if data.bankAccountNumber is not None:
+            user.bank_account_number = data.bankAccountNumber
+        if data.jobCadre is not None:
+            user.job_cadre = data.jobCadre or "Full time"
         db.commit()
         db.refresh(user)
         log_activity(db, admin.id, "updated", "user", user.id,
@@ -584,6 +619,9 @@ def get_pending_users(admin: User = Depends(require_admin), db: Session = Depend
             "dateOfJoining": u.date_of_joining.isoformat() if u.date_of_joining else None,
             "emergContactName": u.emerg_contact_name,
             "emergContactNumber": u.emerg_contact_number,
+            "bankName": u.bank_name,
+            "bankAccountNumber": u.bank_account_number,
+            "jobCadre": u.job_cadre or "Full time",
         }
         for u in users
     ]

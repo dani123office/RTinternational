@@ -425,6 +425,19 @@ class UpdateUserRequest(BaseModel):
     email: Optional[str] = None
     isActive: Optional[int] = None
     managerId: Optional[int] = None
+    phone: Optional[str] = None
+    fatherName: Optional[str] = None
+    monthlySalary: Optional[int] = 0
+    cnic: Optional[str] = None
+    department: Optional[str] = None
+    designation: Optional[str] = None
+    dateOfBirth: Optional[Union[date, str]] = None
+    dateOfJoining: Optional[Union[date, str]] = None
+    emergContactName: Optional[str] = None
+    emergContactNumber: Optional[str] = None
+    bankName: Optional[str] = None
+    bankAccountNumber: Optional[str] = None
+    jobCadre: Optional[str] = None
 
 
 class UpdateAgentStaffRequest(BaseModel):
