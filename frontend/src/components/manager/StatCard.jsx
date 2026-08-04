@@ -1,6 +1,6 @@
 import { useEffect, useState, useRef } from 'react'
 
-export default function StatCard({ icon: Icon, label, value, accent, subtext, progress }) {
+export default function StatCard({ icon: Icon, label, value, accent, subtext, progress, onClick }) {
   const [displayValue, setDisplayValue] = useState(0)
   const ref = useRef(null)
   const hasAnimated = useRef(false)
@@ -43,7 +43,8 @@ export default function StatCard({ icon: Icon, label, value, accent, subtext, pr
   return (
     <div
       ref={ref}
-      className="bg-white/80 backdrop-blur-md rounded-2xl p-5 border border-slate-200/60 shadow-sm transition-all duration-200 hover:-translate-y-0.5"
+      onClick={onClick}
+      className={`bg-white/80 backdrop-blur-md rounded-2xl p-5 border border-slate-200/60 shadow-sm transition-all duration-200 hover:-translate-y-0.5 ${onClick ? 'cursor-pointer hover:shadow-md' : ''}`}
       style={{ boxShadow: '0 1px 3px rgba(0,0,0,0.04), 0 1px 2px rgba(0,0,0,0.02)' }}
     >
       <div className="flex items-start justify-between">

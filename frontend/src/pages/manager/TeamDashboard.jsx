@@ -153,9 +153,9 @@ export default function TeamDashboard() {
           <>
             {/* Stat Cards */}
             <div className="rt-fade rt-d2 grid grid-cols-1 sm:grid-cols-3 gap-4 mb-8">
-              <StatCard icon={ArrowLeftRight} label="Total Transfers" value={teamStats?.totalTransfers || 0} accent="linear-gradient(135deg, #22c55e, #16a34a)" />
-              <StatCard icon={PoundSterling} label="Total Sales" value={teamStats?.totalSales || 0} accent="linear-gradient(135deg, #f59e0b, #d97706)" />
-              <StatCard icon={TrendingUp} label="Conversion Rate" value={`${teamStats?.conversionRate || 0}%`} accent="linear-gradient(135deg, #8b5cf6, #7c3aed)" subtext={`${teamStats?.totalTransfers || 0} total opportunities`} />
+              <StatCard icon={ArrowLeftRight} label="Total Transfers" value={teamStats?.totalTransfers || 0} accent="linear-gradient(135deg, #22c55e, #16a34a)" onClick={() => navigate('/manager/transfers')} />
+              <StatCard icon={PoundSterling} label="Total Sales" value={teamStats?.totalSales || 0} accent="linear-gradient(135deg, #f59e0b, #d97706)" onClick={() => navigate('/manager/sales')} />
+              <StatCard icon={TrendingUp} label="Conversion Rate" value={`${teamStats?.conversionRate || 0}%`} accent="linear-gradient(135deg, #8b5cf6, #7c3aed)" subtext={`${teamStats?.totalTransfers || 0} total opportunities`} onClick={() => navigate('/manager/sales')} />
             </div>
 
             {/* Secondary Stats */}

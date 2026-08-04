@@ -22,6 +22,7 @@ import Customers from '@/pages/Customers'
 import CustomerDetail from '@/pages/CustomerDetail'
 import Loans from '@/pages/Loans'
 import LeaveRequests from '@/pages/LeaveRequests'
+import RenewalCallbacks from '@/pages/RenewalCallbacks'
 import ProfileSettings from '@/pages/ProfileSettings'
 import TeamDashboard from '@/pages/manager/TeamDashboard'
 import ManagerAttendance from '@/pages/manager/ManagerAttendance'
@@ -88,6 +89,7 @@ export default function App() {
         <Route path="callbacks/add" element={<RoleRoute allowedRoles={['agent']}><AddCallback /></RoleRoute>} />
         <Route path="callbacks/:id" element={<RoleRoute allowedRoles={['agent', 'manager', 'admin']}><CallbackDetail /></RoleRoute>} />
         <Route path="callbacks/:id/edit" element={<RoleRoute allowedRoles={['agent', 'manager']}><AddCallback /></RoleRoute>} />
+        <Route path="renewal-callbacks" element={<RoleRoute allowedRoles={['agent', 'manager', 'admin']}><RenewalCallbacks /></RoleRoute>} />
         <Route path="transfers" element={<RoleRoute allowedRoles={['agent']}><Transfers /></RoleRoute>} />
         <Route path="transfers/add" element={<RoleRoute allowedRoles={['agent']}><AddTransfer /></RoleRoute>} />
         <Route path="transfers/:id" element={<RoleRoute allowedRoles={['agent']}><TransferDetail /></RoleRoute>} />

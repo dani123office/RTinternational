@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import { useDataStore } from '@/store/dataStore'
 import { useAuthStore } from '@/store/authStore'
 import api, { endpoints } from '@/lib/api'
+import { extractRenewalItems } from '@/lib/renewalUtils'
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts'
 import StatusBadge from '@/components/shared/StatusBadge'
 import { extractName, formatDateFull, getGreeting } from '@/lib/format'
@@ -22,16 +23,20 @@ function CustomTooltip({ active, payload, label }) {
   )
 }
 
-function StatCard({ title, value, subtitle, bg, icon, trend }) {
+function StatCard({ title, value, subtitle, bg, icon, trend, onClick }) {
   const gradientBg = bg === '#ede9fe' ? 'linear-gradient(135deg, #eef2ff 0%, #f5f3ff 100%)'
     : bg === '#fee2e2' ? 'linear-gradient(135deg, #fef2f2 0%, #fff5f5 100%)'
     : bg === '#f3e8ff' ? 'linear-gradient(135deg, #f5f3ff 0%, #ede9fe 100%)'
     : bg === '#dcfce7' ? 'linear-gradient(135deg, #f0fdf4 0%, #ecfdf5 100%)'
     : bg === '#fef9c3' ? 'linear-gradient(135deg, #fefce8 0%, #fffbeb 100%)'
+    : bg === '#fae8ff' ? 'linear-gradient(135deg, #faf5ff 0%, #f3e8ff 100%)'
     : bg
 
   return (
-    <div className="rt-card-flat cursor-default group">
+    <div
+      onClick={onClick}
+      className={`rt-card-flat group ${onClick ? 'cursor-pointer transition-all duration-200 hover:-translate-y-1 hover:shadow-md' : 'cursor-default'}`}
+    >
       <div className="flex items-start justify-between">
         <div className="w-10 h-10 rounded-xl flex items-center justify-center shrink-0 relative overflow-hidden"
           style={{ background: gradientBg }}>
@@ -56,7 +61,7 @@ function StatCard({ title, value, subtitle, bg, icon, trend }) {
 }
 
 export default function Dashboard() {
-  const { callbacks, transfers, sales, error } = useDataStore()
+  const { callbacks, transfers, sales, customers, error } = useDataStore()
   const { user } = useAuthStore()
   const navigate = useNavigate()
 
@@ -129,6 +134,11 @@ export default function Dashboard() {
   const overdueCallbacks = useMemo(() =>
     callbacks.filter((c) => c.status !== 'done' && c.status !== 'not_interested' && new Date(c.scheduledDateTime || c.scheduledDate) < today),
     [callbacks, today]
+  )
+
+  const renewalItems = useMemo(() =>
+    extractRenewalItems({ customers, callbacks, transfers, sales }),
+    [customers, callbacks, transfers, sales]
   )
 
   const displayTransfersCount = useMemo(() => filteredTransfers.length, [filteredTransfers])
@@ -270,7 +280,7 @@ export default function Dashboard() {
 
         {/* ── Overdue Banner ── */}
         {overdueCallbacks.length > 0 && (
-          <div onClick={() => navigate('/callbacks')}
+          <div onClick={() => navigate('/callbacks?filter=overdue')}
             className="rt-fade rt-d1 flex items-center gap-3 p-3.5 rounded-xl mb-6 cursor-pointer transition-all duration-200 hover:-translate-y-0.5"
             style={{
               background: 'linear-gradient(135deg, #fef2f2, #fff5f5)',
@@ -289,17 +299,25 @@ export default function Dashboard() {
         )}
 
         {/* ── Stat Cards ── */}
-        <div className="rt-fade rt-d2 grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3 sm:gap-4 mb-7">
+        <div className="rt-fade rt-d2 grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-3 xl:grid-cols-6 gap-3 sm:gap-4 mb-7">
           <StatCard title="Today's Callbacks" value={error ? '-' : todayCallbacks.length} subtitle={error ? 'Data unavailable' : overdueCallbacks.length > 0 ? `${overdueCallbacks.length} overdue` : todayCallbacks.length > 0 ? '' : 'None scheduled'} bg="#ede9fe"
+            onClick={() => navigate('/callbacks?filter=today')}
             icon={<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#6366f1" strokeWidth="2.2"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07A19.5 19.5 0 0 1 4.69 12 19.79 19.79 0 0 1 1.61 3.4 2 2 0 0 1 3.6 1.21h3a2 2 0 0 1 2 1.72c.127.96.361 1.903.7 2.81a2 2 0 0 1-.45 2.11L7.91 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0 1 22 16.92z" /></svg>} />
           <StatCard title="Overdue" value={error ? '-' : overdueCallbacks.length} subtitle={error ? 'Data unavailable' : overdueCallbacks.length === 0 ? 'None overdue' : 'Action needed'} bg={overdueCallbacks.length > 0 ? "#fee2e2" : "#dcfce7"}
+            onClick={() => navigate('/callbacks?filter=overdue')}
             icon={<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke={overdueCallbacks.length > 0 ? "#ef4444" : "#10b981"} strokeWidth="2.2"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z" /><line x1="12" y1="9" x2="12" y2="13" /><line x1="12" y1="17" x2="12.01" y2="17" /></svg>} />
           <StatCard title={selectedMonth === 'all' ? 'Total Transfers' : 'Transfers (Period)'} value={error ? '-' : displayTransfersCount} subtitle={error ? 'Data unavailable' : 'In pipeline'} bg="#f3e8ff"
+            onClick={() => navigate('/transfers')}
             icon={<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#8b5cf6" strokeWidth="2.2"><path d="M7 16V4m0 0L3 8m4-4 4 4" /><path d="M17 8v12m0 0 4-4m-4 4-4-4" /></svg>} />
           <StatCard title={selectedMonth === 'all' ? 'Total Sales' : 'Sales (Period)'} value={error ? '-' : displaySalesCount} subtitle={error ? 'Data unavailable' : 'Weighted by meters'} bg="#dcfce7"
+            onClick={() => navigate('/sales')}
             icon={<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#10b981" strokeWidth="2.2"><path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6" /></svg>} />
           <StatCard title="Conversion Rate" value={error ? '-' : `${displayConversionRate}%`} subtitle={error ? 'Data unavailable' : 'Transfers to sales'} bg="#fef9c3"
+            onClick={() => navigate('/sales')}
             icon={<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#ca8a04" strokeWidth="2.2"><circle cx="12" cy="12" r="10" /><polyline points="12 6 12 12 16 14" /></svg>} />
+          <StatCard title="Renewal Callbacks" value={error ? '-' : renewalItems.length} subtitle={error ? 'Data unavailable' : renewalItems.length > 0 ? `${renewalItems.length} expiring in 1mo` : 'No renewals due'} bg="#fae8ff"
+            onClick={() => navigate('/renewal-callbacks')}
+            icon={<RefreshCw size={18} stroke="#a855f7" strokeWidth={2.2} />} />
         </div>
 
         {/* ── Charts Section ── */}

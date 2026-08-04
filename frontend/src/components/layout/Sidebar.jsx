@@ -6,7 +6,7 @@ import {
   PoundSterling, Users, ChevronLeft, ChevronRight,
   UsersRound, BarChart3, Bell, Shield,
   Activity, Settings, UserPlus, Clock,
-  DollarSign, CalendarDays, Wallet, CalendarCheck,
+  DollarSign, CalendarDays, Wallet, CalendarCheck, RefreshCw,
 } from 'lucide-react'
 
 const NAV_ITEMS = {
@@ -16,6 +16,7 @@ const NAV_ITEMS = {
     { to: '/admin/attendance-feed', icon: CalendarDays, label: 'Attendance Feed' },
     { to: '/admin/staff', icon: Users, label: 'Staff Management' },
     { to: '/admin/pending', icon: UserPlus, label: 'Pending Approvals' },
+    { to: '/renewal-callbacks', icon: RefreshCw, label: 'Renewal Callbacks' },
     { to: '/admin/analytics', icon: BarChart3, label: 'Analytics' },
     { to: '/admin/activity', icon: Activity, label: 'Activity Feed' },
     { to: '/admin/payroll', icon: DollarSign, label: 'Payroll' },
@@ -27,6 +28,7 @@ const NAV_ITEMS = {
     { to: '/manager/attendance-feed', icon: CalendarDays, label: 'Attendance Feed' },
     { to: '/manager/agents', icon: UsersRound, label: 'Agents' },
     { to: '/manager/callbacks', icon: PhoneCall, label: 'Callbacks' },
+    { to: '/renewal-callbacks', icon: RefreshCw, label: 'Renewal Callbacks' },
     { to: '/manager/transfers', icon: ArrowLeftRight, label: 'Transfers' },
     { to: '/manager/sales', icon: PoundSterling, label: 'Sales' },
     { to: '/manager/notifications', icon: Bell, label: 'Notifications' },
@@ -36,6 +38,7 @@ const NAV_ITEMS = {
     { to: '/', icon: LayoutDashboard, label: 'Dashboard' },
     { to: '/attendance', icon: Clock, label: 'Attendance' },
     { to: '/callbacks', icon: PhoneCall, label: 'Callbacks' },
+    { to: '/renewal-callbacks', icon: RefreshCw, label: 'Renewal Callbacks' },
     { to: '/transfers', icon: ArrowLeftRight, label: 'Transfers' },
     { to: '/sales', icon: PoundSterling, label: 'Sales' },
     { to: '/customers', icon: Users, label: 'Customers' },

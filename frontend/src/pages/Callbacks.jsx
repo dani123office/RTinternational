@@ -1,5 +1,5 @@
-import { useMemo, useState } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useMemo, useState, useEffect } from 'react'
+import { useNavigate, useSearchParams } from 'react-router-dom'
 import { useDataStore } from '@/store/dataStore'
 
 import StatusBadge from '@/components/shared/StatusBadge'
@@ -33,8 +33,16 @@ const GROUP_META = {
 export default function Callbacks() {
   const { callbacks, isLoading, updateCallback, deleteCallback } = useDataStore()
   const navigate = useNavigate()
+  const [searchParams] = useSearchParams()
   const withToast = useLoadingToast()
-  const [activeFilter, setActiveFilter] = useState('all')
+  const [activeFilter, setActiveFilter] = useState(() => searchParams.get('filter') || 'all')
+
+  useEffect(() => {
+    const filterParam = searchParams.get('filter')
+    if (filterParam && ['all', 'overdue', 'today', 'upcoming'].includes(filterParam)) {
+      setActiveFilter(filterParam)
+    }
+  }, [searchParams])
   const [markDoneId, setMarkDoneId] = useState(null)
   const [deleteId, setDeleteId] = useState(null)
   const [rescheduleId, setRescheduleId] = useState(null)
