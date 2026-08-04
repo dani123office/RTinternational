@@ -23,6 +23,7 @@ const FILTERS = [
   { key: 'outOfContract', label: 'Out of Contract' },
   { key: 'done', label: 'Sale Complete' },
   { key: 'rejected', label: 'Rejected' },
+  { key: 'runaway', label: 'Runaway' },
 ]
 
 export default function Sales() {

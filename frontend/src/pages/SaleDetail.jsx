@@ -188,6 +188,7 @@ export default function SaleDetail() {
                   <option value="outOfContract">Out of Contract</option>
                   <option value="done">Sale Complete</option>
                   <option value="rejected">Rejected</option>
+                  <option value="runaway">Runaway</option>
                 </Select>
               ) : (
                 <div className="py-1">

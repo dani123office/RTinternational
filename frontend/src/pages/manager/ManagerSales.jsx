@@ -29,6 +29,7 @@ const STATUS_OPTIONS = [
   { value: 'outOfContract', label: 'Out of Contract' },
   { value: 'done', label: 'Sale Complete' },
   { value: 'rejected', label: 'Rejected' },
+  { value: 'runaway', label: 'Runaway' },
   { value: 'hold', label: 'On Hold' },
 ]
 

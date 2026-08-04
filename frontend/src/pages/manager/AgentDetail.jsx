@@ -346,6 +346,8 @@ export default function AgentDetail() {
             <option value="renewal">Renewal</option>
             <option value="outOfContract">Out of Contract</option>
             <option value="done">Sale Complete</option>
+            <option value="rejected">Rejected</option>
+            <option value="runaway">Runaway</option>
             <option value="hold">On Hold</option>
           </select>
         </FormField>

@@ -176,6 +176,7 @@ export default function AdminSaleDetail() {
                     <option value="outOfContract">Out of Contract</option>
                     <option value="done">Sale Complete</option>
                     <option value="rejected">Rejected</option>
+                    <option value="runaway">Runaway</option>
                   </select>
                 </Field>
                 <Field label="Type">{

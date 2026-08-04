@@ -24,6 +24,7 @@ export const STATUS_CONFIG = {
   renewal: { label: 'Renewal', bg: '#e0f2fe', color: '#0369a1' },
   outOfContract: { label: 'Out of Contract', bg: '#ffedd5', color: '#c2410c' },
   outofcontract: { label: 'Out of Contract', bg: '#ffedd5', color: '#c2410c' },
+  runaway: { label: 'Runaway', bg: '#fecaca', color: '#7f1d1d' },
 };
 
 export const COT_STEPS = [
@@ -74,6 +75,7 @@ export const SALE_FILTERS = [
   { key: 'outOfContract', label: 'Out of Contract' },
   { key: 'done', label: 'Sale Complete' },
   { key: 'rejected', label: 'Rejected' },
+  { key: 'runaway', label: 'Runaway' },
 ];
 
 export const SALE_TYPES = [

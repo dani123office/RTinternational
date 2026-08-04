@@ -11,6 +11,7 @@ const statusConfig = {
   success: { bg: '#d1fae5', color: '#065f46', label: 'Success' },
   renewal: { bg: '#e0f2fe', color: '#0369a1', label: 'Renewal' },
   outofcontract: { bg: '#ffedd5', color: '#c2410c', label: 'Out of Contract' },
+  runaway: { bg: '#fecaca', color: '#7f1d1d', label: 'Runaway' },
 }
 
 export default function StatusBadge({ status, type }) {
