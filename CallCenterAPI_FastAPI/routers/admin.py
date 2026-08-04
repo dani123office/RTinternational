@@ -397,9 +397,19 @@ def update_agent_staff(
         if data.designation is not None:
             agent.designation = data.designation or None
         if data.dateOfBirth is not None:
-            agent.date_of_birth = data.dateOfBirth
+            if isinstance(data.dateOfBirth, str) and data.dateOfBirth.strip():
+                agent.date_of_birth = date.fromisoformat(data.dateOfBirth.strip())
+            elif isinstance(data.dateOfBirth, date):
+                agent.date_of_birth = data.dateOfBirth
+            else:
+                agent.date_of_birth = None
         if data.dateOfJoining is not None:
-            agent.date_of_joining = data.dateOfJoining
+            if isinstance(data.dateOfJoining, str) and data.dateOfJoining.strip():
+                agent.date_of_joining = date.fromisoformat(data.dateOfJoining.strip())
+            elif isinstance(data.dateOfJoining, date):
+                agent.date_of_joining = data.dateOfJoining
+            else:
+                agent.date_of_joining = None
         if data.emergContactName is not None:
             agent.emerg_contact_name = data.emergContactName or None
         if data.emergContactNumber is not None:

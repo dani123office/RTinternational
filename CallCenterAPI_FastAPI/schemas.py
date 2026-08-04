@@ -449,8 +449,8 @@ class UpdateAgentStaffRequest(BaseModel):
     cnic: Optional[str] = None
     department: Optional[str] = None
     designation: Optional[str] = None
-    dateOfBirth: Optional[date] = None
-    dateOfJoining: Optional[date] = None
+    dateOfBirth: Optional[Union[date, str]] = None
+    dateOfJoining: Optional[Union[date, str]] = None
     emergContactName: Optional[str] = None
     emergContactNumber: Optional[str] = None
     bankName: Optional[str] = None
