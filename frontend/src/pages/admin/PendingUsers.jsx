@@ -330,11 +330,27 @@ export default function PendingUsers() {
     }
   }
 
+  const [approvingUserId, setApprovingUserId] = useState(null)
+
+  const handleDirectApprove = async (userRow) => {
+    const mgrId = userRow._selectedManagerId || userRow.managerId
+    if (!mgrId && userRow.role === 'agent') {
+      alert('Please select a manager before approving this agent')
+      return
+    }
+    setApprovingUserId(userRow.id)
+    try {
+      await approveUser(userRow.id, Number(mgrId || 0), {})
+      await loadPendingUsers()
+    } catch (err) {
+      alert(err?.response?.data?.detail || 'Failed to approve user')
+    } finally {
+      setApprovingUserId(null)
+    }
+  }
+
   const columns = [
-    {
-      header: 'Name',
-      cell: (row) => <span className="font-semibold text-slate-900">{row.name}</span>,
-    },
+    { header: 'Name', accessor: 'name', className: 'font-semibold text-slate-900' },
     { header: 'Email', accessor: 'email' },
     {
       header: 'Role',
@@ -355,7 +371,7 @@ export default function PendingUsers() {
       header: 'Assign Manager',
       cell: (row) => (
         <select
-          value={row._selectedManagerId || ''}
+          value={row._selectedManagerId ?? row.managerId ?? ''}
           onClick={(e) => e.stopPropagation()}
           onChange={(e) => { row._selectedManagerId = Number(e.target.value); setError('') }}
           style={{
@@ -375,6 +391,19 @@ export default function PendingUsers() {
       header: 'Action',
       cell: (row) => (
         <div className="flex items-center gap-2" onClick={(e) => e.stopPropagation()}>
+          <button
+            onClick={() => handleDirectApprove(row)}
+            disabled={approvingUserId === row.id}
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold cursor-pointer transition-all duration-200 border-none text-white disabled:opacity-50"
+            style={{ background: 'linear-gradient(135deg, #10b981, #059669)' }}
+          >
+            {approvingUserId === row.id ? (
+              <Loader2 size={14} className="animate-spin" />
+            ) : (
+              <Check size={14} />
+            )}
+            Approve
+          </button>
           <button
             onClick={() => openEditModal(row)}
             className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold cursor-pointer transition-all duration-200 border-none text-white"

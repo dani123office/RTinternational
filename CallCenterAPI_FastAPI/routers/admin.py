@@ -573,6 +573,7 @@ def get_pending_users(admin: User = Depends(require_admin), db: Session = Depend
         {
             "id": u.id, "name": u.name, "email": u.email,
             "role": u.role, "createdAt": u.created_at.isoformat() if u.created_at else None,
+            "managerId": u.manager_id,
             "phone": u.phone,
             "fatherName": u.father_name,
             "monthlySalary": u.monthly_salary,
@@ -600,11 +601,19 @@ def approve_user(
     if user.is_active:
         raise HTTPException(status_code=400, detail="User is already active")
 
-    manager = db.query(User).filter(
-        User.id == data.managerId, User.role == "manager", User.is_active == True,
-    ).first()
-    if not manager:
-        raise HTTPException(status_code=400, detail="Manager not found or inactive")
+    mgr_id = data.managerId or user.manager_id
+    if not mgr_id and user.role == "agent":
+        raise HTTPException(status_code=400, detail="Please select a manager for this agent")
+
+    if mgr_id:
+        manager = db.query(User).filter(
+            User.id == mgr_id, User.role == "manager", User.is_active == True,
+        ).first()
+        if not manager:
+            raise HTTPException(status_code=400, detail="Manager not found or inactive")
+        user.manager_id = mgr_id
+    else:
+        manager = None
 
     if data.name is not None:
         user.name = data.name
@@ -637,7 +646,7 @@ def approve_user(
     if data.jobCadre is not None:
         user.job_cadre = data.jobCadre or "Full time"
 
-    user.manager_id = data.managerId
+    user.manager_id = mgr_id
     user.is_active = True
     db.commit()
     db.refresh(user)

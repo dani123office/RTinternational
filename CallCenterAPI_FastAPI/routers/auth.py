@@ -200,6 +200,16 @@ def register(request: RegisterRequest, fastapi_req: Request, db: Session = Depen
         raise HTTPException(status_code=400, detail="Email already exists")
 
     hashed = bcrypt.hashpw(request.password.encode("utf-8"), bcrypt.gensalt()).decode("utf-8")
+    dob = None
+    if request.dateOfBirth:
+        if isinstance(request.dateOfBirth, date):
+            dob = request.dateOfBirth
+        elif isinstance(request.dateOfBirth, str) and request.dateOfBirth.strip():
+            try:
+                dob = date.fromisoformat(request.dateOfBirth.strip())
+            except ValueError:
+                dob = None
+
     user = User(
         name=request.name,
         email=email,
@@ -209,7 +219,7 @@ def register(request: RegisterRequest, fastapi_req: Request, db: Session = Depen
         father_name=request.fatherName,
         cnic=request.cnic,
         phone=request.phone,
-        date_of_birth=request.dateOfBirth,
+        date_of_birth=dob,
         emerg_contact_name=request.emergContactName,
         emerg_contact_number=request.emergContactNumber,
         bank_name=request.bankName,

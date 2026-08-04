@@ -1,6 +1,6 @@
 from datetime import datetime, date, time, timedelta
 from pydantic import BaseModel, Field, field_validator
-from typing import Optional, List
+from typing import Optional, List, Union
 import re
 
 
@@ -252,7 +252,7 @@ class RegisterRequest(BaseModel):
     fatherName: Optional[str] = None
     cnic: Optional[str] = None
     phone: Optional[str] = None
-    dateOfBirth: Optional[date] = None
+    dateOfBirth: Optional[Union[date, str]] = None
     emergContactName: Optional[str] = None
     emergContactNumber: Optional[str] = None
     bankName: Optional[str] = None

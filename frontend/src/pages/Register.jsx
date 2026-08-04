@@ -40,7 +40,7 @@ export default function Register() {
     if (form.password.length < 6) { setError('Password must be at least 6 characters.'); return }
     setLoading(true)
     const success = await register(
-      form.name, form.email, form.password, 'agent', true,
+      form.name, form.email, form.password, 'agent',
       form.fatherName, form.cnic, form.phone, form.dateOfBirth,
       form.emergContactName, form.emergContactNumber,
       form.bankName, form.bankAccountNumber, form.jobCadre,
