@@ -2,7 +2,7 @@ import jwt
 import bcrypt
 import os
 import secrets
-from datetime import datetime, timedelta
+from datetime import datetime, date, timedelta
 from fastapi import APIRouter, Depends, HTTPException, Header, Request
 from sqlalchemy.orm import Session
 from sqlalchemy import func
