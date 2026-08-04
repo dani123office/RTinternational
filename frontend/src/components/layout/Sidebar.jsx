@@ -16,7 +16,6 @@ const NAV_ITEMS = {
     { to: '/admin/attendance-feed', icon: CalendarDays, label: 'Attendance Feed' },
     { to: '/admin/staff', icon: Users, label: 'Staff Management' },
     { to: '/admin/pending', icon: UserPlus, label: 'Pending Approvals' },
-    { to: '/renewal-callbacks', icon: RefreshCw, label: 'Renewal Callbacks' },
     { to: '/admin/analytics', icon: BarChart3, label: 'Analytics' },
     { to: '/admin/activity', icon: Activity, label: 'Activity Feed' },
     { to: '/admin/payroll', icon: DollarSign, label: 'Payroll' },
