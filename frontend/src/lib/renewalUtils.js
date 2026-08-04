@@ -6,10 +6,22 @@ export function extractRenewalItems({ customers = [], callbacks = [], transfers 
   const today = new Date()
   today.setHours(0, 0, 0, 0)
 
+  // Build a set of customer IDs that already have a sale — these should be excluded
+  const soldCustomerIds = new Set()
+  if (Array.isArray(sales)) {
+    sales.forEach((s) => {
+      if (s.customer && s.customer.id) soldCustomerIds.add(s.customer.id)
+      if (s.customerId) soldCustomerIds.add(s.customerId)
+    })
+  }
+
   const customerMap = new Map()
 
   const processCustomer = (cust, sourceRecord = null, sourceType = 'customer') => {
     if (!cust || !cust.id) return
+
+    // Skip customers who already have a sale
+    if (soldCustomerIds.has(cust.id)) return
 
     const elecMeters = cust.electricityMeters || []
     const gasMeters = cust.gasMeters || []
@@ -63,7 +75,7 @@ export function extractRenewalItems({ customers = [], callbacks = [], transfers 
   if (Array.isArray(customers)) customers.forEach((c) => processCustomer(c, c, 'customer'))
   if (Array.isArray(callbacks)) callbacks.forEach((cb) => processCustomer(cb.customer, cb, 'callback'))
   if (Array.isArray(transfers)) transfers.forEach((t) => processCustomer(t.customer, t, 'transfer'))
-  if (Array.isArray(sales)) sales.forEach((s) => processCustomer(s.customer, s, 'sale'))
+  // Don't process sales as renewal sources — they are already sold
 
   return Array.from(customerMap.values()).sort((a, b) => a.daysRemaining - b.daysRemaining)
 }
