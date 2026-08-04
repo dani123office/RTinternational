@@ -189,8 +189,8 @@ def update_sale(id: int, dto: SaleUpdate, request: Request, current_user: User =
         if dto.bankAccountNumber is not None:
             sale.bank_account_number = dto.bankAccountNumber
         if dto.cotStatus is not None:
-            if current_user.role != "admin":
-                raise HTTPException(status_code=403, detail="Only admins can update sale status")
+            if current_user.role not in ("admin", "manager"):
+                raise HTTPException(status_code=403, detail="Only admins and managers can update sale status")
             sale.cot_status = dto.cotStatus
         if dto.cotDate is not None:
             sale.cot_date = dto.cotDate

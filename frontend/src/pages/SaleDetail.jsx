@@ -179,7 +179,7 @@ export default function SaleDetail() {
             )}
 
             <Card icon={CheckCircle} title="Status" delay="rt-d2">
-              {isAdmin ? (
+              {isAdmin || isManager ? (
                 <Select value={sale.cotStatus} onChange={(e) => handleStatusChange(e.target.value)} className="rt-input" style={{maxWidth:'280px'}}>
                   <option value="chasing">Chasing</option>
                   <option value="cotInProgress">COT In Progress</option>
