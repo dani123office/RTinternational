@@ -1,6 +1,7 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { NavLink, useLocation } from 'react-router-dom'
 import { useAuthStore } from '@/store/authStore'
+import { useAdminStore } from '@/store/adminStore'
 import {
   LayoutDashboard, PhoneCall, ArrowLeftRight,
   PoundSterling, Users, ChevronLeft, ChevronRight,
@@ -15,7 +16,7 @@ const NAV_ITEMS = {
     { to: '/admin/attendance', icon: Clock, label: 'Attendance' },
     { to: '/admin/attendance-feed', icon: CalendarDays, label: 'Attendance Feed' },
     { to: '/admin/staff', icon: Users, label: 'Staff Management' },
-    { to: '/admin/pending', icon: UserPlus, label: 'Pending Approvals' },
+    { to: '/admin/pending', icon: UserPlus, label: 'Pending Approvals', badgeKey: 'pendingTotalCount' },
     { to: '/admin/analytics', icon: BarChart3, label: 'Analytics' },
     { to: '/admin/activity', icon: Activity, label: 'Activity Feed' },
     { to: '/admin/payroll', icon: DollarSign, label: 'Payroll' },
@@ -56,6 +57,19 @@ export default function Sidebar({ collapsed, onToggle, mobileOpen, onMobileClose
   const role = user?.role || 'agent'
   const navItems = NAV_ITEMS[role] || NAV_ITEMS.agent
   const [hoveredItem, setHoveredItem] = useState(null)
+
+  const pendingTotalCount = useAdminStore((s) => s.pendingTotalCount)
+  const loadPendingCounts = useAdminStore((s) => s.loadPendingCounts)
+
+  useEffect(() => {
+    if (role === 'admin') {
+      loadPendingCounts()
+      const timer = setInterval(() => {
+        loadPendingCounts()
+      }, 30000)
+      return () => clearInterval(timer)
+    }
+  }, [role, loadPendingCounts])
 
   const isActive = (to) => {
     if (to === '/') return location.pathname === '/'
@@ -124,6 +138,9 @@ export default function Sidebar({ collapsed, onToggle, mobileOpen, onMobileClose
         <nav className={`flex-1 flex flex-col gap-0.5 overflow-y-auto scrollbar-thin ${collapsed ? 'md:p-3' : 'md:p-4'} p-4`}>
           {navItems.map((item) => {
             const active = isActive(item.to)
+            const count = item.badgeKey === 'pendingTotalCount' ? pendingTotalCount : 0
+            const hasBadge = count > 0
+
             return (
               <NavLink
                 key={item.to}
@@ -143,14 +160,33 @@ export default function Sidebar({ collapsed, onToggle, mobileOpen, onMobileClose
                 onMouseEnter={() => setHoveredItem(item.to)}
                 onMouseLeave={() => setHoveredItem(null)}
               >
-                <item.icon size={20} className="shrink-0 transition-transform duration-150 group-hover:scale-110" />
+                <div className="relative flex items-center justify-center">
+                  <item.icon size={20} className="shrink-0 transition-transform duration-150 group-hover:scale-110" />
+                  {hasBadge && collapsed && (
+                    <span className="absolute -top-1 -right-1 flex h-2.5 w-2.5 md:flex hidden">
+                      <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-rose-400 opacity-75"></span>
+                      <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-rose-500 ring-2 ring-slate-900"></span>
+                    </span>
+                  )}
+                </div>
                 <span className={`truncate ${collapsed ? 'md:hidden' : 'block'}`}>{item.label}</span>
-                {active && !collapsed && (
-                  <span className="ml-auto w-2 h-2 rounded-full bg-white/80 md:block hidden" />
+                {hasBadge ? (
+                  <span className={`ml-auto px-2 py-0.5 text-[11px] font-black rounded-full transition-all ${active ? 'bg-white text-blue-600 shadow-sm' : 'bg-rose-500 text-white shadow-sm'} ${collapsed ? 'md:hidden' : 'block'}`}>
+                    {count > 99 ? '99+' : count}
+                  </span>
+                ) : (
+                  active && !collapsed && (
+                    <span className="ml-auto w-2 h-2 rounded-full bg-white/80 md:block hidden" />
+                  )
                 )}
                 {collapsed && hoveredItem === item.to && (
-                  <div className="absolute left-full ml-3 px-2.5 py-1.5 rounded-lg bg-slate-900 text-white text-xs whitespace-nowrap z-50 shadow-lg border border-slate-700 animate-[fadeIn_0.1s_ease-out] md:block hidden">
-                    {item.label}
+                  <div className="absolute left-full ml-3 px-2.5 py-1.5 rounded-lg bg-slate-900 text-white text-xs whitespace-nowrap z-50 shadow-lg border border-slate-700 animate-[fadeIn_0.1s_ease-out] md:block hidden flex items-center gap-1.5">
+                    <span>{item.label}</span>
+                    {hasBadge && (
+                      <span className="px-1.5 py-0.5 text-[10px] font-bold rounded-full bg-rose-500 text-white">
+                        {count}
+                      </span>
+                    )}
                   </div>
                 )}
               </NavLink>

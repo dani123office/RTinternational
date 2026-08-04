@@ -175,6 +175,7 @@ export default function PendingUsers() {
     try {
       await api.put(endpoints.leaves.review(leaveId), { status })
       setPendingLeaves((prev) => prev.filter((l) => l.id !== leaveId))
+      useAdminStore.getState().loadPendingCounts()
     } catch (err) {
       alert(err?.response?.data?.detail || 'Failed to review leave')
     } finally { setReviewProcessing(null) }
@@ -186,6 +187,7 @@ export default function PendingUsers() {
       await api.put(endpoints.loans.review(loanId), { status })
       setPendingLoans((prev) => prev.filter((l) => l.id !== loanId))
       loadLoanHistory(1) // Refresh loan history when review occurs
+      useAdminStore.getState().loadPendingCounts()
     } catch (err) {
       alert(err?.response?.data?.detail || 'Failed to review loan')
     } finally { setLoanReviewProcessing(null) }

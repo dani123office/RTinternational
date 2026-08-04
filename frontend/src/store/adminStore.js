@@ -6,6 +6,10 @@ export const useAdminStore = create((set, get) => ({
   agents: [],
   users: [],
   pendingUsers: [],
+  pendingTotalCount: 0,
+  pendingUsersCount: 0,
+  pendingLeavesCount: 0,
+  pendingLoansCount: 0,
   selectedAgent: null,
   selectedManager: null,
   overallStats: null,
@@ -13,6 +17,34 @@ export const useAdminStore = create((set, get) => ({
   businessFeed: [],
   isLoading: false,
   error: null,
+
+  loadPendingCounts: async () => {
+    try {
+      const [usersRes, leavesRes, loansRes] = await Promise.allSettled([
+        api.get(endpoints.admin.pendingUsers),
+        api.get(endpoints.leaves.pending),
+        api.get(endpoints.loans.pending),
+      ])
+
+      const pUsers = usersRes.status === 'fulfilled' && Array.isArray(usersRes.value?.data) ? usersRes.value.data : []
+      const pLeaves = leavesRes.status === 'fulfilled' && Array.isArray(leavesRes.value?.data) ? leavesRes.value.data : []
+      const pLoans = loansRes.status === 'fulfilled' && Array.isArray(loansRes.value?.data) ? loansRes.value.data : []
+
+      const total = pUsers.length + pLeaves.length + pLoans.length
+
+      set({
+        pendingUsers: pUsers,
+        pendingUsersCount: pUsers.length,
+        pendingLeavesCount: pLeaves.length,
+        pendingLoansCount: pLoans.length,
+        pendingTotalCount: total,
+      })
+      return total
+    } catch (err) {
+      console.error('Failed to load pending counts', err)
+      return 0
+    }
+  },
 
   loadManagers: async (year = null, month = null) => {
     set({ isLoading: true, error: null })
