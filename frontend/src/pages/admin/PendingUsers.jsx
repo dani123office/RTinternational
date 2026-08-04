@@ -330,10 +330,11 @@ export default function PendingUsers() {
     }
   }
 
+  const [selectedManagers, setSelectedManagers] = useState({})
   const [approvingUserId, setApprovingUserId] = useState(null)
 
   const handleDirectApprove = async (userRow) => {
-    const mgrId = userRow._selectedManagerId || userRow.managerId
+    const mgrId = selectedManagers[userRow.id] !== undefined ? selectedManagers[userRow.id] : userRow.managerId
     if (!mgrId && userRow.role === 'agent') {
       alert('Please select a manager before approving this agent')
       return
@@ -369,60 +370,77 @@ export default function PendingUsers() {
     },
     {
       header: 'Assign Manager',
-      cell: (row) => (
-        <select
-          value={row._selectedManagerId ?? row.managerId ?? ''}
-          onClick={(e) => e.stopPropagation()}
-          onChange={(e) => { row._selectedManagerId = Number(e.target.value); setError('') }}
-          style={{
-            padding: '6px 10px', borderRadius: '8px', border: '1px solid #e2e8f0',
-            fontSize: '13px', fontFamily: 'inherit', background: '#fff',
-            cursor: 'pointer', outline: 'none', minWidth: '140px',
-          }}
-        >
-          <option value="">Select manager...</option>
-          {managers.map((m) => (
-            <option key={m.id} value={m.id}>{m.name}</option>
-          ))}
-        </select>
-      ),
+      cell: (row) => {
+        if (row.role !== 'agent') {
+          return <span className="text-xs text-slate-400 font-medium">N/A (Manager)</span>
+        }
+        const currentVal = selectedManagers[row.id] !== undefined ? selectedManagers[row.id] : (row.managerId || '')
+        return (
+          <select
+            value={currentVal}
+            onClick={(e) => e.stopPropagation()}
+            onChange={(e) => {
+              const val = e.target.value ? Number(e.target.value) : ''
+              setSelectedManagers((prev) => ({ ...prev, [row.id]: val }))
+              setError('')
+            }}
+            style={{
+              padding: '6px 10px', borderRadius: '8px', border: '1px solid #cbd5e1',
+              fontSize: '13px', fontFamily: 'inherit', background: '#fff',
+              cursor: 'pointer', outline: 'none', minWidth: '150px',
+            }}
+          >
+            <option value="">Select manager...</option>
+            {managers.map((m) => (
+              <option key={m.id} value={m.id}>{m.name}</option>
+            ))}
+          </select>
+        )
+      },
     },
     {
       header: 'Action',
-      cell: (row) => (
-        <div className="flex items-center gap-2" onClick={(e) => e.stopPropagation()}>
-          <button
-            onClick={() => handleDirectApprove(row)}
-            disabled={approvingUserId === row.id}
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold cursor-pointer transition-all duration-200 border-none text-white disabled:opacity-50"
-            style={{ background: 'linear-gradient(135deg, #10b981, #059669)' }}
-          >
-            {approvingUserId === row.id ? (
-              <Loader2 size={14} className="animate-spin" />
-            ) : (
-              <Check size={14} />
+      cell: (row) => {
+        const currentMgrId = selectedManagers[row.id] !== undefined ? selectedManagers[row.id] : (row.managerId || '')
+        const canApprove = row.role === 'manager' || Boolean(currentMgrId)
+
+        return (
+          <div className="flex items-center gap-2" onClick={(e) => e.stopPropagation()}>
+            {canApprove && (
+              <button
+                onClick={() => handleDirectApprove(row)}
+                disabled={approvingUserId === row.id}
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold cursor-pointer transition-all duration-200 border-none text-white disabled:opacity-50 shadow-sm"
+                style={{ background: 'linear-gradient(135deg, #10b981, #059669)' }}
+              >
+                {approvingUserId === row.id ? (
+                  <Loader2 size={14} className="animate-spin" />
+                ) : (
+                  <Check size={14} />
+                )}
+                Approve
+              </button>
             )}
-            Approve
-          </button>
-          <button
-            onClick={() => openEditModal(row)}
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold cursor-pointer transition-all duration-200 border-none text-white"
-            style={{ background: 'linear-gradient(135deg, #6366f1, #4f46e5)' }}
-          >
-            <Eye size={14} />
-            View
-          </button>
-          <button
-            onClick={() => handleDeletePendingUser(row)}
-            disabled={deleteProcessing === row.id}
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold cursor-pointer transition-all duration-200 border-none text-white disabled:opacity-50"
-            style={{ background: 'linear-gradient(135deg, #ef4444, #dc2626)' }}
-          >
-            <Trash2 size={14} />
-            Delete
-          </button>
-        </div>
-      ),
+            <button
+              onClick={() => openEditModal(row)}
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold cursor-pointer transition-all duration-200 border-none text-white shadow-sm"
+              style={{ background: 'linear-gradient(135deg, #6366f1, #4f46e5)' }}
+            >
+              <Eye size={14} />
+              View
+            </button>
+            <button
+              onClick={() => handleDeletePendingUser(row)}
+              disabled={deleteProcessing === row.id}
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold cursor-pointer transition-all duration-200 border-none text-white disabled:opacity-50 shadow-sm"
+              style={{ background: 'linear-gradient(135deg, #ef4444, #dc2626)' }}
+            >
+              <Trash2 size={14} />
+              Delete
+            </button>
+          </div>
+        )
+      },
     },
   ]
 
