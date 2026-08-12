@@ -12,7 +12,7 @@ CANDIDATE_PATHS = [
 ]
 
 def restore():
-    lines = []
+    raw_content = ""
     found_path = None
     for p in CANDIDATE_PATHS:
         if os.path.exists(p):
@@ -22,10 +22,13 @@ def restore():
     if found_path:
         print(f"=== READING BACKUP FILE {found_path} FOR TAIMOOR (USER ID 121) ===")
         with open(found_path, "r", encoding="utf-8", errors="ignore") as f:
-            lines = f.readlines()
+            raw_content = f.read()
     else:
         print("=== READING BACKUP FROM STDIN FOR TAIMOOR (USER ID 121) ===")
-        lines = sys.stdin.readlines()
+        raw_content = sys.stdin.read()
+
+    # Split by semicolon followed by newline to get complete SQL statements
+    all_stmts = [s.strip() for s in raw_content.split(";\n") if s.strip()]
 
     user_statements = []
     customer_statements = []
@@ -36,55 +39,54 @@ def restore():
     attendance_statements = []
 
     # First collect user 121
-    for line in lines:
-        if "INSERT INTO users" in line and "(121," in line:
-            user_statements.append(line.strip())
+    for stmt in all_stmts:
+        if "INSERT INTO users" in stmt and "(121," in stmt:
+            user_statements.append(stmt)
 
     # Find customer IDs linked to user 121
     target_customer_ids = set()
-    for line in lines:
-        if "INSERT INTO customers" in line and ", 121," in line:
-            customer_statements.append(line.strip())
-            # extract customer ID
-            m = re.search(r"VALUES \((\d+),", line)
+    for stmt in all_stmts:
+        if "INSERT INTO customers" in stmt and ", 121," in stmt:
+            customer_statements.append(stmt)
+            m = re.search(r"VALUES\s*\(\s*(\d+),", stmt)
             if m:
                 target_customer_ids.add(int(m.group(1)))
 
-        if "INSERT INTO transfers" in line and ", 121," in line:
-            m = re.search(r"VALUES \((\d+),\s*121,\s*(\d+)", line)
+        if "INSERT INTO transfers" in stmt and ", 121," in stmt:
+            m = re.search(r"VALUES\s*\(\s*\d+,\s*121,\s*(\d+)", stmt)
             if m:
-                target_customer_ids.add(int(m.group(2)))
+                target_customer_ids.add(int(m.group(1)))
 
-        if "INSERT INTO sales" in line and ", 121," in line:
-            m = re.search(r"VALUES \((\d+),\s*121,\s*(\d+)", line)
+        if "INSERT INTO sales" in stmt and ", 121," in stmt:
+            m = re.search(r"VALUES\s*\(\s*\d+,\s*121,\s*(\d+)", stmt)
             if m:
-                target_customer_ids.add(int(m.group(2)))
+                target_customer_ids.add(int(m.group(1)))
 
     # Collect transfers, callbacks, sales for employee_id = 121
-    for line in lines:
-        if "INSERT INTO transfers" in line and ", 121," in line:
-            transfer_statements.append(line.strip())
-        elif "INSERT INTO callbacks" in line and ", 121," in line:
-            callback_statements.append(line.strip())
-        elif "INSERT INTO sales" in line and ", 121," in line:
-            sale_statements.append(line.strip())
-        elif "INSERT INTO attendance" in line and ", 121," in line:
-            attendance_statements.append(line.strip())
+    for stmt in all_stmts:
+        if "INSERT INTO transfers" in stmt and ", 121," in stmt:
+            transfer_statements.append(stmt)
+        elif "INSERT INTO callbacks" in stmt and ", 121," in stmt:
+            callback_statements.append(stmt)
+        elif "INSERT INTO sales" in stmt and ", 121," in stmt:
+            sale_statements.append(stmt)
+        elif "INSERT INTO attendance" in stmt and ", 121," in stmt:
+            attendance_statements.append(stmt)
 
     # Collect customers linked to sales/transfers/callbacks if not already in customer_statements
-    for line in lines:
-        if "INSERT INTO customers" in line:
-            m = re.search(r"VALUES \((\d+),", line)
+    for stmt in all_stmts:
+        if "INSERT INTO customers" in stmt:
+            m = re.search(r"VALUES\s*\(\s*(\d+),", stmt)
             if m and int(m.group(1)) in target_customer_ids:
-                if line.strip() not in customer_statements:
-                    customer_statements.append(line.strip())
+                if stmt not in customer_statements:
+                    customer_statements.append(stmt)
 
     # Collect electricity_meters & gas_meters for target_customer_ids
-    for line in lines:
-        if "INSERT INTO electricity_meters" in line or "INSERT INTO gas_meters" in line:
+    for stmt in all_stmts:
+        if "INSERT INTO electricity_meters" in stmt or "INSERT INTO gas_meters" in stmt:
             for cid in target_customer_ids:
-                if f", {cid}," in line or f", {cid})" in line:
-                    meter_statements.append(line.strip())
+                if f", {cid}," in stmt or f", {cid})" in stmt:
+                    meter_statements.append(stmt)
                     break
 
     print(f"Found {len(user_statements)} user statement")
@@ -96,9 +98,10 @@ def restore():
     print(f"Found {len(attendance_statements)} attendance statements")
 
     def exec_sql(stmt):
+        sql = stmt if stmt.endswith(";") else stmt + ";"
         try:
             with engine.connect() as conn:
-                conn.execute(text(stmt))
+                conn.execute(text(sql))
                 conn.commit()
         except Exception as e:
             err_msg = str(e).split("\n")[0]
@@ -139,11 +142,11 @@ def restore():
     for stmt in attendance_statements:
         exec_sql(stmt)
 
-        # Verify restored totals
-        with engine.connect() as conn:
-            sales_cnt = conn.execute(text("SELECT COUNT(*) FROM sales WHERE employee_id = 121")).scalar()
-            trans_cnt = conn.execute(text("SELECT COUNT(*) FROM transfers WHERE employee_id = 121")).scalar()
-            call_cnt = conn.execute(text("SELECT COUNT(*) FROM callbacks WHERE employee_id = 121")).scalar()
+    # Verify restored totals
+    with engine.connect() as conn:
+        sales_cnt = conn.execute(text("SELECT COUNT(*) FROM sales WHERE employee_id = 121")).scalar()
+        trans_cnt = conn.execute(text("SELECT COUNT(*) FROM transfers WHERE employee_id = 121")).scalar()
+        call_cnt = conn.execute(text("SELECT COUNT(*) FROM callbacks WHERE employee_id = 121")).scalar()
         print(f"\n=== RESTORATION COMPLETE FOR TAIMOOR (ID 121) ===")
         print(f"Restored Sales: {sales_cnt}")
         print(f"Restored Transfers: {trans_cnt}")
