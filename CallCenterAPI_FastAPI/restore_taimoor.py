@@ -95,71 +95,55 @@ def restore():
     print(f"Found {len(meter_statements)} meter statements")
     print(f"Found {len(attendance_statements)} attendance statements")
 
+    def exec_sql(stmt):
+        try:
+            with engine.connect() as conn:
+                conn.execute(text(stmt))
+                conn.commit()
+        except Exception as e:
+            err_msg = str(e).split("\n")[0]
+            print(f"Note: {err_msg}")
+
+    # Restore User 121
     with engine.connect() as conn:
-        # Check if user 121 exists or user 156 exists
         existing_121 = conn.execute(text("SELECT id FROM users WHERE id = 121")).fetchone()
         if not existing_121:
             print("Restoring User 121 (Taimoor)...")
             for stmt in user_statements:
-                conn.execute(text(stmt))
-            conn.commit()
+                exec_sql(stmt)
 
-        # Set user 121 active & approved
         conn.execute(text("UPDATE users SET is_active = TRUE, is_approved = TRUE, is_deleted = FALSE WHERE id = 121"))
         conn.commit()
 
-        # Restore Customers
-        for stmt in customer_statements:
-            try:
-                conn.execute(text(stmt))
-            except Exception as e:
-                print("Customer restore note:", e)
-        conn.commit()
+    print("Restoring Customers...")
+    for stmt in customer_statements:
+        exec_sql(stmt)
 
-        # Restore Meters
-        for stmt in meter_statements:
-            try:
-                conn.execute(text(stmt))
-            except Exception as e:
-                print("Meter restore note:", e)
-        conn.commit()
+    print("Restoring Meters...")
+    for stmt in meter_statements:
+        exec_sql(stmt)
 
-        # Restore Transfers
-        for stmt in transfer_statements:
-            try:
-                conn.execute(text(stmt))
-            except Exception as e:
-                print("Transfer restore note:", e)
-        conn.commit()
+    print("Restoring Transfers...")
+    for stmt in transfer_statements:
+        exec_sql(stmt)
 
-        # Restore Callbacks
-        for stmt in callback_statements:
-            try:
-                conn.execute(text(stmt))
-            except Exception as e:
-                print("Callback restore note:", e)
-        conn.commit()
+    print("Restoring Callbacks...")
+    for stmt in callback_statements:
+        exec_sql(stmt)
 
-        # Restore Sales
-        for stmt in sale_statements:
-            try:
-                conn.execute(text(stmt))
-            except Exception as e:
-                print("Sale restore note:", e)
-        conn.commit()
+    print("Restoring Sales...")
+    for stmt in sale_statements:
+        exec_sql(stmt)
 
-        # Restore Attendance
-        for stmt in attendance_statements:
-            try:
-                conn.execute(text(stmt))
-            except Exception as e:
-                print("Attendance restore note:", e)
-        conn.commit()
+    print("Restoring Attendance...")
+    for stmt in attendance_statements:
+        exec_sql(stmt)
 
         # Verify restored totals
-        sales_cnt = conn.execute(text("SELECT COUNT(*) FROM sales WHERE employee_id = 121")).scalar()
-        trans_cnt = conn.execute(text("SELECT COUNT(*) FROM transfers WHERE employee_id = 121")).scalar()
-        call_cnt = conn.execute(text("SELECT COUNT(*) FROM callbacks WHERE employee_id = 121")).scalar()
+        with engine.connect() as conn:
+            sales_cnt = conn.execute(text("SELECT COUNT(*) FROM sales WHERE employee_id = 121")).scalar()
+            trans_cnt = conn.execute(text("SELECT COUNT(*) FROM transfers WHERE employee_id = 121")).scalar()
+            call_cnt = conn.execute(text("SELECT COUNT(*) FROM callbacks WHERE employee_id = 121")).scalar()
         print(f"\n=== RESTORATION COMPLETE FOR TAIMOOR (ID 121) ===")
         print(f"Restored Sales: {sales_cnt}")
         print(f"Restored Transfers: {trans_cnt}")
