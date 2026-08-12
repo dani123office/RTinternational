@@ -142,7 +142,7 @@ def create_agent(data: CreateAgentRequest, request: Request, admin: User = Depen
 
 @router.get("/users")
 def get_all_users(admin: User = Depends(require_admin), db: Session = Depends(get_db)):
-    users = db.query(User).filter(User.is_deleted == False).order_by(User.role, User.name).all()
+    users = db.query(User).filter(or_(User.is_deleted == False, User.is_deleted.is_(None))).order_by(User.role, User.name).all()
     return [
         {
             "id": u.id, "name": u.name, "email": u.email,
@@ -174,10 +174,10 @@ def get_managers(
     admin: User = Depends(require_admin),
     db: Session = Depends(get_db),
 ):
-    managers = db.query(User).filter(User.role == "manager", User.is_active == True, User.is_deleted == False).order_by(User.name).all()
+    managers = db.query(User).filter(User.role == "manager", User.is_active == True, or_(User.is_deleted == False, User.is_deleted.is_(None))).order_by(User.name).all()
     result = []
     for m in managers:
-        agent_ids = [a.id for a in db.query(User).filter(User.manager_id == m.id, User.is_deleted == False).all()]
+        agent_ids = [a.id for a in db.query(User).filter(User.manager_id == m.id, or_(User.is_deleted == False, User.is_deleted.is_(None))).all()]
         if agent_ids:
             cb_q = db.query(func.count(CallBack.id)).filter(CallBack.employee_id.in_(agent_ids))
             tr_q = db.query(func.count(Transfer.id)).filter(Transfer.employee_id.in_(agent_ids))
@@ -215,7 +215,7 @@ def get_agents(
     db: Session = Depends(get_db),
     showAll: bool = False,
 ):
-    query = db.query(User).filter(User.role == "agent", User.is_deleted == False)
+    query = db.query(User).filter(User.role == "agent", or_(User.is_deleted == False, User.is_deleted.is_(None)))
     if not showAll:
         query = query.filter(User.is_active == True)
     agents = query.order_by(User.name).all()
@@ -536,13 +536,13 @@ def update_user(
 @router.delete("/user/{user_id}")
 def delete_user(user_id: int, request: Request, admin: User = Depends(require_admin), db: Session = Depends(get_db)):
     try:
-        user = db.query(User).filter(User.id == user_id, User.is_deleted == False).first()
+        user = db.query(User).filter(User.id == user_id, or_(User.is_deleted == False, User.is_deleted.is_(None))).first()
         if not user:
             raise HTTPException(status_code=404, detail="User not found")
         if user.role == "admin":
             raise HTTPException(status_code=400, detail="Cannot delete admin account")
         if user.role == "manager":
-            agent_count = db.query(User).filter(User.manager_id == user.id, User.is_deleted == False).count()
+            agent_count = db.query(User).filter(User.manager_id == user.id, or_(User.is_deleted == False, User.is_deleted.is_(None))).count()
             if agent_count > 0:
                 raise HTTPException(status_code=400, detail="Unable to delete manager. First reassign or delete all agents associated with this manager")
         name = user.name
@@ -632,8 +632,8 @@ def assign_agent(data: AssignAgentRequest, request: Request, admin: User = Depen
 @router.get("/pending-users")
 def get_pending_users(admin: User = Depends(require_admin), db: Session = Depends(get_db)):
     users = db.query(User).filter(
-        User.is_approved == False,
-        User.is_deleted == False,
+        or_(User.is_approved == False, User.is_approved.is_(None)),
+        or_(User.is_deleted == False, User.is_deleted.is_(None)),
         User.role.in_(["agent", "manager"]),
     ).order_by(User.created_at.desc()).all()
     return [
