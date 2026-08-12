@@ -1,16 +1,27 @@
 import sqlite3
 import os
 
-DB_PATH = "/app/rt-international/data/callcenter.db"
+CANDIDATE_PATHS = [
+    "/app/data/callcenter.db",
+    "/app/rt-international/data/callcenter.db",
+    "callcenter.db",
+    "CallCenterAPI_FastAPI/callcenter.db"
+]
 
 def inspect():
-    if not os.path.exists(DB_PATH):
-        print(f"SQLite DB {DB_PATH} not found!")
+    found_path = None
+    for p in CANDIDATE_PATHS:
+        if os.path.exists(p):
+            found_path = p
+            break
+            
+    if not found_path:
+        print("No SQLite DB found in candidate paths!")
         return
 
-    conn = sqlite3.connect(DB_PATH)
+    conn = sqlite3.connect(found_path)
     cursor = conn.cursor()
-    print(f"=== INSPECTING SQLITE DATABASE {DB_PATH} ===")
+    print(f"=== INSPECTING SQLITE DATABASE {found_path} ===")
     
     # get all table names
     tables = [t[0] for t in cursor.execute("SELECT name FROM sqlite_master WHERE type='table';").fetchall()]
