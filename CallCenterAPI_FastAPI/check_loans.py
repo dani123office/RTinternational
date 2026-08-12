@@ -4,13 +4,13 @@ from sqlalchemy import text
 def check():
     with engine.connect() as conn:
         print("=== LOAN REQUESTS IN DATABASE ===")
-        loans = conn.execute(text("SELECT id, applicant_id, amount, status, reason, created_at FROM loan_requests ORDER BY id DESC")).fetchall()
+        loans = conn.execute(text("SELECT id, user_id, amount, status, reason, created_at FROM loan_requests ORDER BY id DESC")).fetchall()
         print("Total loan requests:", len(loans))
         for l in loans:
             print(l)
 
         print("\n=== LEAVE REQUESTS IN DATABASE ===")
-        leaves = conn.execute(text("SELECT id, applicant_id, leave_type, status, reason, created_at FROM leave_requests ORDER BY id DESC")).fetchall()
+        leaves = conn.execute(text("SELECT id, user_id, leave_type, status, reason, created_at FROM leave_requests ORDER BY id DESC")).fetchall()
         print("Total leave requests:", len(leaves))
         for lv in leaves:
             print(lv)
