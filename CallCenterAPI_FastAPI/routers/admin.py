@@ -62,6 +62,7 @@ def create_manager(data: CreateManagerRequest, request: Request, admin: User = D
             password_hash=hashed,
             role="manager",
             is_active=1,
+            is_approved=1,
         )
         db.add(user)
         db.flush()
@@ -102,6 +103,7 @@ def create_agent(data: CreateAgentRequest, request: Request, admin: User = Depen
             role="agent",
             manager_id=data.managerId,
             is_active=1,
+            is_approved=1,
             father_name=data.fatherName,
             monthly_salary=data.monthlySalary,
             cnic=data.cnic,
@@ -617,7 +619,7 @@ def assign_agent(data: AssignAgentRequest, request: Request, admin: User = Depen
 @router.get("/pending-users")
 def get_pending_users(admin: User = Depends(require_admin), db: Session = Depends(get_db)):
     users = db.query(User).filter(
-        User.is_active == False,
+        User.is_approved == False,
         User.role.in_(["agent", "manager"]),
     ).order_by(User.created_at.desc()).all()
     return [
@@ -652,8 +654,8 @@ def approve_user(
     user = db.query(User).filter(User.id == user_id).first()
     if not user:
         raise HTTPException(status_code=404, detail="User not found")
-    if user.is_active:
-        raise HTTPException(status_code=400, detail="User is already active")
+    if user.is_active and user.is_approved:
+        raise HTTPException(status_code=400, detail="User is already active and approved")
 
     mgr_id = data.managerId or user.manager_id
     if not mgr_id and user.role == "agent":
@@ -702,6 +704,7 @@ def approve_user(
 
     user.manager_id = mgr_id
     user.is_active = True
+    user.is_approved = True
     db.commit()
     db.refresh(user)
     log_activity(db, admin.id, "approved", "user", user.id,

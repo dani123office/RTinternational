@@ -216,6 +216,7 @@ def register(request: RegisterRequest, fastapi_req: Request, db: Session = Depen
         password_hash=hashed,
         role=request.role or "agent",
         is_active=1 if request.role == "manager" else 0,
+        is_approved=1 if request.role == "manager" else 0,
         father_name=request.fatherName,
         cnic=request.cnic,
         phone=request.phone,

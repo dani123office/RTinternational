@@ -28,6 +28,7 @@ class User(Base):
     bank_account_number = Column(String(50), nullable=True)
     job_cadre = Column(String(50), nullable=True, server_default="Full time")
     is_active = Column(Boolean, default=True)
+    is_approved = Column(Boolean, default=False, server_default="0", nullable=False)
     last_login_at = Column(DateTime, nullable=True)
     reset_token = Column(String(255), nullable=True, index=True)
     reset_token_expiry = Column(DateTime, nullable=True)
