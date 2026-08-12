@@ -1,18 +1,31 @@
+import sys
 import re
 import os
 from CallCenterAPI_FastAPI.database import engine
 from sqlalchemy import text
 
-BACKUP_FILE = "/app/neon_database_backup.sql"
+CANDIDATE_PATHS = [
+    "/app/neon_database_backup.sql",
+    "/app/rt-international/neon_database_backup.sql",
+    "neon_database_backup.sql",
+    "../neon_database_backup.sql"
+]
 
 def restore():
-    if not os.path.exists(BACKUP_FILE):
-        print(f"Backup file {BACKUP_FILE} not found!")
-        return
-
-    print("=== READING BACKUP FILE FOR TAIMOOR (USER ID 121) ===")
-    with open(BACKUP_FILE, "r", encoding="utf-8") as f:
-        lines = f.readlines()
+    lines = []
+    found_path = None
+    for p in CANDIDATE_PATHS:
+        if os.path.exists(p):
+            found_path = p
+            break
+    
+    if found_path:
+        print(f"=== READING BACKUP FILE {found_path} FOR TAIMOOR (USER ID 121) ===")
+        with open(found_path, "r", encoding="utf-8", errors="ignore") as f:
+            lines = f.readlines()
+    else:
+        print("=== READING BACKUP FROM STDIN FOR TAIMOOR (USER ID 121) ===")
+        lines = sys.stdin.readlines()
 
     user_statements = []
     customer_statements = []
