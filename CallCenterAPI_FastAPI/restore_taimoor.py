@@ -37,12 +37,12 @@ def restore():
             if m:
                 target_customer_ids.add(int(m.group(1)))
 
-        if "INSERT INTO transfers" in line and "(", " 121," in line:
+        if "INSERT INTO transfers" in line and ", 121," in line:
             m = re.search(r"VALUES \((\d+),\s*121,\s*(\d+)", line)
             if m:
                 target_customer_ids.add(int(m.group(2)))
 
-        if "INSERT INTO sales" in line and "(", " 121," in line:
+        if "INSERT INTO sales" in line and ", 121," in line:
             m = re.search(r"VALUES \((\d+),\s*121,\s*(\d+)", line)
             if m:
                 target_customer_ids.add(int(m.group(2)))
