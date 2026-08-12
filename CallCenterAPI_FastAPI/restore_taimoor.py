@@ -144,9 +144,18 @@ def restore():
 
     # Verify restored totals
     with engine.connect() as conn:
-        sales_cnt = conn.execute(text("SELECT COUNT(*) FROM sales WHERE employee_id = 121")).scalar()
-        trans_cnt = conn.execute(text("SELECT COUNT(*) FROM transfers WHERE employee_id = 121")).scalar()
-        call_cnt = conn.execute(text("SELECT COUNT(*) FROM callbacks WHERE employee_id = 121")).scalar()
+        try:
+            sales_cnt = conn.execute(text("SELECT COUNT(*) FROM sales WHERE employee_id = 121")).scalar()
+        except Exception:
+            sales_cnt = conn.execute(text("SELECT COUNT(*) FROM sale WHERE employee_id = 121")).scalar()
+        try:
+            trans_cnt = conn.execute(text("SELECT COUNT(*) FROM transfers WHERE employee_id = 121")).scalar()
+        except Exception:
+            trans_cnt = conn.execute(text("SELECT COUNT(*) FROM transfer WHERE employee_id = 121")).scalar()
+        try:
+            call_cnt = conn.execute(text("SELECT COUNT(*) FROM callbacks WHERE employee_id = 121")).scalar()
+        except Exception:
+            call_cnt = conn.execute(text("SELECT COUNT(*) FROM callback WHERE employee_id = 121")).scalar()
         print(f"\n=== RESTORATION COMPLETE FOR TAIMOOR (ID 121) ===")
         print(f"Restored Sales: {sales_cnt}")
         print(f"Restored Transfers: {trans_cnt}")
