@@ -599,14 +599,6 @@ def get_deleted_users(admin: User = Depends(require_admin), db: Session = Depend
         }
         for u in users
     ]
-    except HTTPException:
-        db.rollback()
-        raise
-    except Exception as e:
-        db.rollback()
-        tb = traceback.format_exc()
-        print(f"[DELETE_USER ERROR] user_id={user_id}: {e}\n{tb}")
-        raise HTTPException(status_code=400, detail=f"Failed to delete user: {str(e)}")
 
 
 @router.patch("/assign-agent")
