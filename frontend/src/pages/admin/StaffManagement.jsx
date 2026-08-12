@@ -1,7 +1,7 @@
 import { useEffect, useState, useMemo } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useAdminStore } from '@/store/adminStore'
-import { Users, UserCog, Plus, Ban, Trash2, KeyRound, UserRoundCog, AlertTriangle, Eye, EyeOff } from 'lucide-react'
+import { Users, UserCog, Plus, Ban, Trash2, KeyRound, UserRoundCog, AlertTriangle, Eye, EyeOff, RotateCcw } from 'lucide-react'
 import { APP_STYLES } from '@/lib/styles'
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs'
 import DataTable from '@/components/shared/DataTable'
@@ -15,8 +15,8 @@ import ResetPasswordModal from '@/components/admin/ResetPasswordModal'
 export default function StaffManagement() {
   const navigate = useNavigate()
   const {
-    managers, agents, loadManagers, loadAgents,
-    createManager, createAgent, assignAgent, updateUser, deleteUser, resetUserPassword,
+    managers, agents, deletedUsers, loadManagers, loadAgents, loadDeletedUsers,
+    createManager, createAgent, assignAgent, updateUser, deleteUser, restoreUser, resetUserPassword,
   } = useAdminStore()
 
   const [showCreateManager, setShowCreateManager] = useState(false)
@@ -61,13 +61,15 @@ export default function StaffManagement() {
   useEffect(() => {
     Promise.all([
       loadManagers(filterYear, filterMonth),
-      loadAgents(showDeactivated, filterYear, filterMonth)
+      loadAgents(showDeactivated, filterYear, filterMonth),
+      loadDeletedUsers(),
     ]).then(() => setLoading(false))
-  }, [loadManagers, loadAgents, showDeactivated, filterYear, filterMonth])
+  }, [loadManagers, loadAgents, loadDeletedUsers, showDeactivated, filterYear, filterMonth])
 
   // --- Manager handlers ---
   const handleCreateManager = async (data) => {
     await createManager(data)
+    setShowCreateManager(false)
     await loadManagers(filterYear, filterMonth)
   }
 
@@ -77,9 +79,11 @@ export default function StaffManagement() {
   }
 
   const handleDeleteManager = async (manager) => {
+    if (!confirm(`Move manager ${manager.name} to Trash?`)) return
     try {
       await deleteUser(manager.id)
       await loadManagers(filterYear, filterMonth)
+      await loadDeletedUsers()
     } catch (e) {
       alert(e.response?.data?.detail || 'Cannot delete manager')
     }
@@ -88,11 +92,13 @@ export default function StaffManagement() {
   // --- Agent handlers ---
   const handleCreateAgent = async (data) => {
     await createAgent(data)
+    setShowCreateAgent(false)
     await loadAgents(showDeactivated, filterYear, filterMonth)
   }
 
   const handleAssign = async (agentId, managerId) => {
-    await assignAgent(agentId, managerId)
+    await assignAgent(agentId, managerId, showDeactivated)
+    setShowAssign(null)
     await loadAgents(showDeactivated, filterYear, filterMonth)
   }
 
@@ -102,14 +108,47 @@ export default function StaffManagement() {
   }
 
   const handleDeleteAgent = async (agent) => {
-    if (!confirm(`Permanently delete ${agent.name}? This cannot be undone.`)) return
+    if (!confirm(`Move ${agent.name} to Deleted Staff (Trash)? All sales, callbacks, and data will remain safely saved.`)) return
     try {
       await deleteUser(agent.id, showDeactivated)
       await loadAgents(showDeactivated, filterYear, filterMonth)
+      await loadDeletedUsers()
     } catch (e) {
       alert(e.response?.data?.detail || 'Cannot delete agent')
     }
   }
+
+  const handleRestoreUser = async (user) => {
+    if (!confirm(`Restore ${user.name}? Account and all associated sales and callbacks will be reactivated.`)) return
+    try {
+      await restoreUser(user.id)
+      await loadAgents(showDeactivated, filterYear, filterMonth)
+      await loadManagers(filterYear, filterMonth)
+      await loadDeletedUsers()
+    } catch (e) {
+      alert(e.response?.data?.detail || 'Cannot restore user')
+    }
+  }
+
+  const deletedColumns = [
+    { header: 'Name', cell: (row) => <span className="font-semibold text-slate-900">{row.name}</span> },
+    { header: 'Role', cell: (row) => <span className="capitalize text-slate-600 font-medium">{row.role}</span> },
+    { header: 'Email', accessor: 'email' },
+    { header: 'Department', cell: (row) => row.department || 'N/A' },
+    {
+      header: 'Actions',
+      cell: (row) => (
+        <div className="flex gap-1 justify-end" onClick={(e) => e.stopPropagation()}>
+          <button
+            onClick={() => handleRestoreUser(row)}
+            className="flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-semibold bg-emerald-50 text-emerald-700 hover:bg-emerald-100 transition-colors border-none cursor-pointer"
+          >
+            <RotateCcw size={13} /> Restore Account
+          </button>
+        </div>
+      ),
+    },
+  ]
 
   // --- Columns ---
   const managerColumns = [
@@ -296,6 +335,9 @@ export default function StaffManagement() {
                 <TabsTrigger value="agents" className="flex items-center gap-1.5">
                   <Users size={15} /> Staff ({agents.length})
                 </TabsTrigger>
+                <TabsTrigger value="deleted" className="flex items-center gap-1.5">
+                  <Trash2 size={15} /> Deleted Staff ({deletedUsers.length})
+                </TabsTrigger>
               </TabsList>
               <button
                 onClick={() => setShowDeactivated(!showDeactivated)}
@@ -336,6 +378,23 @@ export default function StaffManagement() {
                       searchKey="name"
                       pageSize={10}
                       onRowClick={(row) => navigate(`/admin/agents/${row.id}`)}
+                    />
+                  )}
+                </div>
+              </div>
+            </TabsContent>
+
+            <TabsContent value="deleted">
+              <div className="rt-fade rt-d3 rt-card">
+                <div className="rt-card-body">
+                  {deletedUsers.length === 0 ? (
+                    <EmptyState icon={Trash2} title="No deleted staff" description="Soft-deleted accounts will appear here for instant 1-click recovery." />
+                  ) : (
+                    <DataTable
+                      columns={deletedColumns}
+                      data={deletedUsers}
+                      searchKey="name"
+                      pageSize={10}
                     />
                   )}
                 </div>

@@ -259,6 +259,8 @@ export const endpoints = {
     createAgent: '/api/admin/create-agent',
     updateUser: (id) => `/api/admin/user/${id}`,
     deleteUser: (id) => `/api/admin/user/${id}`,
+    deletedUsers: '/api/admin/deleted-users',
+    restoreUser: (id) => `/api/admin/user/${id}/restore`,
     assignAgent: '/api/admin/assign-agent',
     pendingUsers: '/api/admin/pending-users',
     approveUser: (id) => `/api/admin/approve-user/${id}`,

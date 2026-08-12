@@ -3,7 +3,7 @@ from fastapi import APIRouter, Depends, HTTPException, Query, Request
 from sqlalchemy.orm import Session
 from sqlalchemy import func
 from ..database import get_db
-from ..models import Customer, ElectricityMeter, GasMeter, User
+from ..models import Customer, ElectricityMeter, GasMeter, User, Sale
 from ..schemas import CustomerOut, CustomerCreate, CustomerUpdate, ElectricityMeterOut, GasMeterOut, ElectricityMeterCreate, GasMeterCreate
 from .auth import get_current_user
 from ..utils.logger import log_activity, get_client_ip
@@ -105,20 +105,38 @@ def create_customer(dto: CustomerCreate, request: Request, current_user: User = 
                 func.lower(Customer.postcode) == func.lower(dto.postcode.strip())
             ).first()
             if existing:
-                is_auth = (existing.created_by == current_user.id)
-                if not is_auth and current_user.role == "manager":
-                    creator = db.query(User).filter(User.id == existing.created_by).first()
-                    if creator and creator.manager_id == current_user.id:
-                        is_auth = True
-                if not is_auth and current_user.role == "admin":
-                    is_auth = True
+                creator = existing.creator
+                is_creator_deactive = not creator or not creator.is_active or getattr(creator, 'is_deleted', False)
                 
-                if not is_auth:
-                    creator_name = existing.creator.name if existing.creator else "another agent"
-                    raise HTTPException(
-                        status_code=400,
-                        detail=f"This customer belongs to agent: {creator_name}"
-                    )
+                if is_creator_deactive:
+                    has_sale = db.query(Sale).filter(
+                        Sale.customer_id == existing.id,
+                        Sale.employee_id == existing.created_by
+                    ).first() is not None
+                    
+                    if has_sale:
+                        creator_name = creator.name if creator else "deactivated agent"
+                        raise HTTPException(
+                            status_code=400,
+                            detail=f"This customer belongs to agent: {creator_name}"
+                        )
+                    else:
+                        existing.created_by = current_user.id
+                        is_auth = True
+                else:
+                    is_auth = (existing.created_by == current_user.id)
+                    if not is_auth and current_user.role == "manager":
+                        if creator and creator.manager_id == current_user.id:
+                            is_auth = True
+                    if not is_auth and current_user.role == "admin":
+                        is_auth = True
+                    
+                    if not is_auth:
+                        creator_name = creator.name if creator else "another agent"
+                        raise HTTPException(
+                            status_code=400,
+                            detail=f"This customer belongs to agent: {creator_name}"
+                        )
 
                 if dto.businessName:
                     existing.business_name = dto.businessName

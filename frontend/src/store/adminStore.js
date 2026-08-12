@@ -5,6 +5,7 @@ export const useAdminStore = create((set, get) => ({
   managers: [],
   agents: [],
   users: [],
+  deletedUsers: [],
   pendingUsers: [],
   pendingTotalCount: 0,
   pendingUsersCount: 0,
@@ -156,6 +157,25 @@ export const useAdminStore = create((set, get) => ({
       set({ error: err.response?.data?.detail || 'Failed to load pending users' })
       return []
     }
+  },
+
+  loadDeletedUsers: async () => {
+    try {
+      const res = await api.get(endpoints.admin.deletedUsers)
+      set({ deletedUsers: res.data })
+      return res.data
+    } catch (err) {
+      console.error('Failed to load deleted users', err)
+      return []
+    }
+  },
+
+  restoreUser: async (userId) => {
+    const res = await api.post(endpoints.admin.restoreUser(userId))
+    await get().loadDeletedUsers()
+    await get().loadManagers()
+    await get().loadAgents(true)
+    return res.data
   },
 
   approveUser: async (userId, managerId, profileData = {}) => {
