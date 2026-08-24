@@ -408,6 +408,7 @@ class CreateAgentRequest(BaseModel):
     bankName: Optional[str] = None
     bankAccountNumber: Optional[str] = None
     jobCadre: Optional[str] = "Full time"
+    deviceUserId: Optional[str] = None
 
     @field_validator('cnic')
     @classmethod
@@ -438,6 +439,7 @@ class UpdateUserRequest(BaseModel):
     bankName: Optional[str] = None
     bankAccountNumber: Optional[str] = None
     jobCadre: Optional[str] = None
+    deviceUserId: Optional[str] = None
 
 
 class UpdateAgentStaffRequest(BaseModel):

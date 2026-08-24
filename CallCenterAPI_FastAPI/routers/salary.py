@@ -669,10 +669,17 @@ def _attendance_summary(db: Session, user_id: int, month: int, year: int):
     start = date(year, month, 1)
     end   = date(year, month, last_day)
 
-    total_working = sum(
-        1 for d in range((end - start).days + 1)
-        if (start + _dt.timedelta(days=d)).weekday() < 5
-    )
+    user = db.query(User).filter(User.id == user_id).first()
+    user_created = user.created_at.date() if user and user.created_at else start
+    effective_start = max(start, user_created)
+
+    if effective_start <= end:
+        total_working = sum(
+            1 for d in range((end - effective_start).days + 1)
+            if (effective_start + _dt.timedelta(days=d)).weekday() < 5
+        )
+    else:
+        total_working = 0
 
     present = db.query(func.count(Attendance.id)).filter(
         Attendance.user_id == user_id,
@@ -681,5 +688,12 @@ def _attendance_summary(db: Session, user_id: int, month: int, year: int):
         Attendance.status.in_(["present", "late"]),
     ).scalar() or 0
 
-    absent = total_working - present
+    explicit_absent = db.query(func.count(Attendance.id)).filter(
+        Attendance.user_id == user_id,
+        Attendance.date    >= start,
+        Attendance.date    <= end,
+        Attendance.status  == "absent",
+    ).scalar() or 0
+
+    absent = max(explicit_absent, total_working - present)
     return total_working, present, absent

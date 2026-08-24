@@ -18,6 +18,10 @@ class SQLInjectionMiddleware(BaseHTTPMiddleware):
         if request.url.path.startswith("/api/ai"):
             return await call_next(request)
 
+        # Exclude Hikvision device push endpoint (XML/base64 payloads)
+        if request.url.path.startswith("/api/attendance/hikvision"):
+            return await call_next(request)
+
         if request.method in ("POST", "PUT", "PATCH", "DELETE"):
             body = await request.body()
             if body:

@@ -240,6 +240,46 @@ def report_late_arrival(
     return _attendance_to_out(record)
 
 
+def _build_full_user_attendance_history(target_user: User, db: Session) -> list[AttendanceOut]:
+    existing_records = db.query(Attendance).filter(
+        Attendance.user_id == target_user.id
+    ).all()
+    record_map = {r.date: r for r in existing_records}
+
+    today = _today_pkt()
+    user_created = target_user.created_at.date() if target_user.created_at else today
+    earliest_dates = [user_created, today - timedelta(days=90)]
+    if existing_records:
+        earliest_dates.extend([r.date for r in existing_records])
+    earliest = min(earliest_dates)
+
+    all_out = []
+    curr = today
+    while curr >= earliest:
+        if curr in record_map:
+            all_out.append(_attendance_to_out(record_map[curr]))
+        else:
+            if curr.weekday() < 5 and curr <= today:
+                synthetic_absent = AttendanceOut(
+                    id=0,
+                    userId=target_user.id,
+                    date=curr,
+                    checkIn=None,
+                    checkOut=None,
+                    status="absent",
+                    checkout_reason=None,
+                    checkin_reason="Absent (No check-in)",
+                    expected_arrival_time=None,
+                    late_arrival_reason=None,
+                    createdAt=datetime.combine(curr, datetime.min.time()),
+                    updatedAt=datetime.combine(curr, datetime.min.time()),
+                )
+                all_out.append(synthetic_absent)
+        curr -= timedelta(days=1)
+
+    return all_out
+
+
 @router.get("/my-history")
 def my_history(
     current_user: User = Depends(get_current_user),
@@ -247,21 +287,16 @@ def my_history(
     page: int = Query(1, ge=1),
     per_page: int = Query(20, ge=1, le=100),
 ):
-    total = db.query(func.count(Attendance.id)).filter(
-        Attendance.user_id == current_user.id,
-    ).scalar()
-    records = db.query(Attendance).filter(
-        Attendance.user_id == current_user.id,
-    ).order_by(
-        Attendance.date.desc()
-    ).offset((page - 1) * per_page).limit(per_page).all()
+    all_items = _build_full_user_attendance_history(current_user, db)
+    total = len(all_items)
+    paginated = all_items[(page - 1) * per_page : page * per_page]
 
     return {
-        "items": [_attendance_to_out(r) for r in records],
+        "items": paginated,
         "total": total,
         "page": page,
         "perPage": per_page,
-        "totalPages": (total + per_page - 1) // per_page,
+        "totalPages": (total + per_page - 1) // per_page if total > 0 else 0,
     }
 
 
@@ -285,38 +320,47 @@ def my_stats(
     else:
         effective_end = end
 
-    # Start counting from user's very first attendance record (or month start, whichever is later)
-    first_record_ever = db.query(func.min(Attendance.date)).filter(
-        Attendance.user_id == current_user.id,
-    ).scalar()
-    effective_start = max(start, first_record_ever) if first_record_ever else start
+    user_created_date = current_user.created_at.date() if current_user.created_at else start
+    effective_start = max(start, user_created_date)
 
-    total_working = sum(
-        1 for d in range((effective_end - effective_start).days + 1)
-        if (effective_start + timedelta(days=d)).weekday() < 5
-    )
+    working_days = []
+    if effective_start <= effective_end:
+        curr = effective_start
+        while curr <= effective_end:
+            if curr.weekday() < 5:
+                working_days.append(curr)
+            curr += timedelta(days=1)
 
-    present = db.query(func.count(Attendance.id)).filter(
-        Attendance.user_id == current_user.id,
-        Attendance.date >= start,
-        Attendance.date <= end,
-        Attendance.status == "present",
-    ).scalar() or 0
-
-    late = db.query(func.count(Attendance.id)).filter(
+    records = db.query(Attendance).filter(
         Attendance.user_id == current_user.id,
         Attendance.date >= start,
         Attendance.date <= end,
-        Attendance.status == "late",
-    ).scalar() or 0
+    ).all()
+    att_map = {r.date: r for r in records}
 
-    absent = max(0, total_working - present - late)
+    present = 0
+    late = 0
+    absent = 0
+
+    for wd in working_days:
+        if wd in att_map:
+            st = att_map[wd].status
+            if st == "present":
+                present += 1
+            elif st == "late":
+                late += 1
+            elif st == "absent":
+                absent += 1
+            else:
+                absent += 1
+        else:
+            absent += 1
 
     return AttendanceSummary(
         presentCount=present,
         lateCount=late,
         absentCount=absent,
-        totalDays=total_working,
+        totalDays=len(working_days),
     )
 
 
@@ -375,21 +419,16 @@ def agent_history(
     if current_user.role == "manager" and agent.manager_id != current_user.id:
         raise HTTPException(status_code=403, detail="You can only view your own team members")
 
-    total = db.query(func.count(Attendance.id)).filter(
-        Attendance.user_id == agent_id,
-    ).scalar()
-    records = db.query(Attendance).filter(
-        Attendance.user_id == agent_id,
-    ).order_by(
-        Attendance.date.desc()
-    ).offset((page - 1) * per_page).limit(per_page).all()
+    all_items = _build_full_user_attendance_history(agent, db)
+    total = len(all_items)
+    paginated = all_items[(page - 1) * per_page : page * per_page]
 
     return {
-        "items": [_attendance_to_out(r) for r in records],
+        "items": paginated,
         "total": total,
         "page": page,
         "perPage": per_page,
-        "totalPages": (total + per_page - 1) // per_page,
+        "totalPages": (total + per_page - 1) // per_page if total > 0 else 0,
     }
 
 

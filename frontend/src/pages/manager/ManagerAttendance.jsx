@@ -245,8 +245,10 @@ export default function ManagerAttendance() {
     t.userEmail.toLowerCase().includes(search.toLowerCase())
   )
 
+  const todayDay = new Date().getDay()
+  const isWeekend = todayDay === 0 || todayDay === 6
   const present = team.filter(t => t.attendance?.checkIn).length
-  const absent = team.filter(t => !t.attendance?.checkIn).length
+  const absent = isWeekend ? 0 : team.filter(t => !t.attendance?.checkIn).length
 
   return (
     <>

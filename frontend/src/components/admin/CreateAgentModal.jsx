@@ -20,6 +20,7 @@ export default function CreateAgentModal({ isOpen, onClose, onSave, managers }) 
     department: '', designation: '', dateOfBirth: '', dateOfJoining: '',
     emergContactName: '', emergContactNumber: '',
     bankName: '', bankAccountNumber: '', jobCadre: 'Full time',
+    deviceUserId: '',
   })
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
@@ -42,6 +43,7 @@ export default function CreateAgentModal({ isOpen, onClose, onSave, managers }) 
         department: '', designation: '', dateOfBirth: '', dateOfJoining: '',
         emergContactName: '', emergContactNumber: '',
         bankName: '', bankAccountNumber: '', jobCadre: 'Full time',
+        deviceUserId: '',
       })
       onClose()
     } catch (e) {
@@ -105,8 +107,8 @@ export default function CreateAgentModal({ isOpen, onClose, onSave, managers }) 
               <input type="password" value={form.password} onChange={set('password')} placeholder="Enter password" className="rt-input" />
             </div>
             <div>
-              <label className="rt-label flex items-center gap-1.5"><span className="text-[11px] font-bold text-slate-500 mr-0.5">Rs</span> Monthly Salary</label>
-              <input type="number" value={form.monthlySalary} onChange={set('monthlySalary')} placeholder="0" className="rt-input" />
+              <label className="rt-label flex items-center gap-1.5"><span className="text-[11px] font-bold text-slate-500 mr-0.5">ID</span> Biometric Machine ID</label>
+              <input value={form.deviceUserId} onChange={set('deviceUserId')} placeholder="e.g. 31 (Hikvision ID)" className="rt-input" />
             </div>
           </div>
 

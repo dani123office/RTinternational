@@ -7,7 +7,7 @@ import EditStaffModal from '@/components/admin/EditStaffModal'
 import {
   ArrowLeft, User, ArrowLeftRight, PoundSterling,
   TrendingUp, Mail, Calendar, UserSquare2, CreditCard, Briefcase, DollarSign, Heart,
-  Clock, CalendarCheck,
+  Clock, CalendarCheck, XCircle,
 } from 'lucide-react'
 import { APP_STYLES } from '@/lib/styles'
 import DataTable from '@/components/shared/DataTable'
@@ -207,6 +207,10 @@ export default function AdminAgentDetail() {
 
   const statsPresentCount = useMemo(() => {
     return filteredAttendanceByMonth.filter(r => r.status === 'present' || r.status === 'late').length
+  }, [filteredAttendanceByMonth])
+
+  const statsAbsentCount = useMemo(() => {
+    return filteredAttendanceByMonth.filter(r => r.status === 'absent').length
   }, [filteredAttendanceByMonth])
 
   const statsApprovedLeavesCount = useMemo(() => {
@@ -497,12 +501,21 @@ export default function AdminAgentDetail() {
                  </div>
                </div>
                <div className="rt-card p-5 flex items-center gap-4">
-                 <div className="w-10 h-10 rounded-xl flex items-center justify-center" style={{ background: '#fef2f2' }}>
-                   <Clock size={18} color="#ef4444" />
+                 <div className="w-10 h-10 rounded-xl flex items-center justify-center" style={{ background: '#f0fdf4' }}>
+                   <Clock size={18} color="#16a34a" />
                  </div>
                  <div>
                    <p className="text-xs font-semibold text-slate-400 uppercase tracking-wide">Present</p>
                    <p className="text-2xl font-extrabold text-slate-900">{statsPresentCount}</p>
+                 </div>
+               </div>
+               <div className="rt-card p-5 flex items-center gap-4">
+                 <div className="w-10 h-10 rounded-xl flex items-center justify-center" style={{ background: '#fef2f2' }}>
+                   <XCircle size={18} color="#dc2626" />
+                 </div>
+                 <div>
+                   <p className="text-xs font-semibold text-slate-400 uppercase tracking-wide">Absent</p>
+                   <p className="text-2xl font-extrabold text-slate-900">{statsAbsentCount}</p>
                  </div>
                </div>
                <div className="rt-card p-5 flex items-center gap-4">
@@ -583,9 +596,9 @@ export default function AdminAgentDetail() {
                             <td className="py-2.5 px-2 text-slate-600">{r.checkOut ? new Date(r.checkOut).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true }) : '-'}</td>
                             <td className="py-2.5 px-2">
                               <span className="text-xs font-bold px-2 py-0.5 rounded-full" style={{
-                                background: r.status === 'late' ? '#fee2e2' : '#dcfce7',
-                                color: r.status === 'late' ? '#dc2626' : '#16a34a',
-                              }}>{r.status === 'late' ? 'LATE' : 'ON TIME'}</span>
+                                background: r.status === 'late' ? '#fee2e2' : r.status === 'absent' ? '#fee2e2' : '#dcfce7',
+                                color: r.status === 'late' ? '#dc2626' : r.status === 'absent' ? '#dc2626' : '#16a34a',
+                              }}>{r.status === 'late' ? 'LATE' : r.status === 'present' ? 'ON TIME' : r.status ? r.status.toUpperCase() : 'ABSENT'}</span>
                             </td>
                             <td className="py-2.5 px-2 text-slate-500 text-xs max-w-[140px] truncate">{r.checkin_reason || '-'}</td>
                             <td className="py-2.5 px-2 text-slate-500 text-xs max-w-[140px] truncate">{r.checkout_reason || '-'}</td>

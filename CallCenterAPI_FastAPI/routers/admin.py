@@ -117,6 +117,7 @@ def create_agent(data: CreateAgentRequest, request: Request, admin: User = Depen
             bank_name=data.bankName,
             bank_account_number=data.bankAccountNumber,
             job_cadre=data.jobCadre or "Full time",
+            device_user_id=data.deviceUserId.strip() if data.deviceUserId else None,
         )
         db.add(user)
         db.flush()
@@ -142,7 +143,7 @@ def create_agent(data: CreateAgentRequest, request: Request, admin: User = Depen
 
 @router.get("/users")
 def get_all_users(admin: User = Depends(require_admin), db: Session = Depends(get_db)):
-    users = db.query(User).filter(or_(User.is_deleted == False, User.is_deleted.is_(None))).order_by(User.role, User.name).all()
+    users = db.query(User).filter(User.is_deleted == False).order_by(User.role, User.name).all()
     return [
         {
             "id": u.id, "name": u.name, "email": u.email,
@@ -174,10 +175,10 @@ def get_managers(
     admin: User = Depends(require_admin),
     db: Session = Depends(get_db),
 ):
-    managers = db.query(User).filter(User.role == "manager", User.is_active == True, or_(User.is_deleted == False, User.is_deleted.is_(None))).order_by(User.name).all()
+    managers = db.query(User).filter(User.role == "manager", User.is_active == True, User.is_deleted == False).order_by(User.name).all()
     result = []
     for m in managers:
-        agent_ids = [a.id for a in db.query(User).filter(User.manager_id == m.id, or_(User.is_deleted == False, User.is_deleted.is_(None))).all()]
+        agent_ids = [a.id for a in db.query(User).filter(User.manager_id == m.id, User.is_deleted == False).all()]
         if agent_ids:
             cb_q = db.query(func.count(CallBack.id)).filter(CallBack.employee_id.in_(agent_ids))
             tr_q = db.query(func.count(Transfer.id)).filter(Transfer.employee_id.in_(agent_ids))
@@ -215,7 +216,7 @@ def get_agents(
     db: Session = Depends(get_db),
     showAll: bool = False,
 ):
-    query = db.query(User).filter(User.role == "agent", or_(User.is_deleted == False, User.is_deleted.is_(None)))
+    query = db.query(User).filter(User.role == "agent", User.is_deleted == False)
     if not showAll:
         query = query.filter(User.is_active == True)
     agents = query.order_by(User.name).all()
@@ -536,13 +537,13 @@ def update_user(
 @router.delete("/user/{user_id}")
 def delete_user(user_id: int, request: Request, admin: User = Depends(require_admin), db: Session = Depends(get_db)):
     try:
-        user = db.query(User).filter(User.id == user_id, or_(User.is_deleted == False, User.is_deleted.is_(None))).first()
+        user = db.query(User).filter(User.id == user_id, User.is_deleted == False).first()
         if not user:
             raise HTTPException(status_code=404, detail="User not found")
         if user.role == "admin":
             raise HTTPException(status_code=400, detail="Cannot delete admin account")
         if user.role == "manager":
-            agent_count = db.query(User).filter(User.manager_id == user.id, or_(User.is_deleted == False, User.is_deleted.is_(None))).count()
+            agent_count = db.query(User).filter(User.manager_id == user.id, User.is_deleted == False).count()
             if agent_count > 0:
                 raise HTTPException(status_code=400, detail="Unable to delete manager. First reassign or delete all agents associated with this manager")
         name = user.name
@@ -632,8 +633,8 @@ def assign_agent(data: AssignAgentRequest, request: Request, admin: User = Depen
 @router.get("/pending-users")
 def get_pending_users(admin: User = Depends(require_admin), db: Session = Depends(get_db)):
     users = db.query(User).filter(
-        or_(User.is_approved == False, User.is_approved.is_(None)),
-        or_(User.is_deleted == False, User.is_deleted.is_(None)),
+        User.is_approved == False,
+        User.is_deleted == False,
         User.role.in_(["agent", "manager"]),
     ).order_by(User.created_at.desc()).all()
     return [
@@ -1535,3 +1536,102 @@ def admin_verify_otp(request: VerifyOTPRequest, admin: User = Depends(require_ad
     db.commit()
 
     return {"message": "Email verified successfully", "verified": True}
+
+
+# ─── Database Backup Download ─────────────────────────────────────
+
+@router.get("/backup/download")
+def download_backup(
+    current_user: User = Depends(require_admin),
+    db: Session = Depends(get_db),
+):
+    """Download a live database backup as SQL file"""
+    import subprocess
+    import tempfile
+    import os
+    from fastapi.responses import StreamingResponse
+    from datetime import datetime
+
+    try:
+        db_url = os.environ.get("DATABASE_URL", "")
+        # Parse DATABASE_URL: postgresql+pg8000://rt_admin:RTinternational_db_2026@db:5432/rt_callcenter
+        import re
+        match = re.match(r"postgresql\+?\w*://([^:]+):([^@]+)@([^:/]+):(\d+)/(.+)", db_url)
+        if not match:
+            raise HTTPException(status_code=500, detail="Cannot parse DATABASE_URL")
+        db_user, db_pass, db_host, db_port, db_name = match.groups()
+
+        # Generate backup using pg_dump
+        timestamp = datetime.now().strftime("%Y-%m-%d_%H-%M")
+        filename = f"rt_backup_{timestamp}.sql"
+
+        env = os.environ.copy()
+        env["PGPASSWORD"] = db_pass
+
+        result = subprocess.run(
+            ["pg_dump", "-U", db_user, "-h", db_host, "-p", db_port,
+             "-d", db_name, "--no-owner", "--no-acl"],
+            capture_output=True, text=True, env=env, timeout=120
+        )
+
+        if result.returncode != 0:
+            raise HTTPException(status_code=500, detail=f"Backup failed: {result.stderr[:200]}")
+
+        sql_content = result.stdout
+        if not sql_content:
+            raise HTTPException(status_code=500, detail="Backup produced empty output")
+
+        # Log the backup
+        log_activity(db, current_user.id, "backup", "database", 0,
+                     f"Admin downloaded database backup: {filename}", "admin-action")
+
+        def iter_content():
+            yield sql_content.encode("utf-8")
+
+        return StreamingResponse(
+            iter_content(),
+            media_type="application/octet-stream",
+            headers={"Content-Disposition": f"attachment; filename={filename}"}
+        )
+
+    except subprocess.TimeoutExpired:
+        raise HTTPException(status_code=500, detail="Backup timed out")
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Backup error: {str(e)}")
+
+
+@router.get("/backup/status")
+def get_backup_status(current_user: User = Depends(require_admin)):
+    """Check last backup status on VPS"""
+    import subprocess
+    import os
+    backup_dir = "/root/db_backups"
+    try:
+        files = []
+        if os.path.exists(backup_dir):
+            for f in sorted(os.listdir(backup_dir), reverse=True):
+                if f.endswith(".sql.gz") and f != "latest.sql.gz":
+                    fp = os.path.join(backup_dir, f)
+                    stat = os.stat(fp)
+                    files.append({
+                        "name": f,
+                        "sizeKB": round(stat.st_size / 1024, 1),
+                        "createdAt": datetime.fromtimestamp(stat.st_mtime).isoformat()
+                    })
+        log_path = os.path.join(backup_dir, "backup.log")
+        last_log = ""
+        if os.path.exists(log_path):
+            with open(log_path) as lf:
+                lines = lf.readlines()
+                last_log = "".join(lines[-5:])
+        return {
+            "backupDir": backup_dir,
+            "totalBackups": len(files),
+            "recentBackups": files[:7],
+            "lastLog": last_log,
+            "cronSchedule": "Every 6 hours (0, 6, 12, 18 UTC)"
+        }
+    except Exception as e:
+        return {"error": str(e), "backupDir": backup_dir}
