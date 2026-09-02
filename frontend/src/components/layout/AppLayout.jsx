@@ -12,12 +12,17 @@ export default function AppLayout() {
   const isLoading = useDataStore((s) => s.isLoading)
   const error = useDataStore((s) => s.error)
   const user = useAuthStore((s) => s.user)
+  const fetchMe = useAuthStore((s) => s.fetchMe)
   const [sidebarCollapsed, setSidebarCollapsed] = useState(() => {
     return localStorage.getItem('sidebarCollapsed') === 'true'
   })
   const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false)
 
   const { toast } = useToast()
+
+  useEffect(() => {
+    fetchMe()
+  }, [fetchMe])
 
   useEffect(() => {
     if (user?.role === 'agent') loadAll()
