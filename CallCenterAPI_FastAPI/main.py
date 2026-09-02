@@ -16,8 +16,11 @@ import time
 from starlette.middleware.base import BaseHTTPMiddleware
 from .database import engine, SessionLocal, Base
 from .models import User, Customer, CallBack, Transfer, Sale, ElectricityMeter, GasMeter, Attendance, LeaveRequest
-from .routers import auth, customers, callbacks, transfers, sales, manager, admin, ai_router, profile, attendance, leaves, salary, loans
-from .routers import hikvision
+from .routers import auth, customers, callbacks, transfers, sales, manager, admin, ai_router, profile, attendance, leaves, salary, loans, campaigns
+try:
+    from .routers import hikvision
+except ImportError:
+    hikvision = None
 from .middleware.security import SQLInjectionMiddleware
 
 app = FastAPI(title="RT International API")
@@ -302,11 +305,13 @@ app.include_router(admin.router)
 app.include_router(ai_router.router)
 app.include_router(profile.router)
 app.include_router(attendance.router)
-app.include_router(hikvision.router)
-app.include_router(hikvision.admin_router)
+if hikvision:
+    app.include_router(hikvision.router)
+    app.include_router(hikvision.admin_router)
 app.include_router(leaves.router)
 app.include_router(loans.router)
 app.include_router(salary.router)
+app.include_router(campaigns.router)
 
 
 import pathlib
@@ -324,14 +329,14 @@ async def spa_fallback(request, exc):
         from fastapi.responses import JSONResponse
         return JSONResponse(status_code=404, content={"detail": "Not found"})
 
-    # Serve static asset files (JS, CSS, images, etc.) from static/ first, then frontend/dist
-    for base in (_STATIC_DIR, _FRONTEND_DIR):
+    # Serve static asset files (JS, CSS, images, etc.) from frontend/dist first, then static/
+    for base in (_FRONTEND_DIR, _STATIC_DIR):
         asset_path = base / path.lstrip("/")
         if asset_path.is_file():
             return FileResponse(str(asset_path))
 
     # SPA fallback: all non-API, non-asset routes go to index.html
-    for base in (_STATIC_DIR, _FRONTEND_DIR):
+    for base in (_FRONTEND_DIR, _STATIC_DIR):
         index = base / "index.html"
         if index.is_file():
             return FileResponse(str(index))

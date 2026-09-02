@@ -1,11 +1,12 @@
 import re
 from datetime import datetime, date, timedelta
+from typing import Optional
 from fastapi import APIRouter, Depends, HTTPException, Query, Request
 from sqlalchemy.orm import Session
-from sqlalchemy import func
+from sqlalchemy import func, extract
 from ..database import get_db
 from ..models import User, CallBack, Transfer, Sale, ElectricityMeter, GasMeter
-from .auth import require_manager, verify_manager_agent
+from .auth import require_manager, verify_manager_agent, get_current_user
 from ..utils.logger import log_activity, get_client_ip
 from ..schemas import (
     AgentOut, AgentStats, ManagerTeamStats, AgentDetail,
@@ -67,7 +68,9 @@ def _get_sale_count_by_meters(db: Session, sale_query) -> int:
 
 @router.get("/team-stats")
 def get_team_stats(
-    timeframe: str = Query("all_time"),  # "today", "this_week", "all_time"
+    timeframe: Optional[str] = Query("all_time"),  # "today", "this_week", "all_time"
+    year: Optional[int] = Query(None),
+    month: Optional[int] = Query(None),
     manager: User = Depends(require_manager),
     db: Session = Depends(get_db),
 ):
@@ -88,16 +91,26 @@ def get_team_stats(
     )
     total_sales_query = db.query(Sale).filter(Sale.employee_id.in_(agent_ids))
 
-    if timeframe == "today":
-        today_start = datetime.now().replace(hour=0, minute=0, second=0, microsecond=0)
-        total_callbacks_query = total_callbacks_query.filter(CallBack.created_at >= today_start)
-        total_transfers_query = total_transfers_query.filter(Transfer.created_at >= today_start)
-        total_sales_query = total_sales_query.filter(Sale.created_at >= today_start)
-    elif timeframe == "this_week":
-        week_start = datetime.now() - timedelta(days=7)
-        total_callbacks_query = total_callbacks_query.filter(CallBack.created_at >= week_start)
-        total_transfers_query = total_transfers_query.filter(Transfer.created_at >= week_start)
-        total_sales_query = total_sales_query.filter(Sale.created_at >= week_start)
+    if year is not None:
+        total_callbacks_query = total_callbacks_query.filter(extract("year", CallBack.created_at) == year)
+        total_transfers_query = total_transfers_query.filter(extract("year", Transfer.created_at) == year)
+        total_sales_query = total_sales_query.filter(extract("year", Sale.created_at) == year)
+    if month is not None:
+        total_callbacks_query = total_callbacks_query.filter(extract("month", CallBack.created_at) == month)
+        total_transfers_query = total_transfers_query.filter(extract("month", Transfer.created_at) == month)
+        total_sales_query = total_sales_query.filter(extract("month", Sale.created_at) == month)
+
+    if year is None and month is None:
+        if timeframe == "today":
+            today_start = datetime.now().replace(hour=0, minute=0, second=0, microsecond=0)
+            total_callbacks_query = total_callbacks_query.filter(CallBack.created_at >= today_start)
+            total_transfers_query = total_transfers_query.filter(Transfer.created_at >= today_start)
+            total_sales_query = total_sales_query.filter(Sale.created_at >= today_start)
+        elif timeframe == "this_week":
+            week_start = datetime.now() - timedelta(days=7)
+            total_callbacks_query = total_callbacks_query.filter(CallBack.created_at >= week_start)
+            total_transfers_query = total_transfers_query.filter(Transfer.created_at >= week_start)
+            total_sales_query = total_sales_query.filter(Sale.created_at >= week_start)
 
     total_callbacks = total_callbacks_query.scalar() or 0
     total_transfers = total_transfers_query.scalar() or 0
@@ -118,16 +131,26 @@ def get_team_stats(
         )
         as_q = db.query(Sale).filter(Sale.employee_id == agent.id)
 
-        if timeframe == "today":
-            today_start = datetime.now().replace(hour=0, minute=0, second=0, microsecond=0)
-            ac_q = ac_q.filter(CallBack.created_at >= today_start)
-            at_q = at_q.filter(Transfer.created_at >= today_start)
-            as_q = as_q.filter(Sale.created_at >= today_start)
-        elif timeframe == "this_week":
-            week_start = datetime.now() - timedelta(days=7)
-            ac_q = ac_q.filter(CallBack.created_at >= week_start)
-            at_q = at_q.filter(Transfer.created_at >= week_start)
-            as_q = as_q.filter(Sale.created_at >= week_start)
+        if year is not None:
+            ac_q = ac_q.filter(extract("year", CallBack.created_at) == year)
+            at_q = at_q.filter(extract("year", Transfer.created_at) == year)
+            as_q = as_q.filter(extract("year", Sale.created_at) == year)
+        if month is not None:
+            ac_q = ac_q.filter(extract("month", CallBack.created_at) == month)
+            at_q = at_q.filter(extract("month", Transfer.created_at) == month)
+            as_q = as_q.filter(extract("month", Sale.created_at) == month)
+
+        if year is None and month is None:
+            if timeframe == "today":
+                today_start = datetime.now().replace(hour=0, minute=0, second=0, microsecond=0)
+                ac_q = ac_q.filter(CallBack.created_at >= today_start)
+                at_q = at_q.filter(Transfer.created_at >= today_start)
+                as_q = as_q.filter(Sale.created_at >= today_start)
+            elif timeframe == "this_week":
+                week_start = datetime.now() - timedelta(days=7)
+                ac_q = ac_q.filter(CallBack.created_at >= week_start)
+                at_q = at_q.filter(Transfer.created_at >= week_start)
+                as_q = as_q.filter(Sale.created_at >= week_start)
 
         ac = ac_q.scalar() or 0
         at = at_q.scalar() or 0
@@ -216,10 +239,76 @@ def get_agent_detail(
     )
 
 
+@router.get("/leaderboard")
+def get_leaderboard(
+    period: str = Query("today"),  # "today", "week", "month"
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    now = datetime.now()
+    if period == "today":
+        start_date = now.replace(hour=0, minute=0, second=0, microsecond=0)
+    elif period == "week":
+        start_date = now - timedelta(days=7)
+    else:  # month
+        start_date = now.replace(day=1, hour=0, minute=0, second=0, microsecond=0)
+
+    agents = db.query(User).filter(User.role == "agent", User.is_active == True).all()
+    leaderboard = []
+    target_val = 5 if period == "today" else (25 if period == "week" else 100)
+
+    for a in agents:
+        sales_count = db.query(func.count(Sale.id)).filter(
+            Sale.employee_id == a.id,
+            Sale.created_at >= start_date
+        ).scalar() or 0
+
+        transfers_count = db.query(func.count(Transfer.id)).filter(
+            Transfer.employee_id == a.id,
+            Transfer.created_at >= start_date
+        ).scalar() or 0
+
+        total_deals = sales_count + transfers_count
+        progress_pct = min(100, round((total_deals / target_val) * 100))
+
+        leaderboard.append({
+            "agentId": a.id,
+            "agentName": a.name,
+            "email": a.email,
+            "sales": sales_count,
+            "transfers": transfers_count,
+            "totalDeals": total_deals,
+            "target": target_val,
+            "progressPct": progress_pct,
+        })
+
+    leaderboard.sort(key=lambda x: (x["totalDeals"], x["sales"]), reverse=True)
+
+    for idx, item in enumerate(leaderboard):
+        item["rank"] = idx + 1
+        if idx == 0 and item["totalDeals"] > 0:
+            item["badge"] = "🥇 Gold Performer"
+        elif idx == 1 and item["totalDeals"] > 0:
+            item["badge"] = "🥈 Silver Star"
+        elif idx == 2 and item["totalDeals"] > 0:
+            item["badge"] = "🥉 Bronze Achiever"
+        else:
+            item["badge"] = None
+
+    return {
+        "period": period,
+        "leaderboard": leaderboard,
+        "topPerformer": leaderboard[0] if leaderboard and leaderboard[0]["totalDeals"] > 0 else None,
+        "target": target_val,
+    }
+
+
 @router.get("/callbacks")
 def get_manager_callbacks(
-    agent_id: int | None = Query(None),
-    status: str | None = Query(None),
+    agent_id: Optional[int] = Query(None),
+    status: Optional[str] = Query(None),
+    year: Optional[int] = Query(None),
+    month: Optional[int] = Query(None),
     skip: int = Query(0, ge=0),
     limit: int = Query(100, ge=1, le=500),
     manager: User = Depends(require_manager),
@@ -237,6 +326,10 @@ def get_manager_callbacks(
         query = query.filter(CallBack.employee_id == agent_id)
     if status:
         query = query.filter(CallBack.status == status)
+    if year is not None:
+        query = query.filter(extract("year", CallBack.created_at) == year)
+    if month is not None:
+        query = query.filter(extract("month", CallBack.created_at) == month)
     total = query.count()
     callbacks = query.order_by(CallBack.scheduled_datetime.desc()).offset(skip).limit(limit).all()
 
@@ -252,8 +345,10 @@ def get_manager_callbacks(
 
 @router.get("/transfers")
 def get_manager_transfers(
-    agent_id: int | None = Query(None),
-    status: str | None = Query(None),
+    agent_id: Optional[int] = Query(None),
+    status: Optional[str] = Query(None),
+    year: Optional[int] = Query(None),
+    month: Optional[int] = Query(None),
     skip: int = Query(0, ge=0),
     limit: int = Query(100, ge=1, le=500),
     manager: User = Depends(require_manager),
@@ -266,6 +361,10 @@ def get_manager_transfers(
         query = query.filter(Transfer.employee_id == agent_id)
     if status:
         query = query.filter(Transfer.status == status)
+    if year is not None:
+        query = query.filter(extract("year", Transfer.created_at) == year)
+    if month is not None:
+        query = query.filter(extract("month", Transfer.created_at) == month)
     total = query.count()
     transfers = query.order_by(Transfer.created_at.desc()).offset(skip).limit(limit).all()
     return {"items": [_transfer_out(t, t.customer) for t in transfers], "total": total, "skip": skip, "limit": limit}
@@ -273,8 +372,10 @@ def get_manager_transfers(
 
 @router.get("/sales")
 def get_manager_sales(
-    agent_id: int | None = Query(None),
-    status: str | None = Query(None),
+    agent_id: Optional[int] = Query(None),
+    status: Optional[str] = Query(None),
+    year: Optional[int] = Query(None),
+    month: Optional[int] = Query(None),
     skip: int = Query(0, ge=0),
     limit: int = Query(100, ge=1, le=500),
     manager: User = Depends(require_manager),
@@ -287,6 +388,10 @@ def get_manager_sales(
         query = query.filter(Sale.employee_id == agent_id)
     if status:
         query = query.filter(Sale.cot_status == status)
+    if year is not None:
+        query = query.filter(extract("year", Sale.created_at) == year)
+    if month is not None:
+        query = query.filter(extract("month", Sale.created_at) == month)
     total = query.count()
     sales = query.order_by(Sale.created_at.desc()).offset(skip).limit(limit).all()
     from ..models import Customer

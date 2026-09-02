@@ -492,6 +492,80 @@ export default function CustomerDetail() {
             </div>
           </div>
 
+          {/* ═══ Customer Interactions & Timeline ═══ */}
+          <div className="rt-card rt-fade rt-d6">
+            <div className="rt-card-header">
+              <div className="rt-card-header-left">
+                <div className="rt-card-icon" style={{ background: '#f5f3ff', color: '#7c3aed' }}>
+                  <Clock size={18} />
+                </div>
+                <div>
+                  <h3 className="rt-card-title">Interactions & Call History Timeline</h3>
+                  <p className="text-xs text-slate-400 mt-0.5">Chronological log of callbacks, transfers, and sales</p>
+                </div>
+              </div>
+            </div>
+            <div className="rt-card-body">
+              {(() => {
+                const events = []
+                callbacks.filter(c => c.customerId === customer?.id).forEach(c => {
+                  events.push({
+                    type: 'callback',
+                    title: `Callback (${c.status ? c.status.toUpperCase() : 'PENDING'})`,
+                    date: c.createdAt || c.scheduledDateTime || c.scheduledDate,
+                    notes: c.notes || 'Callback logged',
+                    color: '#6366f1',
+                  })
+                })
+                transfers.filter(t => t.customerId === customer?.id).forEach(t => {
+                  events.push({
+                    type: 'transfer',
+                    title: `Transfer (${t.status || 'pending'}) - ${t.supplier || 'Utility'}`,
+                    date: t.createdAt,
+                    notes: t.notes || `Type: ${t.utilityType || 'Energy'}`,
+                    color: '#10b981',
+                  })
+                })
+                sales.filter(s => s.customerId === customer?.id).forEach(s => {
+                  events.push({
+                    type: 'sale',
+                    title: `Sale Application (${s.status || 'submitted'})`,
+                    date: s.createdAt || s.submittedAt,
+                    notes: s.notes || 'Sale contract completed',
+                    color: '#f59e0b',
+                  })
+                })
+                events.sort((a, b) => new Date(b.date || 0) - new Date(a.date || 0))
+
+                if (events.length === 0) {
+                  return <p className="text-sm text-slate-400 text-center py-6">No interactions logged yet.</p>
+                }
+
+                return (
+                  <div className="relative pl-6 space-y-6 before:absolute before:left-2 before:top-2 before:bottom-2 before:w-0.5 before:bg-slate-200">
+                    {events.map((ev, i) => (
+                      <div key={i} className="relative">
+                        <div
+                          className="absolute -left-[27px] top-1 w-3.5 h-3.5 rounded-full border-2 border-white shadow-sm"
+                          style={{ backgroundColor: ev.color }}
+                        />
+                        <div className="bg-slate-50/80 rounded-xl p-3.5 border border-slate-100">
+                          <div className="flex items-center justify-between gap-2 mb-1">
+                            <span className="font-bold text-xs text-slate-900">{ev.title}</span>
+                            <span className="text-[11px] font-mono text-slate-400">
+                              {ev.date ? new Date(ev.date).toLocaleString('en-GB', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' }) : '-'}
+                            </span>
+                          </div>
+                          <p className="text-xs text-slate-600 leading-relaxed">{ev.notes}</p>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )
+              })()}
+            </div>
+          </div>
+
           <div className="rt-fade rt-d7 rt-actions" style={{ borderTop: '1px solid #e2e6ec', paddingTop: '24px' }}>
             <button onClick={() => setShowDelete(true)} className="rt-btn-danger">
               <Trash2 size={16} /> Delete Customer

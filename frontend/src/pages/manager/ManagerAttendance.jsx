@@ -3,7 +3,9 @@ import api, { endpoints } from '@/lib/api'
 import { useAuthStore } from '@/store/authStore'
 import { useToast } from '@/components/ui/toastContext'
 import { APP_STYLES } from '@/lib/styles'
-import { Search, CheckCircle, XCircle, Clock, X, ChevronLeft, ChevronRight, History, AlertTriangle, Loader2, LogIn, LogOut, MapPin } from 'lucide-react'
+import { Search, CheckCircle, XCircle, Clock, X, ChevronLeft, ChevronRight, History, AlertTriangle, Loader2, LogIn, LogOut, MapPin, Pencil, Download } from 'lucide-react'
+import EditAttendanceModal from '@/components/manager/EditAttendanceModal'
+import { exportToCsv } from '@/lib/exportUtils'
 
 const TIME_OPTS = { hour: 'numeric', minute: '2-digit', second: '2-digit', hour12: true }
 const DATE_OPTS = { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' }
@@ -89,6 +91,7 @@ export default function ManagerAttendance() {
   const [lateLoading, setLateLoading] = useState(false)
   const [lateFromDate, setLateFromDate] = useState(new Date(new Date().getFullYear(), new Date().getMonth(), 1).toISOString().split('T')[0])
   const [lateToDate, setLateToDate] = useState(new Date().toISOString().split('T')[0])
+  const [editingRecord, setEditingRecord] = useState(null)
 
   /* ── own attendance loaders ── */
   const loadToday = useCallback(async () => {
@@ -463,14 +466,37 @@ export default function ManagerAttendance() {
                 <h2 className="rt-card-title">Today's Attendance</h2>
                 <p className="text-sm text-slate-500">{team.length} staff members</p>
               </div>
-              <div className="relative">
-                <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2" style={{ color: '#94a3b8' }} />
-                <input
-                  value={search}
-                  onChange={(e) => setSearch(e.target.value)}
-                  placeholder="Search by name or email"
-                  className="rt-input text-sm py-2 pl-10 pr-3 w-[240px]"
-                />
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={() => {
+                    const exportData = filtered.map(m => ({
+                      Name: m.name,
+                      Email: m.email,
+                      Role: m.role,
+                      Status: m.status ? m.status.toUpperCase() : 'ABSENT',
+                      CheckIn: m.checkIn ? new Date(m.checkIn).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true }) : '-',
+                      CheckOut: m.checkOut ? new Date(m.checkOut).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true }) : '-',
+                      Duration: formatDuration(m.checkIn, m.checkOut),
+                      CheckInReason: m.checkInReason || '-',
+                      CheckOutReason: m.checkOutReason || '-',
+                    }))
+                    exportToCsv(exportData, `Team_Attendance_${new Date().toISOString().split('T')[0]}`)
+                  }}
+                  className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-bold border border-slate-200 bg-white text-slate-700 hover:bg-slate-50 cursor-pointer shadow-sm"
+                  title="Export to CSV"
+                >
+                  <Download size={14} /> Export CSV
+                </button>
+                <div className="relative">
+                  <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2" style={{ color: '#94a3b8' }} />
+                  <input
+                    value={search}
+                    onChange={(e) => setSearch(e.target.value)}
+                    placeholder="Search by name or email"
+                    className="rt-input text-sm py-2 pl-10 pr-3 w-[200px] sm:w-[240px]"
+                  />
+                </div>
               </div>
             </div>
 
@@ -491,6 +517,7 @@ export default function ManagerAttendance() {
                       <th className="text-left px-4 py-3">Duration</th>
                       <th className="text-left px-4 py-3">Check-In Reason</th>
                       <th className="text-left px-4 py-3">Check-Out Reason</th>
+                      <th className="text-right px-4 py-3">Action</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -544,6 +571,26 @@ export default function ManagerAttendance() {
                           </td>
                           <td className="px-4 py-4 text-slate-500 text-xs max-w-[130px] truncate" title={member.attendance?.checkout_reason || ''}>
                             {member.attendance?.checkout_reason || '-'}
+                          </td>
+                          <td className="px-4 py-4 text-right" onClick={(e) => e.stopPropagation()}>
+                            <button
+                              onClick={() => setEditingRecord({
+                                userId: member.userId,
+                                userName: member.userName,
+                                userEmail: member.userEmail,
+                                date: member.attendance?.date || new Date().toISOString().split('T')[0],
+                                checkIn: member.attendance?.checkIn,
+                                checkOut: member.attendance?.checkOut,
+                                status: member.attendance?.status || (member.attendance?.checkIn ? 'present' : 'absent'),
+                                checkin_reason: member.attendance?.checkin_reason,
+                                checkout_reason: member.attendance?.checkout_reason,
+                              })}
+                              className="inline-flex items-center gap-1 px-2.5 py-1 text-xs font-semibold rounded-lg bg-blue-50 text-blue-600 hover:bg-blue-100 transition-colors"
+                              title="Edit Attendance"
+                            >
+                              <Pencil size={12} />
+                              Edit
+                            </button>
                           </td>
                         </tr>
                       )
@@ -788,11 +835,12 @@ export default function ManagerAttendance() {
                           <th className="text-left py-2.5 px-2 font-semibold text-slate-500 text-xs uppercase">Status</th>
                           <th className="text-left py-2.5 px-2 font-semibold text-slate-500 text-xs uppercase">Checkin Reason</th>
                           <th className="text-left py-2.5 px-2 font-semibold text-slate-500 text-xs uppercase">Checkout Reason</th>
+                          <th className="text-right py-2.5 px-2 font-semibold text-slate-500 text-xs uppercase">Action</th>
                         </tr>
                       </thead>
                       <tbody>
-                        {history.items.map((r) => (
-                          <tr key={r.id} className="hover:bg-slate-50 transition-colors" style={{ borderBottom: '1px solid #f8fafc' }}>
+                        {history.items.map((r, idx) => (
+                          <tr key={r.id ? `${r.id}-${r.date}` : `hist-${idx}-${r.date}`} className="hover:bg-slate-50 transition-colors" style={{ borderBottom: '1px solid #f8fafc' }}>
                             <td className="py-2.5 px-2 font-semibold text-slate-800">{new Date(r.date).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}</td>
                             <td className="py-2.5 px-2 text-slate-600">
                               {r.checkIn ? new Date(r.checkIn).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true }) : '-'}
@@ -802,10 +850,10 @@ export default function ManagerAttendance() {
                             </td>
                             <td className="py-2.5 px-2">
                               <span className="text-xs font-bold px-2 py-0.5 rounded-full" style={{
-                                background: r.status === 'late' ? '#fee2e2' : '#dcfce7',
-                                color: r.status === 'late' ? '#dc2626' : '#16a34a',
+                                background: r.status === 'late' ? '#fee2e2' : r.status === 'present' ? '#dcfce7' : '#f1f5f9',
+                                color: r.status === 'late' ? '#dc2626' : r.status === 'present' ? '#16a34a' : '#64748b',
                               }}>
-                                {r.status === 'late' ? 'LATE' : r.status === 'present' ? 'ON TIME' : r.status.toUpperCase()}
+                                {r.status === 'late' ? 'LATE' : r.status === 'present' ? 'ON TIME' : r.status ? r.status.toUpperCase() : 'ABSENT'}
                               </span>
                             </td>
                             <td className="py-2.5 px-2 text-slate-500 text-xs max-w-[130px] truncate" title={r.checkin_reason || ''}>
@@ -813,6 +861,26 @@ export default function ManagerAttendance() {
                             </td>
                             <td className="py-2.5 px-2 text-slate-500 text-xs max-w-[130px] truncate" title={r.checkout_reason || ''}>
                               {r.checkout_reason || '-'}
+                            </td>
+                            <td className="py-2.5 px-2 text-right">
+                              <button
+                                onClick={() => setEditingRecord({
+                                  userId: selectedMember?.userId,
+                                  userName: selectedMember?.userName,
+                                  userEmail: selectedMember?.userEmail,
+                                  date: r.date,
+                                  checkIn: r.checkIn,
+                                  checkOut: r.checkOut,
+                                  status: r.status,
+                                  checkin_reason: r.checkin_reason,
+                                  checkout_reason: r.checkout_reason,
+                                })}
+                                className="inline-flex items-center gap-1 px-2 py-0.5 text-xs font-semibold rounded-lg bg-blue-50 text-blue-600 hover:bg-blue-100 transition-colors"
+                                title="Edit Attendance"
+                              >
+                                <Pencil size={11} />
+                                Edit
+                              </button>
                             </td>
                           </tr>
                         ))}
@@ -943,6 +1011,18 @@ export default function ManagerAttendance() {
           </div>
         </div>
       )}
+
+      <EditAttendanceModal
+        isOpen={!!editingRecord}
+        onClose={() => setEditingRecord(null)}
+        record={editingRecord}
+        onSaved={() => {
+          loadTeam()
+          if (selectedMember) {
+            fetchHistory(selectedMember.userId, history.page)
+          }
+        }}
+      />
     </>
   )
 }

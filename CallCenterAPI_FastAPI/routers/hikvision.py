@@ -213,8 +213,22 @@ async def receive_hikvision_event(request: Request, db: Session = Depends(get_db
         ).first()
 
         if not record:
-            is_friday = (today.weekday() == 4)
-            th_h, th_m = (15, 15) if is_friday else (14, 15)
+            custom_shift = getattr(user, "shift_start_time", None)
+            if custom_shift and ":" in str(custom_shift):
+                try:
+                    parts = str(custom_shift).strip().split(":")
+                    sh_h = int(parts[0])
+                    sh_m = int(parts[1])
+                    grace_total = sh_h * 60 + sh_m + 15
+                    th_h = (grace_total // 60) % 24
+                    th_m = grace_total % 60
+                except Exception:
+                    is_friday = (today.weekday() == 4)
+                    th_h, th_m = (15, 15) if is_friday else (14, 15)
+            else:
+                is_friday = (today.weekday() == 4)
+                th_h, th_m = (15, 15) if is_friday else (14, 15)
+
             threshold = datetime.combine(today, datetime.min.time()).replace(hour=th_h, minute=th_m)
             status = "late" if punch_dt > threshold else "present"
 

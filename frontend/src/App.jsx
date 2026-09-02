@@ -24,6 +24,7 @@ import Loans from '@/pages/Loans'
 import LeaveRequests from '@/pages/LeaveRequests'
 import RenewalCallbacks from '@/pages/RenewalCallbacks'
 import ProfileSettings from '@/pages/ProfileSettings'
+import AutoDialer from '@/pages/AutoDialer'
 import TeamDashboard from '@/pages/manager/TeamDashboard'
 import ManagerAttendance from '@/pages/manager/ManagerAttendance'
 import AttendanceFeed from '@/pages/manager/AttendanceFeed'
@@ -48,6 +49,7 @@ import AdminSales from '@/pages/admin/AdminSales'
 import AdminSaleDetail from '@/pages/admin/AdminSaleDetail'
 import AdminCallbacks from '@/pages/admin/AdminCallbacks'
 import PayrollPage from '@/pages/admin/PayrollPage'
+import AuditLogs from '@/pages/admin/AuditLogs'
 
 function ProtectedRoute({ children }) {
   const { token } = useAuthStore()
@@ -72,6 +74,14 @@ function RoleRoute({ children, allowedRoles }) {
   return children
 }
 
+function AutoDialerRoute({ children }) {
+  const { user } = useAuthStore()
+  if (user?.role === 'agent' && !user?.autoDialerEnabled) {
+    return <Navigate to="/" replace />
+  }
+  return children
+}
+
 export default function App() {
   return (
     <Routes>
@@ -84,6 +94,7 @@ export default function App() {
       <Route path="/" element={<ProtectedRoute><AppLayout /></ProtectedRoute>}>
         <Route index element={<RoleRoute allowedRoles={['agent']}><Dashboard /></RoleRoute>} />
         <Route path="attendance" element={<RoleRoute allowedRoles={['agent']}><Attendance /></RoleRoute>} />
+        <Route path="dialer" element={<RoleRoute allowedRoles={['agent', 'admin']}><AutoDialerRoute><AutoDialer /></AutoDialerRoute></RoleRoute>} />
         <Route path="profile" element={<ProfileSettings />} />
         <Route path="callbacks" element={<RoleRoute allowedRoles={['agent', 'admin']}><Callbacks /></RoleRoute>} />
         <Route path="callbacks/add" element={<RoleRoute allowedRoles={['agent']}><AddCallback /></RoleRoute>} />
@@ -137,7 +148,7 @@ export default function App() {
         <Route path="sales" element={<AdminSales />} />
         <Route path="sales/:id" element={<AdminSaleDetail />} />
         <Route path="analytics" element={<AdminDashboard />} />
-        <Route path="activity" element={<AdminDashboard />} />
+        <Route path="activity" element={<AuditLogs />} />
         <Route path="payroll" element={<PayrollPage />} />
       </Route>
 

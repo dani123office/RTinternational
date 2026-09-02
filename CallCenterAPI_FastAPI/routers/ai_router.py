@@ -36,17 +36,19 @@ router = APIRouter(
 # ENVIRONMENT
 # =========================================================
 
-GROQ_API_KEY = os.getenv("GROQ_API_KEY")
-
-GROQ_AVAILABLE = bool(GROQ_API_KEY) and GROQ_API_KEY != "dummy"
-
-if GROQ_AVAILABLE:
-    groq_client = OpenAI(
-        api_key=GROQ_API_KEY,
-        base_url="https://api.groq.com/openai/v1",
-    )
-else:
-    groq_client = None
+def get_groq_client() -> tuple[Optional[OpenAI], bool]:
+    api_key = os.getenv("GROQ_API_KEY")
+    if not api_key or api_key == "dummy":
+        return None, False
+    try:
+        client = OpenAI(
+            api_key=api_key,
+            base_url="https://api.groq.com/openai/v1",
+        )
+        return client, True
+    except Exception as e:
+        logger.error(f"Failed to initialize Groq client: {e}")
+        return None, False
 
 # =========================================================
 # SYSTEM PROMPT
@@ -546,16 +548,19 @@ def _looks_like_image_content(text: str) -> str | None:
 
 
 def generate_extraction(text: str) -> dict:
-    if not GROQ_AVAILABLE:
+    client, available = get_groq_client()
+    if not available or not client:
         logger.info("Groq API key not available; using regex fallback")
         return regex_fallback_extraction(text, "Groq API key not configured")
 
     last_error_msg = ""
-    # Try active production models on Groq
+    # Active production models on Groq
     models_to_try = [
-        "llama-3.3-70b-specdec",
-        "llama-3.3-70b-versatile",
-        "llama-3.1-70b-versatile"
+        "openai/gpt-oss-120b",
+        "groq/compound",
+        "openai/gpt-oss-20b",
+        "qwen/qwen3.8-27b",
+        "groq/compound-mini"
     ]
 
     for model_name in models_to_try:
@@ -563,7 +568,7 @@ def generate_extraction(text: str) -> dict:
             try:
                 logger.info(f"Extraction attempt {attempt + 1}/{MAX_RETRIES} using model {model_name}")
 
-                response = groq_client.chat.completions.create(
+                response = client.chat.completions.create(
                     model=model_name,
                     messages=[
                         {"role": "system", "content": SYSTEM_PROMPT},

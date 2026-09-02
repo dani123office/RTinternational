@@ -189,8 +189,10 @@ export const endpoints = {
   transfers: '/api/transfers',
   sales: '/api/sales',
   customers: '/api/customers',
+  customerCheckDuplicate: '/api/customers/check-duplicate',
   ai: { extract: '/api/ai/extract' },
   manager: {
+    leaderboard: (period = 'today') => `/api/manager/leaderboard?period=${period}`,
     teamStats: '/api/manager/team-stats',
     agents: '/api/manager/agents',
     agentDetail: (id) => `/api/manager/agent/${id}`,
@@ -218,6 +220,7 @@ export const endpoints = {
     agentHistory: (id) => `/api/attendance/agent-history/${id}`,
     record: (id) => `/api/attendance/record/${id}`,
     feed: '/api/attendance/feed',
+    update: '/api/attendance/manual-update',
     export: '/api/attendance/export',
     lateArrivals: '/api/attendance/late-arrivals',
     reportLateArrival: '/api/attendance/report-late-arrival',
@@ -247,6 +250,13 @@ export const endpoints = {
   salary: {
     slip: '/api/salary/slip',
     adminSlip: (userId) => `/api/admin/salary/slip/${userId}`,
+    emailSlip: (userId) => `/api/admin/salary/email/${userId}`,
+  },
+  campaigns: {
+    base: '/api/campaigns',
+    leads: (id) => `/api/campaigns/${id}/leads`,
+    updateLead: (id) => `/api/campaigns/leads/${id}`,
+    delete: (id) => `/api/campaigns/${id}`,
   },
   admin: {
     users: '/api/admin/users',
@@ -275,6 +285,7 @@ export const endpoints = {
     overallStats: '/api/admin/overall-stats',
     performanceOverview: '/api/admin/performance-overview',
     businessFeed: '/api/admin/business-feed',
+    activityLogs: '/api/admin/activity-logs',
     saleDetail: (id) => `/api/admin/sales/${id}`,
   },
 }

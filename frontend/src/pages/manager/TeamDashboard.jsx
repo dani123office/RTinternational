@@ -9,6 +9,7 @@ import StatCard from '@/components/manager/StatCard'
 import AgentCard from '@/components/manager/AgentCard'
 import LoadingSpinner from '@/components/shared/LoadingSpinner'
 import StatusBadge from '@/components/shared/StatusBadge'
+import LeaderboardWidget from '@/components/shared/LeaderboardWidget'
 import { extractName, formatDateFull } from '@/lib/format'
 
 function CustomTooltip({ active, payload, label }) {
@@ -25,7 +26,7 @@ function CustomTooltip({ active, payload, label }) {
 }
 
 export default function TeamDashboard() {
-  const { teamStats, transfers, sales, loadTeamStats, loadTransfers, loadSales, isLoading } = useManagerStore()
+  const { teamStats, transfers, sales, loadDashboard, isLoading } = useManagerStore()
   const { user } = useAuthStore()
   const navigate = useNavigate()
   const firstName = user?.name?.split(' ')[0] || 'Team'
@@ -34,34 +35,91 @@ export default function TeamDashboard() {
     return h < 12 ? 'Good morning' : h < 17 ? 'Good afternoon' : 'Good evening'
   }, [])
 
-  const [timeframe, setTimeframe] = useState('all_time')
+  const [selectedMonth, setSelectedMonth] = useState(() => {
+    const saved = localStorage.getItem('managerSelectedMonth') || localStorage.getItem('adminSelectedMonth')
+    if (saved) return saved
+    const d = new Date()
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`
+  })
 
   useEffect(() => {
-    loadTransfers({ limit: 500 })
-    loadSales({ limit: 500 })
-  }, [loadTransfers, loadSales])
+    localStorage.setItem('managerSelectedMonth', selectedMonth)
+  }, [selectedMonth])
+
+  const monthsList = useMemo(() => {
+    const list = []
+    const d = new Date()
+    for (let i = 0; i < 12; i++) {
+      const year = d.getFullYear()
+      const month = d.getMonth() + 1
+      const label = d.toLocaleString('en-US', { month: 'long', year: 'numeric' })
+      const value = `${year}-${String(month).padStart(2, '0')}`
+      list.push({ value, label, year, month })
+      d.setMonth(d.getMonth() - 1)
+    }
+    list.push({ value: 'all', label: 'All Time', year: null, month: null })
+    return list
+  }, [])
+
+  const { filterYear, filterMonth } = useMemo(() => {
+    if (selectedMonth === 'all') return { filterYear: null, filterMonth: null }
+    const [y, m] = selectedMonth.split('-').map(Number)
+    return { filterYear: y, filterMonth: m }
+  }, [selectedMonth])
+
+  const handleMonthChange = (val) => {
+    setSelectedMonth(val)
+    const params = {}
+    if (val !== 'all') {
+      const [y, m] = val.split('-').map(Number)
+      params.year = y
+      params.month = m
+    }
+    loadDashboard(params)
+  }
 
   useEffect(() => {
-    loadTeamStats({ timeframe })
-  }, [loadTeamStats, timeframe])
+    const params = {}
+    if (filterYear) params.year = filterYear
+    if (filterMonth) params.month = filterMonth
+    loadDashboard(params)
+  }, [loadDashboard, filterYear, filterMonth])
 
   const agents = teamStats?.agents || []
   const today = useMemo(() => new Date(), [])
 
+  const filteredTransfers = useMemo(() => {
+    if (selectedMonth === 'all') return transfers
+    const [y, m] = selectedMonth.split('-').map(Number)
+    return transfers.filter((t) => {
+      const d = new Date(t.createdAt)
+      return d.getFullYear() === y && (d.getMonth() + 1) === m
+    })
+  }, [transfers, selectedMonth])
+
+  const filteredSales = useMemo(() => {
+    if (selectedMonth === 'all') return sales
+    const [y, m] = selectedMonth.split('-').map(Number)
+    return sales.filter((s) => {
+      const d = new Date(s.createdAt || s.submittedAt)
+      return d.getFullYear() === y && (d.getMonth() + 1) === m
+    })
+  }, [sales, selectedMonth])
+
   const weeklySales = useMemo(() => {
     const weekAgo = new Date(today.getTime() - 7 * 24 * 60 * 60 * 1000)
-    return sales.filter((s) => new Date(s.createdAt || s.submittedAt) >= weekAgo)
-  }, [sales, today])
+    return filteredSales.filter((s) => new Date(s.createdAt || s.submittedAt) >= weekAgo)
+  }, [filteredSales, today])
 
   const cotPending = useMemo(() =>
-    sales.filter((s) => s.cotStatus === 'chasing' || s.cotStatus === 'cotInProgress'),
-    [sales]
+    filteredSales.filter((s) => s.cotStatus === 'chasing' || s.cotStatus === 'cotInProgress'),
+    [filteredSales]
   )
 
   const pipelineData = useMemo(() => [
-    { name: 'Transfers', value: transfers.length, color: '#8b5cf6' },
-    { name: 'Sales', value: sales.length, color: '#10b981' },
-  ], [transfers, sales])
+    { name: 'Transfers', value: filteredTransfers.length, color: '#8b5cf6' },
+    { name: 'Sales', value: filteredSales.length, color: '#10b981' },
+  ], [filteredTransfers, filteredSales])
 
   const weeklyData = useMemo(() => {
     const days = []
@@ -71,25 +129,29 @@ export default function TeamDashboard() {
       const ds = d.toDateString()
       days.push({
         name: d.toLocaleDateString('en-GB', { weekday: 'short' }),
-        Transfers: transfers.filter((t) => new Date(t.createdAt || today).toDateString() === ds).length,
-        Sales: sales.filter((s) => new Date(s.createdAt || today).toDateString() === ds).length,
+        Transfers: filteredTransfers.filter((t) => new Date(t.createdAt || today).toDateString() === ds).length,
+        Sales: filteredSales.filter((s) => new Date(s.createdAt || today).toDateString() === ds).length,
       })
     }
     return days
-  }, [transfers, sales, today])
+  }, [filteredTransfers, filteredSales, today])
 
   const recentActivity = useMemo(() => {
     const items = [
-      ...transfers.map((t) => ({ ...t, _type: 'transfer', _date: new Date(t.createdAt || today) })),
-      ...sales.map((s) => ({ ...s, _type: 'sale', _date: new Date(s.createdAt || today) })),
+      ...filteredTransfers.map((t) => ({ ...t, _type: 'transfer', _date: new Date(t.createdAt || today) })),
+      ...filteredSales.map((s) => ({ ...s, _type: 'sale', _date: new Date(s.createdAt || today) })),
     ]
     return items.sort((a, b) => b._date - a._date).slice(0, 8)
-  }, [transfers, sales, today])
+  }, [filteredTransfers, filteredSales, today])
 
   const typeConfig = {
     transfer: { color: '#8b5cf6', bg: '#f5f3ff', label: 'Transfer' },
     sale: { color: '#10b981', bg: '#ecfdf5', label: 'Sale' },
   }
+
+  const displayTotalTransfers = teamStats?.totalTransfers !== undefined ? teamStats.totalTransfers : filteredTransfers.length
+  const displayTotalSales = teamStats?.totalSales !== undefined ? teamStats.totalSales : filteredSales.length
+  const displayConversionRate = teamStats?.conversionRate !== undefined ? teamStats.conversionRate : (displayTotalTransfers > 0 ? Math.round((filteredSales.length / displayTotalTransfers) * 100) : 0)
 
   return (
     <>
@@ -126,15 +188,24 @@ export default function TeamDashboard() {
                 <PoundSterling size={14} /> View Sales
               </button>
               <select
-                value={timeframe}
-                onChange={(e) => setTimeframe(e.target.value)}
+                value={selectedMonth}
+                onChange={(e) => handleMonthChange(e.target.value)}
                 className="bg-white border border-slate-200 rounded-xl px-3 py-2 text-sm font-semibold text-slate-700 outline-none focus:border-indigo-500 cursor-pointer shadow-sm"
               >
-                <option value="all_time">All Time</option>
-                <option value="this_week">This Week</option>
-                <option value="today">Today</option>
+                {monthsList.map((m) => (
+                  <option key={m.value} value={m.value}>
+                    {m.label}
+                  </option>
+                ))}
               </select>
-              <button onClick={() => { loadTeamStats({ timeframe }); loadTransfers({ limit: 500 }); loadSales({ limit: 500 }) }}
+              <button onClick={() => {
+                const params = {}
+                if (filterYear) params.year = filterYear
+                if (filterMonth) params.month = filterMonth
+                loadTeamStats(params)
+                loadTransfers({ limit: 500 })
+                loadSales({ limit: 500 })
+              }}
                 className="flex items-center gap-1.5 px-4 py-2.5 rounded-xl text-sm font-semibold cursor-pointer transition-all duration-200"
                 style={{
                   background: '#ffffff',
@@ -153,9 +224,9 @@ export default function TeamDashboard() {
           <>
             {/* Stat Cards */}
             <div className="rt-fade rt-d2 grid grid-cols-1 sm:grid-cols-3 gap-4 mb-8">
-              <StatCard icon={ArrowLeftRight} label="Total Transfers" value={teamStats?.totalTransfers || 0} accent="linear-gradient(135deg, #22c55e, #16a34a)" onClick={() => navigate('/manager/transfers')} />
-              <StatCard icon={PoundSterling} label="Total Sales" value={teamStats?.totalSales || 0} accent="linear-gradient(135deg, #f59e0b, #d97706)" onClick={() => navigate('/manager/sales')} />
-              <StatCard icon={TrendingUp} label="Conversion Rate" value={`${teamStats?.conversionRate || 0}%`} accent="linear-gradient(135deg, #8b5cf6, #7c3aed)" subtext={`${teamStats?.totalTransfers || 0} total opportunities`} onClick={() => navigate('/manager/sales')} />
+              <StatCard icon={ArrowLeftRight} label="Total Transfers" value={displayTotalTransfers} accent="linear-gradient(135deg, #22c55e, #16a34a)" onClick={() => navigate('/manager/transfers')} />
+              <StatCard icon={PoundSterling} label="Total Sales" value={displayTotalSales} accent="linear-gradient(135deg, #f59e0b, #d97706)" onClick={() => navigate('/manager/sales')} />
+              <StatCard icon={TrendingUp} label="Conversion Rate" value={`${displayConversionRate}%`} accent="linear-gradient(135deg, #8b5cf6, #7c3aed)" subtext={`${displayTotalTransfers} total opportunities`} onClick={() => navigate('/manager/sales')} />
             </div>
 
             {/* Secondary Stats */}
@@ -173,6 +244,9 @@ export default function TeamDashboard() {
                 </div>
               </div>
             ) : null}
+
+            {/* Leaderboard Widget */}
+            <LeaderboardWidget />
 
             {/* Charts Section */}
             <div className="rt-fade rt-d4 grid grid-cols-1 lg:grid-cols-[1.6fr_1fr] gap-5 mb-7" style={{ minHeight: 0 }}>

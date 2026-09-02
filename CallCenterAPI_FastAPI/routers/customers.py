@@ -66,7 +66,7 @@ def _customer_out(c) -> CustomerOut:
     )
 
 
-@router.get("")
+@router.get("", response_model=list[CustomerOut])
 def get_customers(
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
@@ -74,10 +74,78 @@ def get_customers(
     limit: int = Query(100, ge=1, le=500),
 ):
     query = db.query(Customer).filter(Customer.created_by == current_user.id)
-    total = query.count()
     customers = query.order_by(Customer.created_at.desc()).offset(skip).limit(limit).all()
-    items = [_customer_out(c) for c in customers]
-    return {"items": items, "total": total, "skip": skip, "limit": limit}
+    return [_customer_out(c) for c in customers]
+
+
+@router.get("/check-duplicate")
+def check_duplicate(
+    postcode: str = Query(None),
+    phone: str = Query(None),
+    business_name: str = Query(None),
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    query = db.query(Customer)
+    conditions = []
+    
+    if postcode and postcode.strip():
+        conditions.append(func.lower(Customer.postcode) == func.lower(postcode.strip()))
+    if phone and phone.strip():
+        clean_phone = phone.strip()
+        conditions.append(Customer.business_phone == clean_phone)
+        conditions.append(Customer.owner_phone == clean_phone)
+        
+    if not conditions:
+        return {"isDuplicate": False}
+        
+    from sqlalchemy import or_
+    existing = query.filter(or_(*conditions)).first()
+    if not existing:
+        return {"isDuplicate": False}
+        
+    creator = existing.creator
+    is_creator_deactive = not creator or not creator.is_active or getattr(creator, 'is_deleted', False)
+    
+    # Check if belongs to current user or accessible
+    is_auth = (existing.created_by == current_user.id)
+    if not is_auth and current_user.role == "manager":
+        if creator and creator.manager_id == current_user.id:
+            is_auth = True
+    if not is_auth and current_user.role == "admin":
+        is_auth = True
+        
+    if is_creator_deactive:
+        has_sale = db.query(Sale).filter(
+            Sale.customer_id == existing.id,
+            Sale.employee_id == existing.created_by
+        ).first() is not None
+        if not has_sale:
+            # Re-assignable lead
+            return {
+                "isDuplicate": False,
+                "reassignable": True,
+                "businessName": existing.business_name,
+                "message": "Customer is from a deactivated agent and will be assigned to you."
+            }
+            
+    if is_auth:
+        return {
+            "isDuplicate": False,
+            "ownedByYou": True,
+            "businessName": existing.business_name,
+            "customerId": existing.id
+        }
+        
+    creator_name = creator.name if creator else "another agent"
+    return {
+        "isDuplicate": True,
+        "ownedByYou": False,
+        "agentName": creator_name,
+        "businessName": existing.business_name,
+        "postcode": existing.postcode,
+        "message": f"This customer belongs to agent: {creator_name} ({existing.business_name or 'Existing Customer'})"
+    }
 
 
 @router.get("/{id}")

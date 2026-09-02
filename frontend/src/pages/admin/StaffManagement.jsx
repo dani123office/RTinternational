@@ -218,6 +218,20 @@ export default function StaffManagement() {
       },
     },
     {
+      header: 'Auto Dialer',
+      cell: (row) => (
+        <span
+          className={`inline-flex items-center gap-1 px-2 py-0.5 rounded text-[11px] font-bold ${
+            row.autoDialerEnabled
+              ? 'bg-emerald-50 text-emerald-700 border border-emerald-200'
+              : 'bg-slate-100 text-slate-500 border border-slate-200'
+          }`}
+        >
+          {row.autoDialerEnabled ? 'ON' : 'OFF'}
+        </span>
+      ),
+    },
+    {
       header: 'Actions',
       cell: (row) => (
         <div className="flex gap-1 justify-end" onClick={(e) => e.stopPropagation()}>

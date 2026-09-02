@@ -1,7 +1,8 @@
 import { useEffect, useState, useMemo, useCallback } from 'react'
 import { useManagerStore } from '@/store/managerStore'
-import { PoundSterling, X, Eye, Trash2 } from 'lucide-react'
+import { PoundSterling, X, Eye, Trash2, Download } from 'lucide-react'
 import { APP_STYLES } from '@/lib/styles'
+import { exportToCsv } from '@/lib/exportUtils'
 import DataTable from '@/components/shared/DataTable'
 import LoadingSpinner from '@/components/shared/LoadingSpinner'
 import EmptyState from '@/components/shared/EmptyState'
@@ -42,6 +43,32 @@ export default function ManagerSales() {
   const [statusFilter, setStatusFilter] = useState('')
   const [deleteId, setDeleteId] = useState(null)
 
+  const [selectedMonth, setSelectedMonth] = useState(() => {
+    const saved = localStorage.getItem('managerSelectedMonth') || localStorage.getItem('adminSelectedMonth')
+    if (saved) return saved
+    const d = new Date()
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`
+  })
+
+  useEffect(() => {
+    localStorage.setItem('managerSelectedMonth', selectedMonth)
+  }, [selectedMonth])
+
+  const monthsList = useMemo(() => {
+    const list = []
+    const d = new Date()
+    for (let i = 0; i < 12; i++) {
+      const year = d.getFullYear()
+      const month = d.getMonth() + 1
+      const label = d.toLocaleString('en-US', { month: 'long', year: 'numeric' })
+      const value = `${year}-${String(month).padStart(2, '0')}`
+      list.push({ value, label, year, month })
+      d.setMonth(d.getMonth() - 1)
+    }
+    list.push({ value: 'all', label: 'All Time', year: null, month: null })
+    return list
+  }, [])
+
   useEffect(() => { loadSales({ limit: 500 }); loadAgents() }, [loadSales, loadAgents])
 
   const agentMap = useMemo(() => {
@@ -50,17 +77,26 @@ export default function ManagerSales() {
     return map
   }, [agents])
 
+  const monthFilteredSales = useMemo(() => {
+    if (selectedMonth === 'all') return sales
+    const [y, m] = selectedMonth.split('-').map(Number)
+    return sales.filter(s => {
+      const d = new Date(s.createdAt || s.submittedAt)
+      return d.getFullYear() === y && (d.getMonth() + 1) === m
+    })
+  }, [sales, selectedMonth])
+
   const counts = useMemo(() => ({
-    chasing: sales.filter(s => s.cotStatus === 'chasing').length,
-    cotInProgress: sales.filter(s => s.cotStatus === 'cotInProgress').length,
-    cotComplete: sales.filter(s => s.cotStatus === 'cotComplete').length,
-    done: sales.filter(s => s.cotStatus === 'done').length,
-    rejected: sales.filter(s => s.cotStatus === 'rejected').length,
-    hold: sales.filter(s => s.cotStatus === 'hold').length,
-  }), [sales])
+    chasing: monthFilteredSales.filter(s => s.cotStatus === 'chasing').length,
+    cotInProgress: monthFilteredSales.filter(s => s.cotStatus === 'cotInProgress').length,
+    cotComplete: monthFilteredSales.filter(s => s.cotStatus === 'cotComplete').length,
+    done: monthFilteredSales.filter(s => s.cotStatus === 'done').length,
+    rejected: monthFilteredSales.filter(s => s.cotStatus === 'rejected').length,
+    hold: monthFilteredSales.filter(s => s.cotStatus === 'hold').length,
+  }), [monthFilteredSales])
 
   const filtered = useMemo(() => {
-    return sales.filter(s => {
+    return monthFilteredSales.filter(s => {
       if (agentFilter && s.employeeId !== Number(agentFilter)) return false
       if (statusFilter && s.cotStatus !== statusFilter) return false
       if (search) {
@@ -73,7 +109,7 @@ export default function ManagerSales() {
       }
       return true
     })
-  }, [sales, agentFilter, statusFilter, search, agentMap])
+  }, [monthFilteredSales, agentFilter, statusFilter, search, agentMap])
 
   const handleDelete = useCallback(async () => {
     if (!deleteId) return
@@ -184,6 +220,20 @@ export default function ManagerSales() {
           />
 
           <div className="flex gap-3 mb-5 flex-wrap items-center">
+            {/* Month filter */}
+            <select
+              value={selectedMonth}
+              onChange={(e) => setSelectedMonth(e.target.value)}
+              className="px-3 py-2 rounded-xl border border-slate-200 text-sm bg-white outline-none cursor-pointer shadow-sm"
+              style={{ minWidth: '150px' }}
+            >
+              {monthsList.map((m) => (
+                <option key={m.value} value={m.value}>
+                  {m.label}
+                </option>
+              ))}
+            </select>
+
             {/* Search */}
             <div className="flex items-center gap-2 bg-white rounded-xl px-3 py-1.5 border border-slate-200 flex-1 min-w-[200px] max-w-[300px]">
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#94a3b8" strokeWidth="2">
@@ -238,6 +288,28 @@ export default function ManagerSales() {
                 <X size={12} /> Clear
               </button>
             )}
+
+            <button
+              type="button"
+              onClick={() => {
+                const exportData = filtered.map(s => ({
+                  ID: s.id,
+                  BusinessName: s.customer?.businessName || 'N/A',
+                  OwnerName: s.customer?.ownerName || 'N/A',
+                  Phone: s.customer?.businessPhone || 'N/A',
+                  Postcode: s.customer?.postcode || 'N/A',
+                  Agent: agentMap[s.employeeId]?.name || 'N/A',
+                  SaleType: s.saleType ? formatCamel(s.saleType) : 'N/A',
+                  Status: s.status || 'N/A',
+                  Date: s.createdAt || s.submittedAt ? new Date(s.createdAt || s.submittedAt).toLocaleDateString('en-GB') : 'N/A'
+                }))
+                exportToCsv(exportData, `Sales_Export_${selectedMonth}`)
+              }}
+              className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-bold border border-slate-200 bg-white text-slate-700 hover:bg-slate-50 cursor-pointer shadow-sm sm:ml-auto"
+              title="Export Sales to CSV"
+            >
+              <Download size={14} /> Export CSV
+            </button>
           </div>
 
           {isLoading && sales.length === 0 ? (

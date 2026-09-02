@@ -43,6 +43,7 @@ function ClockCard({ label, timezone, sub, accent, flag }) {
 }
 
 export default function Attendance() {
+  const { user } = useAuthStore()
   const { toast } = useToast()
   const [, forceUpdate] = useState(0)
   useEffect(() => {
@@ -61,7 +62,6 @@ export default function Attendance() {
   const [checkoutReason, setCheckoutReason] = useState('')
   const [loading, setLoading] = useState(true)
   const [actionLoading, setActionLoading] = useState(false)
-  const [historyPage, setHistoryPage] = useState(1)
 
   const loadToday = useCallback(async () => {
     try {
@@ -79,67 +79,67 @@ export default function Attendance() {
 
   const loadStats = useCallback(async () => {
     try {
-      const now = new Date()
-      const res = await api.get(endpoints.attendance.stats, {
-        params: { month: now.getMonth() + 1, year: now.getFullYear() },
-      })
+      const res = await api.get(endpoints.attendance.myStats)
       setStats(res.data)
-    } catch {}
+    } catch (err) { console.error(err) }
   }, [])
 
-  const loadAll = useCallback(async () => {
-    setLoading(true)
-    await Promise.all([loadToday(), loadHistory(historyPage), loadStats()])
-    setLoading(false)
-  }, [loadToday, loadHistory, historyPage, loadStats])
-
-  useEffect(() => { loadAll() }, [loadAll])
+  useEffect(() => {
+    Promise.all([loadToday(), loadHistory(1), loadStats()]).finally(() => setLoading(false))
+  }, [loadToday, loadHistory, loadStats])
 
   const handleCheckIn = async () => {
     setActionLoading(true)
     try {
-      const res = await api.post(endpoints.attendance.checkIn, { checkin_reason: checkinReason || null })
-      setTodayRecord(res.data)
+      await api.post(endpoints.attendance.checkIn, { checkin_reason: checkinReason || undefined })
+      toast('Checked in successfully', 'success')
       setCheckinReason('')
-      await loadStats()
+      await Promise.all([loadToday(), loadHistory(1), loadStats()])
     } catch (err) {
-      alert(err?.response?.data?.detail || 'Check-in failed')
-    } finally { setActionLoading(false) }
+      toast(err.response?.data?.detail || 'Failed to check in', 'error')
+    } finally {
+      setActionLoading(false)
+    }
   }
 
   const handleCheckOut = async () => {
     setActionLoading(true)
     try {
-      const res = await api.post(endpoints.attendance.checkOut, { checkout_reason: checkoutReason || null })
-      setTodayRecord(res.data)
+      await api.post(endpoints.attendance.checkOut, { checkout_reason: checkoutReason || undefined })
+      toast('Checked out successfully', 'success')
       setCheckoutReason('')
-      await loadStats()
+      await Promise.all([loadToday(), loadHistory(1), loadStats()])
     } catch (err) {
-      alert(err?.response?.data?.detail || 'Check-out failed')
-    } finally { setActionLoading(false) }
+      toast(err.response?.data?.detail || 'Failed to check out', 'error')
+    } finally {
+      setActionLoading(false)
+    }
   }
 
-  const handleReportLate = async () => {
-    if (!lateDate) { toast('Please select a date', 'error'); return }
-    if (!lateTime) { toast('Please select expected arrival time', 'error'); return }
-    if (!lateReason.trim()) { toast('Please explain the reason for late arrival', 'error'); return }
-
+  const handleReportLate = async (e) => {
+    e.preventDefault()
+    if (!lateDate || !lateTime || !lateReason) {
+      toast('Please fill all fields', 'warning')
+      return
+    }
     setLateSubmitting(true)
     try {
-      await api.post(endpoints.attendance.reportLateArrival, {
+      await api.post(endpoints.attendance.reportLate, {
         date: lateDate,
-        expected_arrival_time: lateTime + ':00',
-        reason: lateReason.trim(),
+        expected_arrival_time: lateTime,
+        late_arrival_reason: lateReason,
       })
       toast('Late arrival reported successfully', 'success')
       setShowLateModal(false)
       setLateDate('')
       setLateTime('')
       setLateReason('')
-      await loadStats()
+      await Promise.all([loadToday(), loadHistory(1), loadStats()])
     } catch (err) {
-      toast(err?.response?.data?.detail || 'Failed to report late arrival', 'error')
-    } finally { setLateSubmitting(false) }
+      toast(err.response?.data?.detail || 'Failed to report late arrival', 'error')
+    } finally {
+      setLateSubmitting(false)
+    }
   }
 
   const isCheckedIn = !!todayRecord?.checkIn
@@ -156,19 +156,32 @@ export default function Attendance() {
     const weekday = d.toLocaleDateString('en-GB', { weekday: 'long', timeZone: 'Asia/Karachi' })
     const h = d.getHours()
     const m = d.getMinutes()
-    const threshold = (weekday === 'Friday') ? { h: 15, m: 10 } : { h: 14, m: 10 }
+    let threshold = (weekday === 'Friday') ? { h: 15, m: 15 } : { h: 14, m: 15 }
+    if (user?.shiftStartTime && user.shiftStartTime.includes(':')) {
+      const [sh, sm] = user.shiftStartTime.split(':').map(Number)
+      const lateMins = sh * 60 + sm + 15
+      threshold = { h: Math.floor(lateMins / 60) % 24, m: lateMins % 60 }
+    }
     const totalLateMinutes = (h - threshold.h) * 60 + (m - threshold.m)
     return totalLateMinutes > minutes
   }
 
-  const reasonRequired = !isCheckedIn && isLateByMoreThan(10)
+  const reasonRequired = !isCheckedIn && isLateByMoreThan(0)
 
-  function isBefore10PM_PKT() {
+  function isBeforeShiftEnd_PKT() {
     const d = getPKTNow()
-    return d.getHours() < 22
+    let endHour = 22
+    if (user?.shiftEndTime && user.shiftEndTime.includes(':')) {
+      endHour = Number(user.shiftEndTime.split(':')[0]) || 22
+    }
+    return d.getHours() < endHour
   }
 
-  const checkoutNotesRequired = isCheckedIn && !isCheckedOut && isBefore10PM_PKT()
+  const checkoutNotesRequired = isCheckedIn && !isCheckedOut && isBeforeShiftEnd_PKT()
+
+  const pktSubText = (user?.shiftStartTime && user?.shiftEndTime)
+    ? `Assigned Shift: ${user.shiftStartTime} — ${user.shiftEndTime} PKT`
+    : "Office Hours: 2:00 PM — 10:00 PM"
 
   return (
     <>
@@ -189,13 +202,11 @@ export default function Attendance() {
             </button>
           </div>
 
-          {/* Clocks */}
           <div className="rt-fade grid grid-cols-1 sm:grid-cols-2 gap-4 mb-6">
-            <ClockCard label="Pakistan Time (PKT)" timezone="Asia/Karachi" sub="Office Hours: 2:00 PM — 10:00 PM" accent="#6366f1" flag="UTC +5" />
+            <ClockCard label="Pakistan Time (PKT)" timezone="Asia/Karachi" sub={pktSubText} accent="#6366f1" flag="UTC +5" />
             <ClockCard label="UK Time" timezone="Europe/London" sub="Office Hours: 10:00 AM — 6:00 PM" accent="#3b82f6" flag="BST/GMT" />
           </div>
 
-          {/* Status Banner */}
           {todayRecord && (
             <div className="rt-fade rt-d1 mb-6 rounded-2xl p-4 flex items-center gap-3" style={{
               background: todayStatus === 'late' ? 'linear-gradient(135deg, #fef2f2, #fff5f5)' : 'linear-gradient(135deg, #ecfdf5, #f0fdf4)',

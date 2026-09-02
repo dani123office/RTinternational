@@ -5,10 +5,10 @@ import { useAuthStore } from '@/store/authStore'
 import api, { endpoints } from '@/lib/api'
 import { extractRenewalItems } from '@/lib/renewalUtils'
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts'
-import StatusBadge from '@/components/shared/StatusBadge'
 import { extractName, formatDateFull, getGreeting } from '@/lib/format'
 import { ArrowRight, RefreshCw, PhoneCall, ArrowLeftRight, PoundSterling } from 'lucide-react'
 import { APP_STYLES } from '@/lib/styles'
+import StatusBadge from '@/components/shared/StatusBadge'
 
 function CustomTooltip({ active, payload, label }) {
   if (!active || !payload?.length) return null
@@ -61,9 +61,13 @@ function StatCard({ title, value, subtitle, bg, icon, trend, onClick }) {
 }
 
 export default function Dashboard() {
-  const { callbacks, transfers, sales, customers, error } = useDataStore()
+  const { callbacks, transfers, sales, customers, error, loadAll } = useDataStore()
   const { user } = useAuthStore()
   const navigate = useNavigate()
+
+  useEffect(() => {
+    loadAll()
+  }, [loadAll])
 
   const today = useMemo(() => new Date(), [])
   const todayStr = today.toDateString()

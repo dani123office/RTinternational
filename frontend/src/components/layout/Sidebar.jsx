@@ -55,7 +55,19 @@ export default function Sidebar({ collapsed, onToggle, mobileOpen, onMobileClose
   const location = useLocation()
   const { user } = useAuthStore()
   const role = user?.role || 'agent'
-  const navItems = NAV_ITEMS[role] || NAV_ITEMS.agent
+  let navItems = NAV_ITEMS[role] || NAV_ITEMS.agent
+  if (role === 'agent' && user?.autoDialerEnabled) {
+    const attendanceIdx = navItems.findIndex(item => item.to === '/attendance')
+    if (attendanceIdx !== -1) {
+      navItems = [
+        ...navItems.slice(0, attendanceIdx + 1),
+        { to: '/dialer', icon: PhoneCall, label: 'Auto Dialer' },
+        ...navItems.slice(attendanceIdx + 1),
+      ]
+    } else {
+      navItems = [...navItems, { to: '/dialer', icon: PhoneCall, label: 'Auto Dialer' }]
+    }
+  }
   const [hoveredItem, setHoveredItem] = useState(null)
 
   const pendingTotalCount = useAdminStore((s) => s.pendingTotalCount)

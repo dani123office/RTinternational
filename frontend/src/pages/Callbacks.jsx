@@ -8,26 +8,31 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter, DialogClose } from '@/components/ui/dialog'
 import { useLoadingToast } from '@/hooks/useLoadingToast'
-import { Plus, PhoneCall, Loader2, Check, ArrowLeftRight, Calendar, Trash2, Clock, ArrowRight } from 'lucide-react'
+import { Plus, PhoneCall, Loader2, Check, ArrowLeftRight, Calendar, Trash2, Clock, ArrowRight, Download } from 'lucide-react'
 import { APP_STYLES } from '@/lib/styles'
+import { exportToCsv } from '@/lib/exportUtils'
+import { formatDualTime } from '@/lib/format'
 
 const FILTERS = [
-  { key: 'all', label: 'All' },
+  { key: 'all', label: 'All Active' },
   { key: 'overdue', label: 'Overdue' },
   { key: 'today', label: 'Today' },
   { key: 'upcoming', label: 'Upcoming' },
+  { key: 'archived', label: '60+ Days Old' },
 ]
 
 const DOT_COLORS = {
   overdue: { dot: '#ef4444', ring: 'rgba(239,68,68,0.15)' },
   today: { dot: '#f59e0b', ring: 'rgba(245,158,11,0.15)' },
   upcoming: { dot: '#6366f1', ring: 'rgba(99,102,241,0.15)' },
+  archived: { dot: '#94a3b8', ring: 'rgba(148,163,184,0.15)' },
 }
 
 const GROUP_META = {
   Overdue: { color: '#ef4444', bg: 'rgba(239,68,68,0.08)' },
   Today: { color: '#f59e0b', bg: 'rgba(245,158,11,0.08)' },
   Upcoming: { color: '#6366f1', bg: 'rgba(99,102,241,0.08)' },
+  Archived: { color: '#64748b', bg: 'rgba(100,116,139,0.08)' },
 }
 
 export default function Callbacks() {
@@ -39,7 +44,7 @@ export default function Callbacks() {
 
   useEffect(() => {
     const filterParam = searchParams.get('filter')
-    if (filterParam && ['all', 'overdue', 'today', 'upcoming'].includes(filterParam)) {
+    if (filterParam && ['all', 'overdue', 'today', 'upcoming', 'archived'].includes(filterParam)) {
       setActiveFilter(filterParam)
     }
   }, [searchParams])
@@ -60,19 +65,34 @@ export default function Callbacks() {
 
   const { grouped, counts, activeList } = useMemo(() => {
     const activeCallbacks = callbacks.filter((cb) => cb.status !== 'done' && cb.status !== 'not_interested')
-    const buckets = { overdue: [], today: [], upcoming: [] }
+    const buckets = { overdue: [], today: [], upcoming: [], archived: [] }
+    const sixtyDaysAgo = new Date()
+    sixtyDaysAgo.setDate(sixtyDaysAgo.getDate() - 60)
+
     activeCallbacks.forEach((cb) => {
       const d = new Date(cb.scheduledDateTime || cb.scheduledDate)
-      if (d.toDateString() === todayStr) buckets.today.push(cb)
-      else if (d < today) buckets.overdue.push(cb)
-      else buckets.upcoming.push(cb)
+      if (d < sixtyDaysAgo) {
+        buckets.archived.push(cb)
+      } else if (d.toDateString() === todayStr) {
+        buckets.today.push(cb)
+      } else if (d < today) {
+        buckets.overdue.push(cb)
+      } else {
+        buckets.upcoming.push(cb)
+      }
     })
     const sortByDate = (arr) => arr.sort((a, b) => new Date(a.scheduledDateTime || a.scheduledDate) - new Date(b.scheduledDateTime || b.scheduledDate))
-    const g = { overdue: sortByDate(buckets.overdue), today: sortByDate(buckets.today), upcoming: sortByDate(buckets.upcoming) }
+    const g = {
+      overdue: sortByDate(buckets.overdue),
+      today: sortByDate(buckets.today),
+      upcoming: sortByDate(buckets.upcoming),
+      archived: sortByDate(buckets.archived),
+    }
+    const nonArchivedCount = g.overdue.length + g.today.length + g.upcoming.length
     return {
       grouped: g,
-      counts: { all: activeCallbacks.length, overdue: g.overdue.length, today: g.today.length, upcoming: g.upcoming.length },
-      activeList: activeFilter === 'all' ? activeCallbacks : g[activeFilter] ?? activeCallbacks,
+      counts: { all: nonArchivedCount, overdue: g.overdue.length, today: g.today.length, upcoming: g.upcoming.length, archived: g.archived.length },
+      activeList: activeFilter === 'all' ? [...g.overdue, ...g.today, ...g.upcoming] : g[activeFilter] ?? activeCallbacks,
     }
   }, [callbacks, activeFilter, today, todayStr])
 
@@ -134,10 +154,10 @@ export default function Callbacks() {
           </div>
         </div>
         <div className="flex items-center gap-3 shrink-0 ml-2">
-          <div style={{display:'flex',alignItems:'center',gap:'6px',color:'#94a3b8',background:'#f8fafc',padding:'4px 10px',borderRadius:'8px',fontSize:'12px'}}>
-            <Clock size={12} />
-            {!isUrgent ? d.toLocaleDateString('en-GB', { day: 'numeric', month: 'short' }) + ', ' : ''}
-            {d.toLocaleTimeString('en-US', { timeZone: 'Europe/London', hour: 'numeric', minute: '2-digit', hour12: true })}
+          <div style={{display:'flex',alignItems:'center',gap:'6px',color:'#64748b',background:'#f8fafc',padding:'4px 10px',borderRadius:'8px',fontSize:'12px',fontWeight:500}}>
+            <Clock size={12} className="text-indigo-500" />
+            {!isUrgent ? d.toLocaleDateString('en-GB', { day: 'numeric', month: 'short' }) + ' · ' : ''}
+            {formatDualTime(cb.scheduledDateTime || cb.scheduledDate)}
           </div>
           <StatusBadge status={isOverdue ? 'overdue' : cb.status} type="callback" />
           <div style={{color:'#d1d5db',display:'flex'}}>
@@ -192,9 +212,32 @@ export default function Callbacks() {
               <h1 style={{fontSize:'22px',fontWeight:800,color:'#0f172a',letterSpacing:'-0.5px',margin:0}}>Callbacks</h1>
               <p style={{fontSize:'13px',color:'#64748b',margin:'3px 0 0'}}>Manage and track callbacks</p>
             </div>
-            <button onClick={() => navigate('/callbacks/add')} className="rt-btn-primary" style={{flex:'none',padding:'12px 24px',fontSize:'14px'}}>
-              <Plus size={16} /> Add Callback
-            </button>
+            <div className="flex items-center gap-2">
+              <button
+                type="button"
+                onClick={() => {
+                  const exportData = filtered.map(c => ({
+                    ID: c.id,
+                    BusinessName: c.customer?.businessName || 'N/A',
+                    OwnerName: c.customer?.ownerName || 'N/A',
+                    Phone: c.customer?.businessPhone || 'N/A',
+                    Postcode: c.customer?.postcode || 'N/A',
+                    ScheduledDate: c.scheduledDateTime ? c.scheduledDateTime.replace('T', ' ') : 'N/A',
+                    Status: c.status ? c.status.toUpperCase() : 'PENDING',
+                    Notes: c.notes || 'N/A'
+                  }))
+                  exportToCsv(exportData, `Callbacks_Export_${activeFilter}`)
+                }}
+                className="flex items-center gap-1.5 px-3 py-2.5 rounded-xl text-xs font-bold border border-slate-200 bg-white text-slate-700 hover:bg-slate-50 cursor-pointer shadow-sm"
+                title="Export Callbacks to CSV"
+              >
+                <Download size={14} /> Export CSV
+              </button>
+
+              <button onClick={() => navigate('/callbacks/add')} className="rt-btn-primary" style={{flex:'none',padding:'12px 24px',fontSize:'14px'}}>
+                <Plus size={16} /> Add Callback
+              </button>
+            </div>
           </div>
 
           <div className="rt-fade rt-d1" style={{display:'flex',gap:'8px',flexWrap:'wrap',marginBottom:'20px'}}>

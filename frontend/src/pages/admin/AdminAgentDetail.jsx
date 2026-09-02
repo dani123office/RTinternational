@@ -7,7 +7,7 @@ import EditStaffModal from '@/components/admin/EditStaffModal'
 import {
   ArrowLeft, User, ArrowLeftRight, PoundSterling,
   TrendingUp, Mail, Calendar, UserSquare2, CreditCard, Briefcase, DollarSign, Heart,
-  Clock, CalendarCheck, XCircle,
+  Clock, CalendarCheck, XCircle, PhoneCall,
 } from 'lucide-react'
 import { APP_STYLES } from '@/lib/styles'
 import DataTable from '@/components/shared/DataTable'
@@ -459,6 +459,29 @@ export default function AdminAgentDetail() {
                       <p style={{ fontSize: '13px', fontWeight: 600, color: '#0f172a', margin: 0 }}>{agent.jobCadre}</p>
                     </div>
                   )}
+                  <div>
+                    <p style={{ fontSize: '10px', fontWeight: 700, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.5px', margin: '0 0 3px' }}>Shift Timing (PKT)</p>
+                    <p style={{ fontSize: '13px', fontWeight: 700, color: '#4f46e5', margin: 0, display: 'flex', alignItems: 'center', gap: '5px', flexWrap: 'wrap' }}>
+                      <Clock size={13} className="text-indigo-600 inline shrink-0" />
+                      <span>{agent.shiftStartTime || '14:00'} — {agent.shiftEndTime || '22:00'}</span>
+                      <span className="text-[11px] font-semibold text-slate-500">
+                        (Late after {(() => {
+                          const [h, m] = (agent.shiftStartTime || '14:00').split(':').map(Number)
+                          const total = h * 60 + m + 15
+                          return `${String(Math.floor(total / 60) % 24).padStart(2, '0')}:${String(total % 60).padStart(2, '0')}`
+                        })()})
+                      </span>
+                    </p>
+                  </div>
+                  <div>
+                    <p style={{ fontSize: '10px', fontWeight: 700, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.5px', margin: '0 0 3px' }}>Auto Dialer Access</p>
+                    <p style={{ fontSize: '13px', fontWeight: 700, margin: 0, display: 'flex', alignItems: 'center', gap: '6px' }}>
+                      <PhoneCall size={14} className={agent.autoDialerEnabled ? "text-emerald-600" : "text-slate-400"} />
+                      <span className={agent.autoDialerEnabled ? "text-emerald-700 bg-emerald-50 border border-emerald-200 px-2 py-0.5 rounded-md text-xs font-bold" : "text-slate-500 bg-slate-100 border border-slate-200 px-2 py-0.5 rounded-md text-xs font-semibold"}>
+                        {agent.autoDialerEnabled ? 'Active / Enabled' : 'Disabled'}
+                      </span>
+                    </p>
+                  </div>
                 </div>
               </div>
             </div>

@@ -2,7 +2,8 @@ import { useEffect, useState, useRef } from 'react'
 import api, { endpoints } from '@/lib/api'
 import { useAuthStore } from '@/store/authStore'
 import { APP_STYLES } from '@/lib/styles'
-import { Download, Filter, CalendarDays, ChevronLeft, ChevronRight, Clock } from 'lucide-react'
+import { Download, Filter, CalendarDays, ChevronLeft, ChevronRight, Clock, Pencil } from 'lucide-react'
+import EditAttendanceModal from '@/components/manager/EditAttendanceModal'
 
 export default function AttendanceFeed() {
   const { user } = useAuthStore()
@@ -11,6 +12,7 @@ export default function AttendanceFeed() {
   const [data, setData] = useState({ items: [], total: 0, page: 1, totalPages: 0 })
   const [loading, setLoading] = useState(false)
   const [employees, setEmployees] = useState([])
+  const [editingRecord, setEditingRecord] = useState(null)
 
   const [fromDate, setFromDate] = useState(() => {
     const d = new Date(); return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-01`
@@ -170,6 +172,49 @@ export default function AttendanceFeed() {
             </div>
           </div>
 
+          {/* Stat Cards */}
+          <div className="grid grid-cols-1 sm:grid-cols-4 gap-3 mb-6">
+            <div className="rt-card p-4 rounded-xl flex items-center justify-between" style={{ background: '#dcfce7', border: '1px solid #16a34a20' }}>
+              <div>
+                <p className="text-xs font-semibold text-emerald-700 uppercase tracking-wide">Present</p>
+                <p className="text-2xl font-extrabold text-emerald-800">{data.summary?.presentCount ?? 0}</p>
+              </div>
+              <div className="w-9 h-9 rounded-lg flex items-center justify-center" style={{ background: '#ffffff80' }}>
+                <Clock size={16} color="#16a34a" />
+              </div>
+            </div>
+
+            <div className="rt-card p-4 rounded-xl flex items-center justify-between" style={{ background: '#fef3c7', border: '1px solid #d9770620' }}>
+              <div>
+                <p className="text-xs font-semibold text-amber-700 uppercase tracking-wide">Late</p>
+                <p className="text-2xl font-extrabold text-amber-800">{data.summary?.lateCount ?? 0}</p>
+              </div>
+              <div className="w-9 h-9 rounded-lg flex items-center justify-center" style={{ background: '#ffffff80' }}>
+                <Clock size={16} color="#d97706" />
+              </div>
+            </div>
+
+            <div className="rt-card p-4 rounded-xl flex items-center justify-between" style={{ background: '#fee2e2', border: '1px solid #dc262620' }}>
+              <div>
+                <p className="text-xs font-semibold text-rose-700 uppercase tracking-wide">Absent</p>
+                <p className="text-2xl font-extrabold text-rose-800">{data.summary?.absentCount ?? 0}</p>
+              </div>
+              <div className="w-9 h-9 rounded-lg flex items-center justify-center" style={{ background: '#ffffff80' }}>
+                <Clock size={16} color="#dc2626" />
+              </div>
+            </div>
+
+            <div className="rt-card p-4 rounded-xl flex items-center justify-between" style={{ background: '#eef2ff', border: '1px solid #6366f120' }}>
+              <div>
+                <p className="text-xs font-semibold text-indigo-700 uppercase tracking-wide">Total Entries</p>
+                <p className="text-2xl font-extrabold text-indigo-800">{data.total ?? 0}</p>
+              </div>
+              <div className="w-9 h-9 rounded-lg flex items-center justify-center" style={{ background: '#ffffff80' }}>
+                <Clock size={16} color="#6366f1" />
+              </div>
+            </div>
+          </div>
+
           <div className="rt-card rt-fade">
             <div className="rt-card-header">
               <div>
@@ -193,13 +238,14 @@ export default function AttendanceFeed() {
                       <th className="text-left px-4 py-3">Check Out</th>
                       <th className="text-left px-4 py-3">Check-in Reason</th>
                       <th className="text-left px-4 py-3">Check-out Reason</th>
+                      <th className="text-right px-4 py-3">Action</th>
                     </tr>
                   </thead>
                   <tbody>
-                    {data.items.map((r) => {
+                    {data.items.map((r, idx) => {
                       const s = statusStyle[r.status] || statusStyle.absent
                       return (
-                        <tr key={r.id} className="border-b border-slate-100 hover:bg-slate-50 transition-colors">
+                        <tr key={r.id ? `${r.id}-${r.userId}-${r.date}` : `syn-${idx}-${r.userId}-${r.date}`} className="border-b border-slate-100 hover:bg-slate-50 transition-colors">
                           <td className="px-4 py-3.5 font-semibold text-slate-800">{formatDate(r.date)}</td>
                           <td className="px-4 py-3.5">
                             <div className="font-semibold text-slate-900">{r.userName}</div>
@@ -218,6 +264,16 @@ export default function AttendanceFeed() {
                           </td>
                           <td className="px-4 py-3.5 text-slate-500 text-xs max-w-[130px] truncate" title={r.checkout_reason || ''}>
                             {r.checkout_reason || '-'}
+                          </td>
+                          <td className="px-4 py-3.5 text-right">
+                            <button
+                              onClick={() => setEditingRecord(r)}
+                              className="inline-flex items-center gap-1 px-2.5 py-1 text-xs font-semibold rounded-lg bg-blue-50 text-blue-600 hover:bg-blue-100 dark:bg-blue-900/30 dark:text-blue-400 transition-colors"
+                              title="Edit Attendance"
+                            >
+                              <Pencil size={12} />
+                              Edit
+                            </button>
                           </td>
                         </tr>
                       )
@@ -252,6 +308,13 @@ export default function AttendanceFeed() {
           </div>
         </div>
       </div>
+
+      <EditAttendanceModal
+        isOpen={!!editingRecord}
+        onClose={() => setEditingRecord(null)}
+        record={editingRecord}
+        onSaved={() => handleFilter()}
+      />
     </>
   )
 }

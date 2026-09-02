@@ -1,6 +1,6 @@
 import io
 from calendar import monthrange
-from datetime import datetime, date, timedelta
+from datetime import datetime, date, time, timedelta
 from fastapi import APIRouter, Depends, HTTPException, Query, Request, Response
 from sqlalchemy.orm import Session
 from sqlalchemy import func
@@ -9,7 +9,7 @@ from ..database import get_db
 from ..models import User, Attendance
 from .auth import get_current_user
 from pydantic import BaseModel
-from ..schemas import AttendanceCheckIn, AttendanceCheckOut, AttendanceOut, AttendanceSummary, UserAttendanceToday, LateArrivalReport
+from ..schemas import AttendanceCheckIn, AttendanceCheckOut, AttendanceManualUpdate, AttendanceOut, AttendanceSummary, UserAttendanceToday, LateArrivalReport
 import openpyxl
 from openpyxl.styles import Font, PatternFill, Alignment, Border, Side
 
@@ -84,9 +84,17 @@ def get_today_attendance(
         Attendance.date == today,
     ).first()
 
-    if record and record.check_in and not record.check_out and now.hour >= 22:
+    end_hour = 22
+    custom_end = getattr(current_user, "shift_end_time", None)
+    if custom_end and ":" in str(custom_end):
+        try:
+            end_hour = int(str(custom_end).strip().split(":")[0])
+        except Exception:
+            end_hour = 22
+
+    if record and record.check_in and not record.check_out and now.hour >= end_hour:
         record.check_out = now
-        record.checkout_reason = (record.checkout_reason or "") + (" | " if record.checkout_reason else "") + "Auto check-out at 10 PM"
+        record.checkout_reason = (record.checkout_reason or "") + (" | " if record.checkout_reason else "") + f"Auto check-out at {end_hour}:00"
         record.updated_at = now
         db.commit()
         db.refresh(record)
@@ -119,12 +127,26 @@ def check_in(
     if existing and existing.check_in:
         raise HTTPException(status_code=400, detail="Already checked in today")
 
-    # determine weekday-specific threshold
-    wd = now.weekday()  # 0=Mon ... 4=Fri
-    if wd == 4:
-        th_h, th_m = LATE_THRESHOLD_FRIDAY
+    # determine shift threshold: custom agent shift or default Mon-Thu 14:15 / Fri 15:15
+    custom_shift = getattr(current_user, "shift_start_time", None)
+    if custom_shift and ":" in str(custom_shift):
+        try:
+            parts = str(custom_shift).strip().split(":")
+            sh_h = int(parts[0])
+            sh_m = int(parts[1])
+            # Late threshold is 15 minutes after shift start time
+            grace_total = sh_h * 60 + sh_m + 15
+            th_h = (grace_total // 60) % 24
+            th_m = grace_total % 60
+        except Exception:
+            wd = now.weekday()
+            th_h, th_m = LATE_THRESHOLD_FRIDAY if wd == 4 else LATE_THRESHOLD_MON_THU
     else:
-        th_h, th_m = LATE_THRESHOLD_MON_THU
+        wd = now.weekday()  # 0=Mon ... 4=Fri
+        if wd == 4:
+            th_h, th_m = LATE_THRESHOLD_FRIDAY
+        else:
+            th_h, th_m = LATE_THRESHOLD_MON_THU
 
     is_late = now.hour > th_h or (now.hour == th_h and now.minute > th_m)
     status = "late" if is_late else "present"
@@ -186,6 +208,15 @@ def check_out(
         raise HTTPException(status_code=400, detail="Already checked out today")
 
     record.check_out = now
+    if record.check_in:
+        diff_minutes = (now - record.check_in).total_seconds() / 60
+        if diff_minutes < 240:
+            record.status = "half_day"
+            h_worked = int(diff_minutes // 60)
+            m_worked = int(diff_minutes % 60)
+            half_day_note = f"Half Day ({h_worked}h {m_worked}m worked)"
+            record.checkout_reason = (record.checkout_reason or "") + (" | " if record.checkout_reason else "") + half_day_note
+
     if dto.checkout_reason is not None:
         record.checkout_reason = (record.checkout_reason or "") + (" | " if record.checkout_reason else "") + dto.checkout_reason
     record.updated_at = now
@@ -341,14 +372,27 @@ def my_stats(
     present = 0
     late = 0
     absent = 0
+    half_day = 0
+    total_minutes_worked = 0
+    now_ts = _now_pkt()
 
     for wd in working_days:
         if wd in att_map:
-            st = att_map[wd].status
+            rec = att_map[wd]
+            st = rec.status
+            if rec.check_in and rec.check_out:
+                mins = max(0, int((rec.check_out - rec.check_in).total_seconds() / 60))
+                total_minutes_worked += mins
+            elif rec.check_in and wd == today:
+                mins = max(0, int((now_ts - rec.check_in).total_seconds() / 60))
+                total_minutes_worked += mins
+
             if st == "present":
                 present += 1
             elif st == "late":
                 late += 1
+            elif st == "half_day":
+                half_day += 1
             elif st == "absent":
                 absent += 1
             else:
@@ -356,11 +400,18 @@ def my_stats(
         else:
             absent += 1
 
+    total_days = len(working_days)
+    score = round(((present + late + 0.5 * half_day) / total_days * 100), 1) if total_days > 0 else 100.0
+    total_hours_str = f"{total_minutes_worked // 60}h {total_minutes_worked % 60}m"
+
     return AttendanceSummary(
         presentCount=present,
         lateCount=late,
         absentCount=absent,
-        totalDays=len(working_days),
+        halfDayCount=half_day,
+        totalDays=total_days,
+        attendanceScore=score,
+        totalHoursWorked=total_hours_str,
     )
 
 
@@ -472,45 +523,106 @@ def attendance_feed(
     if current_user.role not in ("manager", "admin"):
         raise HTTPException(status_code=403, detail="Only managers and admins can view attendance feed")
 
-    query = db.query(Attendance, User).join(User, Attendance.user_id == User.id).filter(User.is_active == True)
-
-    if current_user.role == "manager":
-        query = query.filter(User.manager_id == current_user.id, User.role == "agent")
-
-    query = query.filter(Attendance.date >= from_date, Attendance.date <= to_date)
-
+    # Determine scoped agents
     if employee_id:
-        query = query.filter(Attendance.user_id == employee_id)
+        scoped_agents = db.query(User).filter(User.id == employee_id, User.is_active == True).all()
+        if current_user.role == "manager":
+            scoped_agents = [ag for ag in scoped_agents if ag.manager_id == current_user.id]
+    else:
+        if current_user.role == "manager":
+            scoped_agents = db.query(User).filter(User.manager_id == current_user.id, User.role == "agent", User.is_active == True).all()
+        else:
+            scoped_agents = db.query(User).filter(User.role == "agent", User.is_active == True).all()
 
-    total = query.with_entities(func.count()).scalar()
-    rows = query.order_by(Attendance.date.desc(), User.name.asc()).offset(
-        (page - 1) * per_page
-    ).limit(per_page).all()
+    today = _today_pkt()
+    eff_to = min(to_date, today)
 
-    items = [
-        AttendanceFeedItem(
-            id=a.id,
-            userId=a.user_id,
-            userName=u.name,
-            userEmail=u.email,
-            date=a.date,
-            checkIn=a.check_in,
-            checkOut=a.check_out,
-            status=a.status,
-            checkin_reason=a.checkin_reason,
-            checkout_reason=a.checkout_reason,
-            expected_arrival_time=a.expected_arrival_time.strftime("%H:%M") if a.expected_arrival_time else None,
-            late_arrival_reason=a.late_arrival_reason,
-        )
-        for a, u in rows
-    ]
+    all_feed_items = []
+    agent_map = {ag.id: ag for ag in scoped_agents}
+
+    # Query all physical attendance rows for scoped agents in date range
+    if scoped_agents:
+        scoped_ids = [ag.id for ag in scoped_agents]
+        physical_rows = db.query(Attendance).filter(
+            Attendance.user_id.in_(scoped_ids),
+            Attendance.date >= from_date,
+            Attendance.date <= to_date
+        ).all()
+    else:
+        physical_rows = []
+
+    # Map existing records by (user_id, date)
+    att_by_user_date = {}
+    for a in physical_rows:
+        att_by_user_date[(a.user_id, a.date)] = a
+        u = agent_map.get(a.user_id)
+        if u:
+            all_feed_items.append(
+                AttendanceFeedItem(
+                    id=a.id,
+                    userId=a.user_id,
+                    userName=u.name,
+                    userEmail=u.email,
+                    date=a.date,
+                    checkIn=a.check_in,
+                    checkOut=a.check_out,
+                    status=a.status,
+                    checkin_reason=a.checkin_reason,
+                    checkout_reason=a.checkout_reason,
+                    expected_arrival_time=a.expected_arrival_time.strftime("%H:%M") if a.expected_arrival_time else None,
+                    late_arrival_reason=a.late_arrival_reason,
+                )
+            )
+
+    # Synthesize absent entries for past working days without check-ins
+    for ag in scoped_agents:
+        join_d = ag.created_at.date() if ag.created_at else from_date
+        eff_start = max(from_date, join_d)
+        if eff_start <= eff_to:
+            curr = eff_start
+            while curr <= eff_to:
+                if curr.weekday() < 5:
+                    if (ag.id, curr) not in att_by_user_date:
+                        all_feed_items.append(
+                            AttendanceFeedItem(
+                                id=0,
+                                userId=ag.id,
+                                userName=ag.name,
+                                userEmail=ag.email,
+                                date=curr,
+                                checkIn=None,
+                                checkOut=None,
+                                status="absent",
+                                checkin_reason="Absent (No check-in)",
+                                checkout_reason=None,
+                                expected_arrival_time=None,
+                                late_arrival_reason=None,
+                            )
+                        )
+                curr += timedelta(days=1)
+
+    # Sort all feed items by date desc, then user name asc
+    all_feed_items.sort(key=lambda x: (x.date, x.userName or ""), reverse=True)
+
+    present_count = sum(1 for item in all_feed_items if item.status == "present")
+    late_count = sum(1 for item in all_feed_items if item.status == "late")
+    absent_count = sum(1 for item in all_feed_items if item.status == "absent")
+    total = len(all_feed_items)
+
+    paginated = all_feed_items[(page - 1) * per_page : page * per_page]
 
     return {
-        "items": items,
+        "items": paginated,
         "total": total,
         "page": page,
         "perPage": per_page,
         "totalPages": (total + per_page - 1) // per_page if total else 0,
+        "summary": {
+            "presentCount": present_count,
+            "lateCount": late_count,
+            "absentCount": absent_count,
+            "totalRecords": total,
+        }
     }
 
 
@@ -652,3 +764,101 @@ def late_arrivals(
         "perPage": per_page,
         "totalPages": (total + per_page - 1) // per_page if total else 0,
     }
+
+
+def _parse_time_str(time_str: Optional[str], target_date: date) -> Optional[datetime]:
+    if not time_str or not time_str.strip():
+        return None
+    s = time_str.strip()
+    try:
+        if "T" in s or " " in s:
+            return datetime.fromisoformat(s.replace("Z", ""))
+    except Exception:
+        pass
+    parts = s.split(":")
+    if len(parts) >= 2:
+        try:
+            h = int(parts[0])
+            m = int(parts[1])
+            sec = int(parts[2]) if len(parts) > 2 else 0
+            return datetime.combine(target_date, time(h, m, sec))
+        except Exception:
+            pass
+    return None
+
+
+@router.put("/manual-update")
+@router.post("/manual-update")
+def manual_update_attendance(
+    dto: AttendanceManualUpdate,
+    request: Request,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    if current_user.role not in ("manager", "admin"):
+        raise HTTPException(status_code=403, detail="Only managers and admins can edit attendance records")
+
+    target_agent = db.query(User).filter(User.id == dto.userId).first()
+    if not target_agent:
+        raise HTTPException(status_code=404, detail="Agent not found")
+
+    if current_user.role == "manager" and target_agent.manager_id != current_user.id:
+        raise HTTPException(status_code=403, detail="You can only edit attendance for your own team members")
+
+    record = db.query(Attendance).filter(
+        Attendance.user_id == dto.userId,
+        Attendance.date == dto.date
+    ).first()
+
+    parsed_check_in = _parse_time_str(dto.checkIn, dto.date) if dto.checkIn is not None else None
+    parsed_check_out = _parse_time_str(dto.checkOut, dto.date) if dto.checkOut is not None else None
+
+    new_status = dto.status
+    if not new_status:
+        if parsed_check_in:
+            new_status = "present"
+        else:
+            new_status = "absent"
+
+    if not record:
+        now_utc = _now_pkt()
+        record = Attendance(
+            user_id=dto.userId,
+            date=dto.date,
+            check_in=parsed_check_in,
+            check_out=parsed_check_out,
+            status=new_status,
+            checkin_reason=dto.checkin_reason or ("Manual Entry" if parsed_check_in else "Absent (No check-in)"),
+            checkout_reason=dto.checkout_reason,
+            created_at=now_utc,
+            updated_at=now_utc,
+        )
+        db.add(record)
+        action_verb = "created_manual"
+    else:
+        if dto.checkIn is not None:
+            record.check_in = parsed_check_in
+        if dto.checkOut is not None:
+            record.check_out = parsed_check_out
+        if dto.status:
+            record.status = dto.status
+        elif parsed_check_in is None and record.check_in is None:
+            record.status = "absent"
+
+        if dto.checkin_reason is not None:
+            record.checkin_reason = dto.checkin_reason
+        if dto.checkout_reason is not None:
+            record.checkout_reason = dto.checkout_reason
+        record.updated_at = _now_pkt()
+        action_verb = "updated_manual"
+
+    db.commit()
+    db.refresh(record)
+
+    log_activity(
+        db, current_user.id, action_verb, "attendance", record.id,
+        f"{current_user.name} adjusted attendance for {target_agent.name} on {dto.date} (Status: {record.status})",
+        get_client_ip(request),
+    )
+
+    return _attendance_to_out(record)

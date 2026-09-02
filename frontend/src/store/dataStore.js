@@ -21,9 +21,10 @@ export const useDataStore = create((set, get) => ({
     set({ isLoading: true, error: null })
     try {
       const res = await api.get(endpoints.callbacks, { params })
-      set({ callbacks: extractData(res), isLoading: false })
+      const data = extractData(res)
+      set({ callbacks: Array.isArray(data) ? data : [], isLoading: false })
     } catch (err) {
-      set({ error: getError(err) || 'Failed to load callbacks', isLoading: false })
+      set({ error: getError(err) || 'Failed to load callbacks', callbacks: [], isLoading: false })
     }
   },
 
@@ -50,9 +51,10 @@ export const useDataStore = create((set, get) => ({
     set({ isLoading: true, error: null })
     try {
       const res = await api.get(endpoints.transfers, { params })
-      set({ transfers: extractData(res), isLoading: false })
+      const data = extractData(res)
+      set({ transfers: Array.isArray(data) ? data : [], isLoading: false })
     } catch (err) {
-      set({ error: getError(err) || 'Failed to load transfers', isLoading: false })
+      set({ error: getError(err) || 'Failed to load transfers', transfers: [], isLoading: false })
     }
   },
 
@@ -79,9 +81,10 @@ export const useDataStore = create((set, get) => ({
     set({ isLoading: true, error: null })
     try {
       const res = await api.get(endpoints.sales, { params })
-      set({ sales: extractData(res), isLoading: false })
+      const data = extractData(res)
+      set({ sales: Array.isArray(data) ? data : [], isLoading: false })
     } catch (err) {
-      set({ error: getError(err) || 'Failed to load sales', isLoading: false })
+      set({ error: getError(err) || 'Failed to load sales', sales: [], isLoading: false })
     }
   },
 
@@ -108,9 +111,10 @@ export const useDataStore = create((set, get) => ({
     set({ isLoading: true, error: null })
     try {
       const res = await api.get(endpoints.customers, { params })
-      set({ customers: extractData(res), isLoading: false })
+      const data = extractData(res)
+      set({ customers: Array.isArray(data) ? data : [], isLoading: false })
     } catch (err) {
-      set({ error: getError(err) || 'Failed to load customers', isLoading: false })
+      set({ error: getError(err) || 'Failed to load customers', customers: [], isLoading: false })
     }
   },
 

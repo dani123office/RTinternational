@@ -18,6 +18,8 @@ import UtilityTypeSelector from '@/components/UtilityTypeSelector'
 import ElectricityMeterSection from '@/components/ElectricityMeterSection'
 import GasMeterSection from '@/components/GasMeterSection'
 import AiFormFiller from '@/components/AiFormFiller'
+import { useDuplicateCheck } from '@/hooks/useDuplicateCheck'
+import DuplicateWarningBanner from '@/components/shared/DuplicateWarningBanner'
 
 // ─── Data Initialization Models ─────────────────────────────────────────────
 const DEFAULT_ELEC_METER = { currentSupplier:'',supplyNumber:'',meterSerial:'',accountNumber:'',dayUnitRate:'',nightUnitRate:'',eveningUnitRate:'',standingRate:'',monthlyBill:'',contractEndDate:'' }
@@ -180,6 +182,12 @@ export default function AddCallback() {
     return initState()
   })
   const callbackData = localCallback || (isEdit ? callbacks.find((c) => c.id === Number(id)) : null)
+
+  const { duplicateWarning, isChecking } = useDuplicateCheck(
+    !isEdit ? form.postcode : null,
+    !isEdit ? form.businessPhone : null,
+    !isEdit ? form.businessName : null
+  )
 
   const upd = useCallback((field, value) => setForm((p) => ({...p, [field]:value})), [])
 
@@ -414,6 +422,7 @@ export default function AddCallback() {
           </div>
 
           <form onSubmit={handleSubmit} style={{display:'flex', flexDirection:'column', gap:'4px'}}>
+            <DuplicateWarningBanner warning={duplicateWarning} isChecking={isChecking} />
 
             {/* Business Information Card */}
             <DashboardCard icon={Building2} iconColor="#4f46e5" iconBg="#f5f3ff" title="Business Details" delay="rt-d1">

@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useMemo } from 'react'
 import { useManagerStore } from '@/store/managerStore'
 import { UsersRound, Search } from 'lucide-react'
 import { APP_STYLES } from '@/lib/styles'
@@ -12,15 +12,60 @@ import { BarChart3, PhoneCall, ArrowLeftRight, PoundSterling } from 'lucide-reac
 export default function ManagerAgentsList() {
   const { agents, teamStats, loadAgents, loadTeamStats, isLoading } = useManagerStore()
   const [search, setSearch] = useState('')
-  const [timeframe, setTimeframe] = useState('all_time')
+
+  const [selectedMonth, setSelectedMonth] = useState(() => {
+    const saved = localStorage.getItem('managerSelectedMonth') || localStorage.getItem('adminSelectedMonth')
+    if (saved) return saved
+    const d = new Date()
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`
+  })
+
+  useEffect(() => {
+    localStorage.setItem('managerSelectedMonth', selectedMonth)
+  }, [selectedMonth])
+
+  const monthsList = useMemo(() => {
+    const list = []
+    const d = new Date()
+    for (let i = 0; i < 12; i++) {
+      const year = d.getFullYear()
+      const month = d.getMonth() + 1
+      const label = d.toLocaleString('en-US', { month: 'long', year: 'numeric' })
+      const value = `${year}-${String(month).padStart(2, '0')}`
+      list.push({ value, label, year, month })
+      d.setMonth(d.getMonth() - 1)
+    }
+    list.push({ value: 'all', label: 'All Time', year: null, month: null })
+    return list
+  }, [])
+
+  const { filterYear, filterMonth } = useMemo(() => {
+    if (selectedMonth === 'all') return { filterYear: null, filterMonth: null }
+    const [y, m] = selectedMonth.split('-').map(Number)
+    return { filterYear: y, filterMonth: m }
+  }, [selectedMonth])
+
+  const handleMonthChange = (val) => {
+    setSelectedMonth(val)
+    const params = {}
+    if (val !== 'all') {
+      const [y, m] = val.split('-').map(Number)
+      params.year = y
+      params.month = m
+    }
+    loadTeamStats(params)
+  }
 
   useEffect(() => {
     loadAgents()
   }, [loadAgents])
 
   useEffect(() => {
-    loadTeamStats({ timeframe })
-  }, [loadTeamStats, timeframe])
+    const params = {}
+    if (filterYear) params.year = filterYear
+    if (filterMonth) params.month = filterMonth
+    loadTeamStats(params)
+  }, [loadTeamStats, filterYear, filterMonth])
 
   const filtered = agents.filter(a =>
     !search || a.name?.toLowerCase().includes(search.toLowerCase()) || a.email?.toLowerCase().includes(search.toLowerCase())
@@ -51,15 +96,17 @@ export default function ManagerAgentsList() {
             </div>
 
             <div className="flex items-center gap-2">
-              <span className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Timeframe:</span>
+              <span className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Month:</span>
               <select
-                value={timeframe}
-                onChange={(e) => setTimeframe(e.target.value)}
+                value={selectedMonth}
+                onChange={(e) => handleMonthChange(e.target.value)}
                 className="bg-white border border-slate-200 rounded-xl px-3 py-1.5 text-sm font-medium text-slate-700 outline-none focus:border-indigo-500 cursor-pointer shadow-sm"
               >
-                <option value="all_time">All Time</option>
-                <option value="this_week">This Week</option>
-                <option value="today">Today</option>
+                {monthsList.map((m) => (
+                  <option key={m.value} value={m.value}>
+                    {m.label}
+                  </option>
+                ))}
               </select>
             </div>
           </div>

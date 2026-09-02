@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { X, User, Mail, Lock, Briefcase, CreditCard, Phone, Building2, BadgePercent, Calendar, Heart, Users } from 'lucide-react'
+import { X, User, Mail, Lock, Briefcase, CreditCard, Phone, PhoneCall, Building2, BadgePercent, Calendar, Heart, Users, Clock } from 'lucide-react'
 
 const formatCNIC = (value) => {
   if (!value) return value;
@@ -20,6 +20,8 @@ export default function CreateAgentModal({ isOpen, onClose, onSave, managers }) 
     department: '', designation: '', dateOfBirth: '', dateOfJoining: '',
     emergContactName: '', emergContactNumber: '',
     bankName: '', bankAccountNumber: '', jobCadre: 'Full time',
+    shiftStartTime: '14:00', shiftEndTime: '22:00',
+    autoDialerEnabled: false,
     deviceUserId: '',
   })
   const [loading, setLoading] = useState(false)
@@ -43,6 +45,7 @@ export default function CreateAgentModal({ isOpen, onClose, onSave, managers }) 
         department: '', designation: '', dateOfBirth: '', dateOfJoining: '',
         emergContactName: '', emergContactNumber: '',
         bankName: '', bankAccountNumber: '', jobCadre: 'Full time',
+        shiftStartTime: '14:00', shiftEndTime: '22:00',
         deviceUserId: '',
       })
       onClose()
@@ -167,29 +170,116 @@ export default function CreateAgentModal({ isOpen, onClose, onSave, managers }) 
             </div>
           </div>
 
-          <div>
-            <label className="rt-label flex items-center gap-1.5"><Briefcase size={13} /> Job Cadre</label>
-            <select value={form.jobCadre} onChange={set('jobCadre')} className="rt-input">
-              <option value="Full time">Full time</option>
-              <option value="Part time">Part time</option>
-              <option value="Contract">Contract</option>
-              <option value="Internship">Internship</option>
-            </select>
+          <div className="rt-grid2">
+            <div>
+              <label className="rt-label flex items-center gap-1.5"><Briefcase size={13} /> Job Cadre</label>
+              <select value={form.jobCadre} onChange={set('jobCadre')} className="rt-input">
+                <option value="Full time">Full time</option>
+                <option value="Part time">Part time</option>
+                <option value="Contract">Contract</option>
+                <option value="Internship">Internship</option>
+              </select>
+            </div>
+            <div>
+              <label className="rt-label flex items-center gap-1.5"><Users size={13} /> Assigned Manager *</label>
+              <select
+                value={form.managerId}
+                onChange={set('managerId')}
+                disabled={noManagers}
+                className="rt-input"
+              >
+                <option value="">{noManagers ? 'No managers available' : 'Select a manager...'}</option>
+                {(managers || []).map(m => (
+                  <option key={m.id} value={m.id}>{m.name} ({m.teamSize || 0} agents)</option>
+                ))}
+              </select>
+            </div>
           </div>
 
-          <div>
-            <label className="rt-label flex items-center gap-1.5"><Users size={13} /> Assigned Manager *</label>
-            <select
-              value={form.managerId}
-              onChange={set('managerId')}
-              disabled={noManagers}
-              className="rt-input"
-            >
-              <option value="">{noManagers ? 'No managers available' : 'Select a manager...'}</option>
-              {(managers || []).map(m => (
-                <option key={m.id} value={m.id}>{m.name} ({m.teamSize || 0} agents)</option>
-              ))}
-            </select>
+          {/* Shift Timing Configuration */}
+          <div className="p-3.5 rounded-xl bg-slate-50 border border-slate-200/80 flex flex-col gap-2.5">
+            <div className="flex items-center justify-between">
+              <label className="text-xs font-bold text-slate-800 flex items-center gap-1.5">
+                <Clock size={14} className="text-indigo-600" /> Shift Hours (PKT) & Late Rules
+              </label>
+              <span className="text-[11px] font-semibold text-slate-500">
+                Late after: <strong className="text-indigo-600">
+                  {(() => {
+                    if (!form.shiftStartTime || !form.shiftStartTime.includes(':')) return '14:15'
+                    const [h, m] = form.shiftStartTime.split(':').map(Number)
+                    const total = h * 60 + m + 15
+                    return `${String(Math.floor(total / 60) % 24).padStart(2, '0')}:${String(total % 60).padStart(2, '0')}`
+                  })()}
+                </strong>
+              </span>
+            </div>
+            
+            <div className="rt-grid2">
+              <div>
+                <label className="text-[11px] font-semibold text-slate-600 mb-1 block">Shift Start Time</label>
+                <input
+                  type="time"
+                  value={form.shiftStartTime || '14:00'}
+                  onChange={set('shiftStartTime')}
+                  className="rt-input text-xs font-semibold"
+                />
+              </div>
+              <div>
+                <label className="text-[11px] font-semibold text-slate-600 mb-1 block">Shift End Time</label>
+                <input
+                  type="time"
+                  value={form.shiftEndTime || '22:00'}
+                  onChange={set('shiftEndTime')}
+                  className="rt-input text-xs font-semibold"
+                />
+              </div>
+            </div>
+
+            <div className="flex items-center gap-1.5 flex-wrap pt-1">
+              <span className="text-[10px] font-semibold text-slate-400">Presets:</span>
+              <button
+                type="button"
+                onClick={() => setForm({ ...form, shiftStartTime: '14:00', shiftEndTime: '22:00', jobCadre: 'Full time' })}
+                className="text-[10px] font-semibold px-2 py-0.5 rounded bg-white border border-slate-200 text-slate-700 hover:border-indigo-400 transition-colors cursor-pointer"
+              >
+                Full Time (2 PM – 10 PM)
+              </button>
+              <button
+                type="button"
+                onClick={() => setForm({ ...form, shiftStartTime: '17:00', shiftEndTime: '22:00', jobCadre: 'Part time' })}
+                className="text-[10px] font-semibold px-2 py-0.5 rounded bg-white border border-slate-200 text-slate-700 hover:border-indigo-400 transition-colors cursor-pointer"
+              >
+                Part Time Evening (5 PM – 10 PM)
+              </button>
+              <button
+                type="button"
+                onClick={() => setForm({ ...form, shiftStartTime: '18:00', shiftEndTime: '23:00', jobCadre: 'Part time' })}
+                className="text-[10px] font-semibold px-2 py-0.5 rounded bg-white border border-slate-200 text-slate-700 hover:border-indigo-400 transition-colors cursor-pointer"
+              >
+                Part Time Late (6 PM – 11 PM)
+              </button>
+            </div>
+          </div>
+
+          {/* Auto Dialer Permission Toggle */}
+          <div className="p-4 rounded-xl border border-slate-200 bg-slate-50/50 flex items-center justify-between">
+            <div>
+              <label className="text-xs font-bold text-slate-800 flex items-center gap-1.5">
+                <PhoneCall size={14} className="text-indigo-600" /> Enable Auto Dialer
+              </label>
+              <p className="text-[11px] text-slate-500 m-0 mt-0.5">
+                Grant this agent access to the Auto Dialer campaign calling feature.
+              </p>
+            </div>
+            <label className="relative inline-flex items-center cursor-pointer">
+              <input
+                type="checkbox"
+                checked={form.autoDialerEnabled}
+                onChange={(e) => setForm({ ...form, autoDialerEnabled: e.target.checked })}
+                className="sr-only peer"
+              />
+              <div className="w-10 h-5 bg-slate-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-indigo-600"></div>
+            </label>
           </div>
         </div>
         <div className="flex items-center justify-end gap-2 px-6 py-4 border-t border-slate-100">

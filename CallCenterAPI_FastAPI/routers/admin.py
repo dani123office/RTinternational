@@ -11,7 +11,7 @@ from ..database import get_db
 from ..models import User, Customer, CallBack, Transfer, Sale, ActivityLog, Attendance, LeaveRequest, LoanRequest, Notification, EmailVerification, StaffOTP, ElectricityMeter, GasMeter
 from .auth import require_admin
 from ..utils.logger import log_activity, get_client_ip
-from ..utils.email import generate_otp, send_otp_email
+from ..utils.email import generate_otp, send_otp_email, send_salary_slip_email
 from ..schemas import (
     CreateManagerRequest, CreateAgentRequest, AssignAgentRequest,
     UpdateUserRequest, UpdateAgentStaffRequest, ApproveUserRequest, ResetUserPasswordRequest,
@@ -117,6 +117,9 @@ def create_agent(data: CreateAgentRequest, request: Request, admin: User = Depen
             bank_name=data.bankName,
             bank_account_number=data.bankAccountNumber,
             job_cadre=data.jobCadre or "Full time",
+            shift_start_time=data.shiftStartTime or "14:00",
+            shift_end_time=data.shiftEndTime or "22:00",
+            auto_dialer_enabled=bool(data.autoDialerEnabled),
             device_user_id=data.deviceUserId.strip() if data.deviceUserId else None,
         )
         db.add(user)
@@ -131,19 +134,18 @@ def create_agent(data: CreateAgentRequest, request: Request, admin: User = Depen
         log_activity(db, admin.id, "created", "agent", user.id,
                      f"Created agent {user.email}",
                      get_client_ip(request))
-        return {"id": user.id, "name": user.name, "email": user.email, "role": user.role, "managerId": user.manager_id}
+        return {"id": user.id, "name": user.name, "email": user.email, "role": user.role, "managerId": user.manager_id, "shiftStartTime": user.shift_start_time, "shiftEndTime": user.shift_end_time, "autoDialerEnabled": bool(user.auto_dialer_enabled)}
     except HTTPException:
         db.rollback()
         raise
     except Exception as e:
         db.rollback()
         raise HTTPException(status_code=400, detail=f"Failed to create agent: {str(e)}")
-        raise HTTPException(status_code=400, detail=f"Failed to create agent: {str(e)}")
 
 
 @router.get("/users")
 def get_all_users(admin: User = Depends(require_admin), db: Session = Depends(get_db)):
-    users = db.query(User).filter(User.is_deleted == False).order_by(User.role, User.name).all()
+    users = db.query(User).filter(or_(User.is_deleted == False, User.is_deleted.is_(None))).order_by(User.role, User.name).all()
     return [
         {
             "id": u.id, "name": u.name, "email": u.email,
@@ -162,6 +164,9 @@ def get_all_users(admin: User = Depends(require_admin), db: Session = Depends(ge
             "bankName": u.bank_name,
             "bankAccountNumber": u.bank_account_number,
             "jobCadre": u.job_cadre or "Full time",
+            "shiftStartTime": u.shift_start_time or "14:00",
+            "shiftEndTime": u.shift_end_time or "22:00",
+            "autoDialerEnabled": bool(u.auto_dialer_enabled),
             "createdAt": u.created_at.isoformat() if u.created_at else None,
         }
         for u in users
@@ -175,10 +180,10 @@ def get_managers(
     admin: User = Depends(require_admin),
     db: Session = Depends(get_db),
 ):
-    managers = db.query(User).filter(User.role == "manager", User.is_active == True, User.is_deleted == False).order_by(User.name).all()
+    managers = db.query(User).filter(User.role == "manager", User.is_active == True, or_(User.is_deleted == False, User.is_deleted.is_(None))).order_by(User.name).all()
     result = []
     for m in managers:
-        agent_ids = [a.id for a in db.query(User).filter(User.manager_id == m.id, User.is_deleted == False).all()]
+        agent_ids = [a.id for a in db.query(User).filter(User.manager_id == m.id, or_(User.is_deleted == False, User.is_deleted.is_(None))).all()]
         if agent_ids:
             cb_q = db.query(func.count(CallBack.id)).filter(CallBack.employee_id.in_(agent_ids))
             tr_q = db.query(func.count(Transfer.id)).filter(Transfer.employee_id.in_(agent_ids))
@@ -216,7 +221,7 @@ def get_agents(
     db: Session = Depends(get_db),
     showAll: bool = False,
 ):
-    query = db.query(User).filter(User.role == "agent", User.is_deleted == False)
+    query = db.query(User).filter(User.role == "agent", or_(User.is_deleted == False, User.is_deleted.is_(None)))
     if not showAll:
         query = query.filter(User.is_active == True)
     agents = query.order_by(User.name).all()
@@ -346,6 +351,9 @@ def get_agent_detail(
             bankName=agent.bank_name,
             bankAccountNumber=agent.bank_account_number,
             jobCadre=agent.job_cadre,
+            shiftStartTime=agent.shift_start_time or "14:00",
+            shiftEndTime=agent.shift_end_time or "22:00",
+            autoDialerEnabled=bool(agent.auto_dialer_enabled),
         ),
         callbacks=[_build_callback_out(c, c.customer) for c in callbacks],
         transfers=[_transfer_out(t, t.customer) for t in transfers],
@@ -367,6 +375,9 @@ def get_agent_detail(
                 bankName=agent.bank_name,
                 bankAccountNumber=agent.bank_account_number,
                 jobCadre=agent.job_cadre,
+                shiftStartTime=agent.shift_start_time or "14:00",
+                shiftEndTime=agent.shift_end_time or "22:00",
+                autoDialerEnabled=bool(agent.auto_dialer_enabled),
             ),
             callbacks=ac, transfers=at, sales=as_, conversionRate=a_cr,
         ),
@@ -429,6 +440,12 @@ def update_agent_staff(
             agent.bank_account_number = data.bankAccountNumber or None
         if data.jobCadre is not None:
             agent.job_cadre = data.jobCadre or "Full time"
+        if data.shiftStartTime is not None:
+            agent.shift_start_time = data.shiftStartTime or "14:00"
+        if data.shiftEndTime is not None:
+            agent.shift_end_time = data.shiftEndTime or "22:00"
+        if data.autoDialerEnabled is not None:
+            agent.auto_dialer_enabled = bool(data.autoDialerEnabled)
         db.commit()
         db.refresh(agent)
         log_activity(db, admin.id, "updated", "agent", agent.id,
@@ -450,6 +467,9 @@ def update_agent_staff(
             bankName=agent.bank_name,
             bankAccountNumber=agent.bank_account_number,
             jobCadre=agent.job_cadre,
+            shiftStartTime=agent.shift_start_time or "14:00",
+            shiftEndTime=agent.shift_end_time or "22:00",
+            autoDialerEnabled=bool(agent.auto_dialer_enabled),
         )
     except HTTPException:
         db.rollback()
@@ -520,6 +540,12 @@ def update_user(
             user.bank_account_number = data.bankAccountNumber
         if data.jobCadre is not None:
             user.job_cadre = data.jobCadre or "Full time"
+        if data.shiftStartTime is not None:
+            user.shift_start_time = data.shiftStartTime or "14:00"
+        if data.shiftEndTime is not None:
+            user.shift_end_time = data.shiftEndTime or "22:00"
+        if data.autoDialerEnabled is not None:
+            user.auto_dialer_enabled = bool(data.autoDialerEnabled)
         db.commit()
         db.refresh(user)
         log_activity(db, admin.id, "updated", "user", user.id,
@@ -537,13 +563,13 @@ def update_user(
 @router.delete("/user/{user_id}")
 def delete_user(user_id: int, request: Request, admin: User = Depends(require_admin), db: Session = Depends(get_db)):
     try:
-        user = db.query(User).filter(User.id == user_id, User.is_deleted == False).first()
+        user = db.query(User).filter(User.id == user_id, or_(User.is_deleted == False, User.is_deleted.is_(None))).first()
         if not user:
             raise HTTPException(status_code=404, detail="User not found")
         if user.role == "admin":
             raise HTTPException(status_code=400, detail="Cannot delete admin account")
         if user.role == "manager":
-            agent_count = db.query(User).filter(User.manager_id == user.id, User.is_deleted == False).count()
+            agent_count = db.query(User).filter(User.manager_id == user.id, or_(User.is_deleted == False, User.is_deleted.is_(None))).count()
             if agent_count > 0:
                 raise HTTPException(status_code=400, detail="Unable to delete manager. First reassign or delete all agents associated with this manager")
         name = user.name
@@ -716,6 +742,12 @@ def approve_user(
         user.bank_account_number = data.bankAccountNumber
     if data.jobCadre is not None:
         user.job_cadre = data.jobCadre or "Full time"
+    if data.shiftStartTime is not None:
+        user.shift_start_time = data.shiftStartTime or "14:00"
+    if data.shiftEndTime is not None:
+        user.shift_end_time = data.shiftEndTime or "22:00"
+    if data.autoDialerEnabled is not None:
+        user.auto_dialer_enabled = bool(data.autoDialerEnabled)
 
     user.manager_id = mgr_id
     user.is_active = True
@@ -911,6 +943,54 @@ def business_feed(admin: User = Depends(require_admin), db: Session = Depends(ge
 
     events.sort(key=lambda e: e.timestamp or "", reverse=True)
     return events[:50]
+
+
+@router.get("/activity-logs")
+def admin_activity_logs(
+    action: Optional[str] = Query(None),
+    resource: Optional[str] = Query(None),
+    user_id: Optional[int] = Query(None),
+    skip: int = Query(0, ge=0),
+    limit: int = Query(50, ge=1, le=200),
+    admin: User = Depends(require_admin),
+    db: Session = Depends(get_db),
+):
+    query = db.query(ActivityLog)
+    if action:
+        query = query.filter(ActivityLog.action == action)
+    if resource:
+        query = query.filter(ActivityLog.resource == resource)
+    if user_id:
+        query = query.filter(ActivityLog.user_id == user_id)
+
+    total = query.count()
+    logs = query.order_by(ActivityLog.created_at.desc()).offset(skip).limit(limit).all()
+
+    user_map = {u.id: {"name": u.name, "role": u.role, "email": u.email} for u in db.query(User).all()}
+
+    items = []
+    for l in logs:
+        u = user_map.get(l.user_id, {"name": f"User #{l.user_id}", "role": "unknown", "email": ""})
+        items.append({
+            "id": l.id,
+            "userId": l.user_id,
+            "userName": u["name"],
+            "userRole": u["role"],
+            "userEmail": u["email"],
+            "action": l.action,
+            "resource": l.resource,
+            "resourceId": l.resource_id,
+            "details": l.details,
+            "ipAddress": l.ip_address,
+            "createdAt": l.created_at.isoformat() if l.created_at else None,
+        })
+
+    return {
+        "items": items,
+        "total": total,
+        "skip": skip,
+        "limit": limit,
+    }
 
 
 @router.get("/callbacks")
@@ -1418,6 +1498,7 @@ def admin_salary_slip(
     year: int = Query(None, ge=2020, le=2100),
     commission: float = Query(0.0, ge=0),
     loan_deduction: float = Query(0.0, ge=0, alias="loan_deduction"),
+    send_email: bool = Query(False),
     admin: User = Depends(require_admin),
     db: Session = Depends(get_db),
 ):
@@ -1492,11 +1573,128 @@ def admin_salary_slip(
         slip_year     = str(y),
     )
 
+    filename = f"Salary_Slip_{_month_name(m)}_{y}_{agent.name}.pdf"
+    email_sent = False
+    if send_email and agent.email:
+        email_sent = send_salary_slip_email(
+            to_email=agent.email,
+            employee_name=agent.name,
+            month_name=_month_name(m),
+            year=y,
+            pdf_bytes=pdf.output(),
+            filename=filename
+        )
+
+    headers = {
+        "Content-Disposition": f'attachment; filename="{filename}"',
+        "X-Email-Sent": "true" if email_sent else "false"
+    }
+
     return Response(
         content=pdf.output(),
         media_type="application/pdf",
-        headers={"Content-Disposition": f'attachment; filename="Salary_Slip_{_month_name(m)}_{y}_{agent.name}.pdf"'},
+        headers=headers,
     )
+
+
+@router.post("/salary/email/{user_id}")
+def admin_email_salary_slip(
+    user_id: int,
+    month: int = Query(None, ge=1, le=12),
+    year: int = Query(None, ge=2020, le=2100),
+    commission: float = Query(0.0, ge=0),
+    loan_deduction: float = Query(0.0, ge=0),
+    admin: User = Depends(require_admin),
+    db: Session = Depends(get_db),
+):
+    agent = db.query(User).filter(User.id == user_id).first()
+    if not agent:
+        raise HTTPException(status_code=404, detail="Agent not found")
+    if not agent.email:
+        raise HTTPException(status_code=400, detail="Employee has no email address configured")
+
+    now = datetime.now()
+    m = month or now.month
+    y = year or now.year
+
+    working_days, present_days, absent_days = _attendance_summary(db, agent.id, m, y)
+    base = agent.monthly_salary or 0
+
+    basic      = int(round(base * 0.50))
+    hra        = int(round(base * 0.15))
+    utility    = int(round(base * 0.30))
+    conveyance = int(round(base * 0.05))
+    comm       = int(commission)
+    loan_ded   = int(loan_deduction)
+    gross      = basic + hra + utility + conveyance + comm
+
+    daily_rate        = (basic + hra + utility + conveyance) / working_days if working_days > 0 else 0
+    absent_deduction  = int(round(daily_rate * absent_days))
+    total_deductions  = absent_deduction + loan_ded
+    net_salary        = gross - total_deductions
+
+    earnings_rows = [
+        ("Basic Salary",           _fmt(basic),      False),
+        ("House Rent Allowance",   _fmt(hra),        False),
+        ("Utility Allowance",      _fmt(utility),    False),
+        ("Conveyance Allowance",   _fmt(conveyance), False),
+    ]
+    if comm:
+        earnings_rows.append(("Commission", _fmt(comm), False))
+    earnings_rows.append(("Gross Salary", _fmt(gross), True))
+
+    deductions_rows = [
+        ("Absent Days Deduction", _fmt(absent_deduction), False),
+    ]
+    if loan_ded:
+        deductions_rows.append(("Loan Deduction", _fmt(loan_ded), False))
+    deductions_rows.append(("Total Deductions", _fmt(total_deductions), True))
+
+    pdf = _SalaryPDF()
+    gen_now = datetime.now()
+    pdf.build_slip(
+        period        = f"for the month of {_month_name(m)} {y}",
+        employee_name = agent.name,
+        employee_id   = _employee_id(agent),
+        designation   = agent.designation   or "-",
+        department    = agent.department    or "-",
+        cnic          = agent.cnic          or "-",
+        doj           = agent.date_of_joining.strftime("%d/%m/%Y") if agent.date_of_joining else "-",
+        working_days  = str(working_days),
+        present_days  = str(present_days),
+        absent_days   = str(absent_days),
+        earnings      = earnings_rows,
+        deductions    = deductions_rows,
+        net_salary    = net_salary,
+        gross_salary  = gross,
+        generated_at  = gen_now.strftime("%B %d, %Y at %I:%M %p"),
+        pay_period    = f"{_month_name(m)[:3]}-{y}",
+        payment_date  = gen_now.strftime("%d %B %Y"),
+        account_number= agent.bank_account_number or "-",
+        bank_name     = agent.bank_name or "-",
+        job_cadre     = agent.job_cadre or "Full time",
+        net_in_words  = _num_to_words(max(net_salary, 0)),
+        issued_date   = gen_now.strftime("%d %B %Y"),
+        slip_year     = str(y),
+    )
+
+    filename = f"Salary_Slip_{_month_name(m)}_{y}_{agent.name}.pdf"
+    sent = send_salary_slip_email(
+        to_email=agent.email,
+        employee_name=agent.name,
+        month_name=_month_name(m),
+        year=y,
+        pdf_bytes=pdf.output(),
+        filename=filename,
+    )
+    if not sent:
+        raise HTTPException(
+            status_code=500,
+            detail="Failed to send email. Ensure SMTP configuration is active in environment settings."
+        )
+
+    log_activity(db, admin.id, "email", "salary_slip", f"Emailed salary slip to {agent.name} ({agent.email}) for {_month_name(m)} {y}")
+    return {"message": f"Salary slip successfully emailed to {agent.email}", "sent": True}
 
 
 @router.post("/send-otp")

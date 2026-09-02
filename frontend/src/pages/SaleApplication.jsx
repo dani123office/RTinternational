@@ -12,6 +12,8 @@ import ElectricityMeterSection from '@/components/ElectricityMeterSection'
 import GasMeterSection from '@/components/GasMeterSection'
 import AiFormFiller from '@/components/AiFormFiller'
 import { DEFAULT_ELEC_METER, DEFAULT_GAS_METER, BUSINESS_TYPES, BILL_FREQUENCIES, SALE_TYPES } from '@/lib/constants'
+import { useDuplicateCheck } from '@/hooks/useDuplicateCheck'
+import DuplicateWarningBanner from '@/components/shared/DuplicateWarningBanner'
 import {
   ArrowLeft, Save, Loader2, User, FileText,
   Building2, Zap, Calendar as CalendarIcon, Clock, Mail, Phone, MapPin
@@ -241,6 +243,12 @@ export default function SaleApplication() {
   })
 
   const [loading, setLoading] = useState(false)
+
+  const { duplicateWarning, isChecking } = useDuplicateCheck(
+    !isEdit ? form.postcode : null,
+    !isEdit ? form.businessPhone : null,
+    !isEdit ? form.businessName : null
+  )
 
   const setField = (field, value) => setForm((p) => ({ ...p, [field]: value }))
   const upd = (field, value) => setForm((p) => ({ ...p, [field]: value }))
@@ -479,6 +487,7 @@ export default function SaleApplication() {
           </div>
 
           <form onSubmit={handleSubmit} className="rt-section-gap">
+            <DuplicateWarningBanner warning={duplicateWarning} isChecking={isChecking} />
             
             {/* 0. Application Date Card */}
             <Card icon={CalendarIcon} iconColor="#6366f1" iconBg="rgba(99,102,241,0.15)" title="Application Date" delay="rt-d0">

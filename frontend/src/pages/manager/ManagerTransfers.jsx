@@ -1,8 +1,9 @@
 import { useEffect, useState, useMemo, useCallback } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useManagerStore } from '@/store/managerStore'
-import { ArrowLeftRight, Eye, Edit3, Trash2, X } from 'lucide-react'
+import { ArrowLeftRight, Eye, Edit3, Trash2, X, Download } from 'lucide-react'
 import { APP_STYLES } from '@/lib/styles'
+import { exportToCsv } from '@/lib/exportUtils'
 import StatusBadge from '@/components/manager/StatusBadge'
 import AgentAvatar from '@/components/manager/AgentAvatar'
 import TableSkeleton from '@/components/manager/TableSkeleton'
@@ -24,16 +25,51 @@ export default function ManagerTransfers() {
   const [statusFilter, setStatusFilter] = useState('')
   const [deleteId, setDeleteId] = useState(null)
 
+  const [selectedMonth, setSelectedMonth] = useState(() => {
+    const saved = localStorage.getItem('managerSelectedMonth') || localStorage.getItem('adminSelectedMonth')
+    if (saved) return saved
+    const d = new Date()
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`
+  })
+
+  useEffect(() => {
+    localStorage.setItem('managerSelectedMonth', selectedMonth)
+  }, [selectedMonth])
+
+  const monthsList = useMemo(() => {
+    const list = []
+    const d = new Date()
+    for (let i = 0; i < 12; i++) {
+      const year = d.getFullYear()
+      const month = d.getMonth() + 1
+      const label = d.toLocaleString('en-US', { month: 'long', year: 'numeric' })
+      const value = `${year}-${String(month).padStart(2, '0')}`
+      list.push({ value, label, year, month })
+      d.setMonth(d.getMonth() - 1)
+    }
+    list.push({ value: 'all', label: 'All Time', year: null, month: null })
+    return list
+  }, [])
+
   useEffect(() => { loadTransfers({ limit: 500 }); loadAgents() }, [loadTransfers, loadAgents])
 
+  const monthFilteredTransfers = useMemo(() => {
+    if (selectedMonth === 'all') return transfers
+    const [y, m] = selectedMonth.split('-').map(Number)
+    return transfers.filter(t => {
+      const d = new Date(t.createdAt)
+      return d.getFullYear() === y && (d.getMonth() + 1) === m
+    })
+  }, [transfers, selectedMonth])
+
   const counts = useMemo(() => ({
-    pending: transfers.filter(t => t.status === 'pending').length,
-    completed: transfers.filter(t => t.status === 'completed').length,
-    failed: transfers.filter(t => t.status === 'failed').length,
-    chasing: transfers.filter(t => t.status === 'chasing').length,
-    cotInProgress: transfers.filter(t => t.status === 'cotInProgress').length,
-    hold: transfers.filter(t => t.status === 'hold').length,
-  }), [transfers])
+    pending: monthFilteredTransfers.filter(t => t.status === 'pending').length,
+    completed: monthFilteredTransfers.filter(t => t.status === 'completed').length,
+    failed: monthFilteredTransfers.filter(t => t.status === 'failed').length,
+    chasing: monthFilteredTransfers.filter(t => t.status === 'chasing').length,
+    cotInProgress: monthFilteredTransfers.filter(t => t.status === 'cotInProgress').length,
+    hold: monthFilteredTransfers.filter(t => t.status === 'hold').length,
+  }), [monthFilteredTransfers])
 
   const agentMap = useMemo(() => {
     const map = {}
@@ -42,12 +78,12 @@ export default function ManagerTransfers() {
   }, [agents])
 
   const filtered = useMemo(() => {
-    return transfers.filter(t => {
+    return monthFilteredTransfers.filter(t => {
       if (agentFilter && t.employeeId !== Number(agentFilter)) return false
       if (statusFilter && t.status !== statusFilter) return false
       return true
     })
-  }, [transfers, agentFilter, statusFilter])
+  }, [monthFilteredTransfers, agentFilter, statusFilter])
 
   const handleDelete = useCallback(async () => {
     if (!deleteId) return
@@ -138,7 +174,19 @@ export default function ManagerTransfers() {
 
           <div className="flex gap-3 mb-5 flex-wrap items-center">
             <span className="text-xs font-medium text-slate-500 uppercase tracking-wider">Filter by:</span>
-             <select value={agentFilter} onChange={(e) => { setAgentFilter(e.target.value) }}
+            <select
+              value={selectedMonth}
+              onChange={(e) => setSelectedMonth(e.target.value)}
+              className="px-3 py-2 rounded-xl border border-slate-200 text-sm bg-white outline-none cursor-pointer shadow-sm"
+              style={{ minWidth: '150px' }}
+            >
+              {monthsList.map((m) => (
+                <option key={m.value} value={m.value}>
+                  {m.label}
+                </option>
+              ))}
+            </select>
+            <select value={agentFilter} onChange={(e) => { setAgentFilter(e.target.value) }}
               className="px-3 py-2 rounded-xl border border-slate-200 text-sm bg-white outline-none cursor-pointer capitalize shadow-sm"
               style={{ minWidth: '140px' }}>
               <option value="">All Agents</option>
@@ -160,6 +208,29 @@ export default function ManagerTransfers() {
                 <X size={12} /> Clear
               </button>
             )}
+
+            <button
+              type="button"
+              onClick={() => {
+                const exportData = filtered.map(t => ({
+                  ID: t.id,
+                  BusinessName: t.customer?.businessName || 'N/A',
+                  OwnerName: t.customer?.ownerName || 'N/A',
+                  Phone: t.customer?.businessPhone || 'N/A',
+                  Postcode: t.customer?.postcode || 'N/A',
+                  Agent: agentMap[t.employeeId]?.name || 'N/A',
+                  UtilityType: t.utilityType || 'N/A',
+                  Supplier: t.supplier || 'N/A',
+                  Status: t.status || 'N/A',
+                  Date: t.createdAt ? new Date(t.createdAt).toLocaleDateString('en-GB') : 'N/A'
+                }))
+                exportToCsv(exportData, `Transfers_Export_${selectedMonth}`)
+              }}
+              className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-bold border border-slate-200 bg-white text-slate-700 hover:bg-slate-50 cursor-pointer shadow-sm sm:ml-auto"
+              title="Export Transfers to CSV"
+            >
+              <Download size={14} /> Export CSV
+            </button>
           </div>
 
           {isLoading && transfers.length === 0 ? <TableSkeleton /> : filtered.length === 0 ? (

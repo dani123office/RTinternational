@@ -20,6 +20,25 @@ export const useManagerStore = create((set) => ({
   isLoading: false,
   error: null,
 
+  loadDashboard: async (params = {}) => {
+    set({ isLoading: true, error: null })
+    try {
+      const [statsRes, transfersRes, salesRes] = await Promise.all([
+        api.get(endpoints.manager.teamStats, { params }),
+        api.get(endpoints.manager.transfers, { params: { limit: 500 } }),
+        api.get(endpoints.manager.sales, { params: { limit: 500 } }),
+      ])
+      set({
+        teamStats: statsRes.data,
+        transfers: transfersRes.data.items || transfersRes.data || [],
+        sales: salesRes.data.items || salesRes.data || [],
+        isLoading: false
+      })
+    } catch (err) {
+      set({ error: getError(err) || 'Failed to load dashboard data', isLoading: false })
+    }
+  },
+
   loadTeamStats: async (params = {}) => {
     set({ isLoading: true, error: null })
     try {

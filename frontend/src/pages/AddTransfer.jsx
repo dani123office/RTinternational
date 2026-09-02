@@ -7,6 +7,8 @@ import UtilityTypeSelector from '@/components/UtilityTypeSelector'
 import ElectricityMeterSection from '@/components/ElectricityMeterSection'
 import GasMeterSection from '@/components/GasMeterSection'
 import AiFormFiller from '@/components/AiFormFiller'
+import { useDuplicateCheck } from '@/hooks/useDuplicateCheck'
+import DuplicateWarningBanner from '@/components/shared/DuplicateWarningBanner'
 
 function Card({ icon: Icon, title, headerRight, children, delay }) {
   return (
@@ -46,6 +48,8 @@ export default function AddTransfer() {
   const location = useLocation()
   const { form, isLoading, setField, handleAiFill, handleSubmit, addElectricityMeter, removeElectricityMeter, addGasMeter, removeGasMeter } = useTransferForm(location.state, navigate)
 
+  const { duplicateWarning, isChecking } = useDuplicateCheck(form.postcode, form.businessPhone, form.businessName)
+
   return (
     <>
       <style>{APP_STYLES}</style>
@@ -70,6 +74,7 @@ export default function AddTransfer() {
           </div>
 
           <form onSubmit={handleSubmit} className="rt-section-gap">
+            <DuplicateWarningBanner warning={duplicateWarning} isChecking={isChecking} />
 
             <Card icon={Building2} iconColor="#6366f1" iconBg="rgba(99,102,241,0.15)" title="Business Information" delay="rt-d1">
               <div className="rt-grid2">

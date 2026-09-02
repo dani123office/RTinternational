@@ -1,11 +1,13 @@
 import { useState, useRef, useEffect } from 'react'
 import { useNavigate, useLocation } from 'react-router-dom'
 import { useAuthStore } from '@/store/authStore'
+import { useThemeStore } from '@/store/themeStore'
 import { useToast } from '@/components/ui/toastContext'
-import { LogOut, User, ChevronDown, Settings, PhoneCall, ArrowLeftRight, Menu } from 'lucide-react'
+import { LogOut, User, ChevronDown, Settings, PhoneCall, ArrowLeftRight, Menu, Sun, Moon } from 'lucide-react'
 
 export default function TopBar({ onMenuClick }) {
   const { user, logout } = useAuthStore()
+  const { theme, toggleTheme } = useThemeStore()
   const navigate = useNavigate()
   const location = useLocation()
   const isOnFormPage = ['/add', '/edit', '/apply'].some((p) => location.pathname.includes(p))
@@ -94,6 +96,16 @@ export default function TopBar({ onMenuClick }) {
         )}
       </div>
       <div className="flex items-center gap-2 shrink-0" ref={menuRef}>
+        {/* Theme Mode Switcher */}
+        <button
+          type="button"
+          onClick={toggleTheme}
+          className="w-9 h-9 rounded-xl border border-slate-200 bg-white text-slate-500 hover:text-amber-500 hover:border-amber-200 hover:bg-amber-50 cursor-pointer flex items-center justify-center transition-all duration-150 shrink-0"
+          title={theme === 'dark' ? 'Switch to Light Mode' : 'Switch to Dark Mode'}
+        >
+          {theme === 'dark' ? <Sun size={16} className="text-amber-400" /> : <Moon size={16} />}
+        </button>
+
         <div
           className="relative flex items-center gap-2 px-3.5 py-1.5 rounded-xl bg-slate-50 text-sm font-medium text-slate-700 cursor-pointer hover:bg-slate-100 transition-all duration-150 select-none"
           onClick={() => setMenuOpen(!menuOpen)}

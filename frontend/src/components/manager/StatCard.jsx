@@ -1,48 +1,36 @@
 import { useEffect, useState, useRef } from 'react'
 
 export default function StatCard({ icon: Icon, label, value, accent, subtext, progress, onClick }) {
-  const [displayValue, setDisplayValue] = useState(0)
-  const ref = useRef(null)
-  const hasAnimated = useRef(false)
+  const [displayValue, setDisplayValue] = useState(value ?? 0)
 
   useEffect(() => {
     if (typeof value === 'string') {
-      Promise.resolve().then(() => setDisplayValue(value))
+      setDisplayValue(value)
       return
     }
-    const animateValue = () => {
-      const target = value || 0
-      const duration = 1000
-      const steps = 30
-      const increment = target / steps
-      let current = 0
-      const timer = setInterval(() => {
-        current += increment
-        if (current >= target) {
-          setDisplayValue(target)
-          clearInterval(timer)
-        } else {
-          setDisplayValue(Math.floor(current))
-        }
-      }, duration / steps)
+    const target = Number(value) || 0
+    if (target === 0) {
+      setDisplayValue(0)
+      return
     }
-
-    const observer = new IntersectionObserver(
-      ([entry]) => {
-        if (entry.isIntersecting && !hasAnimated.current) {
-          hasAnimated.current = true
-          animateValue()
-        }
-      },
-      { threshold: 0.3 }
-    )
-    if (ref.current) observer.observe(ref.current)
-    return () => observer.disconnect()
+    const duration = 500
+    const steps = 15
+    const increment = target / steps
+    let current = 0
+    const timer = setInterval(() => {
+      current += increment
+      if (current >= target) {
+        setDisplayValue(target)
+        clearInterval(timer)
+      } else {
+        setDisplayValue(Math.floor(current))
+      }
+    }, duration / steps)
+    return () => clearInterval(timer)
   }, [value])
 
   return (
     <div
-      ref={ref}
       onClick={onClick}
       className={`bg-white/80 backdrop-blur-md rounded-2xl p-5 border border-slate-200/60 shadow-sm transition-all duration-200 hover:-translate-y-0.5 ${onClick ? 'cursor-pointer hover:shadow-md' : ''}`}
       style={{ boxShadow: '0 1px 3px rgba(0,0,0,0.04), 0 1px 2px rgba(0,0,0,0.02)' }}

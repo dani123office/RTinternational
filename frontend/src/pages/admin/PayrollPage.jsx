@@ -1,7 +1,8 @@
 import { useEffect, useState, useCallback } from 'react'
 import api, { endpoints } from '@/lib/api'
 import { APP_STYLES } from '@/lib/styles'
-import { FileText, DollarSign } from 'lucide-react'
+import { FileText, DollarSign, Mail, Download, Loader2 } from 'lucide-react'
+import { useToast } from '@/components/ui/toastContext'
 
 const MONTHS = [
   'January', 'February', 'March', 'April', 'May', 'June',
@@ -19,7 +20,9 @@ export default function PayrollPage() {
   const [commission, setCommission] = useState('0.00')
   const [loanDeduction, setLoanDeduction] = useState('0.00')
   const [loading, setLoading] = useState(false)
+  const [emailing, setEmailing] = useState(false)
   const [agentsLoading, setAgentsLoading] = useState(true)
+  const { toast } = useToast()
 
   const loadAgents = useCallback(async () => {
     setAgentsLoading(true)
@@ -55,16 +58,42 @@ export default function PayrollPage() {
       const res = await fetch(`/api/admin/salary/slip/${selectedAgentId}?${params}`, {
         headers: token ? { Authorization: `Bearer ${token}` } : {},
       })
-      if (!res.ok) throw new Error('Failed')
+      if (!res.ok) {
+        const errJson = await res.json().catch(() => ({}))
+        throw new Error(errJson.detail || 'Failed to generate slip')
+      }
       const blob = await res.blob()
       const url = URL.createObjectURL(blob)
       const a = document.createElement('a')
       a.href = url
-      a.download = 'Salary_Slip.pdf'
+      a.download = `Salary_Slip_${MONTHS[Number(month) - 1]}_${year}.pdf`
       a.click()
       URL.revokeObjectURL(url)
-    } catch (err) { console.error(err) }
+      toast('Salary slip downloaded successfully', 'success')
+    } catch (err) {
+      toast(err.message || 'Failed to download slip', 'error')
+    }
     setLoading(false)
+  }
+
+  const handleEmail = async () => {
+    if (!selectedAgentId) return
+    setEmailing(true)
+    try {
+      const res = await api.post(endpoints.salary.emailSlip(selectedAgentId), null, {
+        params: {
+          month,
+          year,
+          commission,
+          loan_deduction: loanDeduction,
+        },
+      })
+      toast(res.data?.message || 'Salary slip emailed successfully', 'success')
+    } catch (err) {
+      toast(err?.response?.data?.detail || err.message || 'Failed to email salary slip', 'error')
+    } finally {
+      setEmailing(false)
+    }
   }
 
   const selectedAgent = agents.find(a => String(a.id) === selectedAgentId)
@@ -179,27 +208,47 @@ export default function PayrollPage() {
                 </div>
               </div>
 
-              <div className="flex items-center justify-between gap-4">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pt-2">
                 {selectedAgent && (
                   <div className="text-xs font-medium" style={{ color: '#64748b' }}>
                     Monthly Salary: <span className="font-bold" style={{ color: '#0f172a' }}>Rs. {selectedAgent.monthlySalary?.toLocaleString() || '0'}</span>
+                    {selectedAgent.email && <span className="text-[11px] text-slate-400 block mt-0.5">Email: {selectedAgent.email}</span>}
                   </div>
                 )}
-                <button
-                  onClick={handleGenerate}
-                  disabled={loading || !selectedAgentId}
-                  className="flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-semibold cursor-pointer transition-all duration-200 ml-auto"
-                  style={{
-                    background: loading ? '#94a3b8' : 'linear-gradient(135deg, #6366f1, #4f46e5)',
-                    color: '#ffffff',
-                    border: 'none',
-                    boxShadow: loading ? 'none' : '0 2px 8px rgba(99,102,241,0.3)',
-                    opacity: loading || !selectedAgentId ? 0.6 : 1,
-                  }}
-                >
-                  <DollarSign size={16} />
-                  {loading ? 'Generating...' : 'Generate Salary Slip'}
-                </button>
+                <div className="flex items-center gap-2 sm:ml-auto flex-wrap">
+                  <button
+                    type="button"
+                    onClick={handleEmail}
+                    disabled={emailing || !selectedAgentId || !selectedAgent?.email}
+                    className="flex items-center gap-1.5 px-4 py-2.5 rounded-xl text-sm font-semibold cursor-pointer transition-all duration-200"
+                    style={{
+                      background: '#ffffff',
+                      color: '#4f46e5',
+                      border: '1.5px solid #e0e7ff',
+                      opacity: emailing || !selectedAgentId || !selectedAgent?.email ? 0.6 : 1,
+                    }}
+                  >
+                    {emailing ? <Loader2 size={16} className="animate-spin" /> : <Mail size={16} />}
+                    {emailing ? 'Sending Email...' : 'Email Slip to Employee'}
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={handleGenerate}
+                    disabled={loading || !selectedAgentId}
+                    className="flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-semibold cursor-pointer transition-all duration-200"
+                    style={{
+                      background: loading ? '#94a3b8' : 'linear-gradient(135deg, #6366f1, #4f46e5)',
+                      color: '#ffffff',
+                      border: 'none',
+                      boxShadow: loading ? 'none' : '0 2px 8px rgba(99,102,241,0.3)',
+                      opacity: loading || !selectedAgentId ? 0.6 : 1,
+                    }}
+                  >
+                    {loading ? <Loader2 size={16} className="animate-spin" /> : <Download size={16} />}
+                    {loading ? 'Generating PDF...' : 'Download PDF Slip'}
+                  </button>
+                </div>
               </div>
             </div>
           </div>

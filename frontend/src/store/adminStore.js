@@ -135,6 +135,12 @@ export const useAdminStore = create((set, get) => ({
     return res.data
   },
 
+  updateAgent: async (agentId, data, showAll = false) => {
+    const res = await api.put(endpoints.admin.updateAgentStaff(agentId), data)
+    await get().loadAgents(showAll)
+    return res.data
+  },
+
   deleteUser: async (id, showAll = false) => {
     const res = await api.delete(endpoints.admin.deleteUser(id))
     await get().loadManagers()

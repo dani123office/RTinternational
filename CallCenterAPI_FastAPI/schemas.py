@@ -258,6 +258,8 @@ class RegisterRequest(BaseModel):
     bankName: Optional[str] = None
     bankAccountNumber: Optional[str] = None
     jobCadre: Optional[str] = "Full time"
+    shiftStartTime: Optional[str] = "14:00"
+    shiftEndTime: Optional[str] = "22:00"
 
 
 class ForgotPasswordRequest(BaseModel):
@@ -305,6 +307,9 @@ class UserOut(BaseModel):
     bankName: Optional[str] = None
     bankAccountNumber: Optional[str] = None
     jobCadre: Optional[str] = "Full time"
+    shiftStartTime: Optional[str] = "14:00"
+    shiftEndTime: Optional[str] = "22:00"
+    autoDialerEnabled: Optional[bool] = False
 
 
 class AgentOut(BaseModel):
@@ -327,6 +332,9 @@ class AgentOut(BaseModel):
     bankName: Optional[str] = None
     bankAccountNumber: Optional[str] = None
     jobCadre: Optional[str] = "Full time"
+    shiftStartTime: Optional[str] = "14:00"
+    shiftEndTime: Optional[str] = "22:00"
+    autoDialerEnabled: Optional[bool] = False
 
 
 class ManagerTeamStats(BaseModel):
@@ -372,6 +380,9 @@ class ApproveUserRequest(BaseModel):
     bankName: Optional[str] = None
     bankAccountNumber: Optional[str] = None
     jobCadre: Optional[str] = "Full time"
+    shiftStartTime: Optional[str] = "14:00"
+    shiftEndTime: Optional[str] = "22:00"
+    autoDialerEnabled: Optional[bool] = False
 
     @field_validator('cnic')
     @classmethod
@@ -408,6 +419,9 @@ class CreateAgentRequest(BaseModel):
     bankName: Optional[str] = None
     bankAccountNumber: Optional[str] = None
     jobCadre: Optional[str] = "Full time"
+    shiftStartTime: Optional[str] = "14:00"
+    shiftEndTime: Optional[str] = "22:00"
+    autoDialerEnabled: Optional[bool] = False
     deviceUserId: Optional[str] = None
 
     @field_validator('cnic')
@@ -439,6 +453,9 @@ class UpdateUserRequest(BaseModel):
     bankName: Optional[str] = None
     bankAccountNumber: Optional[str] = None
     jobCadre: Optional[str] = None
+    shiftStartTime: Optional[str] = None
+    shiftEndTime: Optional[str] = None
+    autoDialerEnabled: Optional[bool] = None
     deviceUserId: Optional[str] = None
 
 
@@ -458,6 +475,9 @@ class UpdateAgentStaffRequest(BaseModel):
     bankName: Optional[str] = None
     bankAccountNumber: Optional[str] = None
     jobCadre: Optional[str] = "Full time"
+    shiftStartTime: Optional[str] = None
+    shiftEndTime: Optional[str] = None
+    autoDialerEnabled: Optional[bool] = None
 
     @field_validator('cnic')
     @classmethod
@@ -1702,6 +1722,16 @@ class AttendanceCheckOut(BaseModel):
     checkout_reason: Optional[str] = Field(None, max_length=500, description="Reason for check-out")
 
 
+class AttendanceManualUpdate(BaseModel):
+    userId: int
+    date: date
+    checkIn: Optional[str] = None
+    checkOut: Optional[str] = None
+    status: Optional[str] = None
+    checkin_reason: Optional[str] = None
+    checkout_reason: Optional[str] = None
+
+
 class LateArrivalReport(BaseModel):
     date: date
     expected_arrival_time: time
@@ -1727,7 +1757,10 @@ class AttendanceSummary(BaseModel):
     presentCount: int
     lateCount: int
     absentCount: int
+    halfDayCount: Optional[int] = 0
     totalDays: int
+    attendanceScore: Optional[float] = 100.0
+    totalHoursWorked: Optional[str] = "0h 0m"
 
 
 class UserAttendanceToday(BaseModel):

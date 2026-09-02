@@ -681,10 +681,10 @@ export default function AgentDetail() {
                                 </td>
                                 <td className="py-3 px-2">
                                   <span className="text-xs font-bold px-2 py-0.5 rounded-full" style={{
-                                    background: r.status === 'late' ? '#fee2e2' : '#dcfce7',
-                                    color: r.status === 'late' ? '#dc2626' : '#16a34a',
+                                    background: r.status === 'late' ? '#fee2e2' : r.status === 'absent' ? '#fee2e2' : '#dcfce7',
+                                    color: r.status === 'late' ? '#dc2626' : r.status === 'absent' ? '#dc2626' : '#16a34a',
                                   }}>
-                                    {r.status === 'late' ? 'LATE' : r.status === 'present' ? 'ON TIME' : r.status.toUpperCase()}
+                                    {r.status === 'late' ? 'LATE' : r.status === 'present' ? 'ON TIME' : r.status ? r.status.toUpperCase() : 'ABSENT'}
                                   </span>
                                 </td>
                                 <td className="py-3 px-2 text-slate-500 text-xs max-w-[140px] truncate" title={r.checkin_reason || ''}>

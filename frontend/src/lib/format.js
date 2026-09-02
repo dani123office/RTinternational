@@ -49,6 +49,28 @@ export const toISODateTime = (dateStr, timeStr = '10:00') => {
   return `${dateStr}T${timeStr}:00`;
 };
 
+export const formatDualTime = (value) => {
+  if (!value) return '-';
+  const d = new Date(value);
+  if (isNaN(d.getTime())) return '-';
+
+  const ukTime = d.toLocaleTimeString('en-GB', {
+    hour: '2-digit',
+    minute: '2-digit',
+    hour12: false,
+    timeZone: 'Europe/London'
+  });
+
+  const pktTime = d.toLocaleTimeString('en-GB', {
+    hour: '2-digit',
+    minute: '2-digit',
+    hour12: false,
+    timeZone: 'Asia/Karachi'
+  });
+
+  return `${ukTime} UK / ${pktTime} PKT`;
+};
+
 export const formatCapitalized = (str) => {
   if (!str) return '';
   return str.replace(/([A-Z])/g, ' $1').replace(/^./, (s) => s.toUpperCase()).trim();
