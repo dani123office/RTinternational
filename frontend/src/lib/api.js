@@ -260,6 +260,11 @@ export const endpoints = {
     updateLead: (id) => `/api/campaigns/leads/${id}`,
     delete: (id) => `/api/campaigns/${id}`,
   },
+  aiVoice: {
+    converse: '/api/ai/voice/converse',
+    tts: '/api/ai/voice/tts',
+    autoAction: '/api/ai/voice/auto-action',
+  },
   admin: {
     users: '/api/admin/users',
     managers: '/api/admin/managers',

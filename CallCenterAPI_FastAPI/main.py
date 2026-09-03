@@ -16,7 +16,7 @@ import time
 from starlette.middleware.base import BaseHTTPMiddleware
 from .database import engine, SessionLocal, Base
 from .models import User, Customer, CallBack, Transfer, Sale, ElectricityMeter, GasMeter, Attendance, LeaveRequest
-from .routers import auth, customers, callbacks, transfers, sales, manager, admin, ai_router, profile, attendance, leaves, salary, loans, campaigns
+from .routers import auth, customers, callbacks, transfers, sales, manager, admin, ai_router, profile, attendance, leaves, salary, loans, campaigns, ai_voice_agent
 try:
     from .routers import hikvision
 except ImportError:
@@ -312,6 +312,7 @@ app.include_router(leaves.router)
 app.include_router(loans.router)
 app.include_router(salary.router)
 app.include_router(campaigns.router)
+app.include_router(ai_voice_agent.router)
 
 
 import pathlib

@@ -5,9 +5,10 @@ import api, { endpoints } from '@/lib/api'
 import {
   Upload, Play, Phone, SkipForward, ChevronLeft, RotateCcw,
   List, CheckCircle2, XCircle, ArrowLeftRight, PhoneCall,
-  PoundSterling, FileSpreadsheet, FileText, Check, AlertCircle, Info, Trash2
+  PoundSterling, FileSpreadsheet, FileText, Check, AlertCircle, Info, Trash2, Bot, Zap
 } from 'lucide-react'
 import { APP_STYLES } from '@/lib/styles'
+import AiVoiceAgentPanel from '@/components/AiVoiceAgentPanel'
 
 export default function AutoDialer() {
   const navigate = useNavigate()
@@ -33,13 +34,22 @@ export default function AutoDialer() {
 
   // UI State
   const [dragActive, setDragActive] = useState(false)
-  const [activeTab, setActiveTab] = useState('queue') // 'queue' | 'history'
+  const [activeTab, setActiveTab] = useState('ai-agent') // 'queue' | 'ai-agent' | 'history'
   const fileInputRef = useRef(null)
   
   const [autoDialNext, setAutoDialNext] = useState(() => {
     const saved = localStorage.getItem('rt_autodial_next')
     return saved === 'true'
   })
+
+  const [autoPilotEnabled, setAutoPilotEnabled] = useState(() => {
+    const saved = localStorage.getItem('rt_ai_autopilot')
+    return saved === 'true'
+  })
+
+  useEffect(() => {
+    localStorage.setItem('rt_ai_autopilot', autoPilotEnabled)
+  }, [autoPilotEnabled])
 
   // Save campaigns to storage
   useEffect(() => {
@@ -1134,9 +1144,21 @@ export default function AutoDialer() {
                 )}
               </div>
 
-              {/* RIGHT PANEL (Campaign Queue & History Tab) */}
-              <div className="rt-card" style={{ display: 'flex', flexDirection: 'column', height: 'fit-content', maxHeight: '680px' }}>
+              {/* RIGHT PANEL (AI Voice Agent, Campaign Queue & History Tabs) */}
+              <div className="rt-card" style={{ display: 'flex', flexDirection: 'column', height: 'fit-content', maxHeight: '720px' }}>
                 <div style={{ display: 'flex', borderBottom: '1px solid #f1f5f9', background: '#fafbfc', borderRadius: '16px 16px 0 0' }}>
+                  <button 
+                    onClick={() => setActiveTab('ai-agent')}
+                    className="flex-1 py-3 text-xs font-bold border-none cursor-pointer transition-all duration-200"
+                    style={{ 
+                      color: activeTab === 'ai-agent' ? '#6366f1' : '#64748b',
+                      borderBottom: activeTab === 'ai-agent' ? '2.5px solid #6366f1' : '2.5px solid transparent',
+                      background: activeTab === 'ai-agent' ? '#ffffff' : 'transparent',
+                      borderRadius: '16px 0 0 0'
+                    }}
+                  >
+                    <span className="flex items-center justify-center gap-1.5"><Bot size={15} /> AI Voice Agent</span>
+                  </button>
                   <button 
                     onClick={() => setActiveTab('queue')}
                     className="flex-1 py-3 text-xs font-bold border-none cursor-pointer transition-all duration-200"
@@ -1144,10 +1166,9 @@ export default function AutoDialer() {
                       color: activeTab === 'queue' ? '#6366f1' : '#64748b',
                       borderBottom: activeTab === 'queue' ? '2.5px solid #6366f1' : '2.5px solid transparent',
                       background: activeTab === 'queue' ? '#ffffff' : 'transparent',
-                      borderRadius: '16px 0 0 0'
                     }}
                   >
-                    <span className="flex items-center justify-center gap-1.5"><List size={14} /> Dialer Queue ({totalLeads - activeCampaign.currentIndex})</span>
+                    <span className="flex items-center justify-center gap-1.5"><List size={14} /> Queue ({totalLeads - activeCampaign.currentIndex})</span>
                   </button>
                   <button 
                     onClick={() => setActiveTab('history')}
@@ -1159,13 +1180,25 @@ export default function AutoDialer() {
                       borderRadius: '0 16px 0 0'
                     }}
                   >
-                    <span className="flex items-center justify-center gap-1.5"><CheckCircle2 size={14} /> Call History ({(activeCampaign.history || []).length})</span>
+                    <span className="flex items-center justify-center gap-1.5"><CheckCircle2 size={14} /> History ({(activeCampaign.history || []).length})</span>
                   </button>
                 </div>
 
-                <div className="overflow-y-auto flex-1 p-4 scrollbar-thin" style={{ minHeight: '300px', maxHeight: '580px' }}>
+                <div className="overflow-y-auto flex-1 p-4 scrollbar-thin" style={{ minHeight: '340px', maxHeight: '620px' }}>
                   
-                  {/* TAB 1: QUEUE LIST */}
+                  {/* TAB 1: AI VOICE AGENT (AUTO-PILOT) */}
+                  {activeTab === 'ai-agent' && (
+                    <AiVoiceAgentPanel
+                      currentLead={currentLead}
+                      onSaveOutcome={handleOutcome}
+                      onNextLead={handleSkip}
+                      autoPilotEnabled={autoPilotEnabled}
+                      setAutoPilotEnabled={setAutoPilotEnabled}
+                      triggerDial={triggerDial}
+                    />
+                  )}
+
+                  {/* TAB 2: QUEUE LIST */}
                   {activeTab === 'queue' && (
                     <div className="flex flex-col gap-2.5">
                       {(activeCampaign.leads || []).slice(activeCampaign.currentIndex).map((lead, idx) => {
@@ -1196,7 +1229,7 @@ export default function AutoDialer() {
                     </div>
                   )}
 
-                  {/* TAB 2: HISTORY LIST */}
+                  {/* TAB 3: HISTORY LIST */}
                   {activeTab === 'history' && (
                     <div className="flex flex-col gap-2.5">
                       {(activeCampaign.history || []).map((log, idx) => {
@@ -1232,6 +1265,7 @@ export default function AutoDialer() {
                   )}
                 </div>
               </div>
+
 
             </div>
           )}
