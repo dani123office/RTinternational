@@ -79,7 +79,8 @@ export default function Attendance() {
 
   const loadStats = useCallback(async () => {
     try {
-      const res = await api.get(endpoints.attendance.myStats)
+      const endpoint = endpoints.attendance.myStats || endpoints.attendance.stats
+      const res = await api.get(endpoint)
       setStats(res.data)
     } catch (err) { console.error(err) }
   }, [])
@@ -516,7 +517,7 @@ export default function Attendance() {
                       <div className="flex items-center gap-2">
                         <button
                           disabled={history.page <= 1}
-                          onClick={() => { setHistoryPage(p => p - 1); loadHistory(history.page - 1) }}
+                          onClick={() => loadHistory(history.page - 1)}
                           className="p-1.5 rounded-lg border border-slate-200 bg-white cursor-pointer disabled:opacity-40"
                         >
                           <ChevronLeft size={14} />
@@ -524,7 +525,7 @@ export default function Attendance() {
                         <span className="text-xs font-semibold text-slate-500">{history.page} / {history.totalPages}</span>
                         <button
                           disabled={history.page >= history.totalPages}
-                          onClick={() => { setHistoryPage(p => p + 1); loadHistory(history.page + 1) }}
+                          onClick={() => loadHistory(history.page + 1)}
                           className="p-1.5 rounded-lg border border-slate-200 bg-white cursor-pointer disabled:opacity-40"
                         >
                           <ChevronRight size={14} />

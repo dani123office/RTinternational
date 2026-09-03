@@ -332,6 +332,7 @@ def my_history(
 
 
 @router.get("/stats")
+@router.get("/my-stats")
 def my_stats(
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
@@ -351,23 +352,30 @@ def my_stats(
     else:
         effective_end = end
 
-    user_created_date = current_user.created_at.date() if current_user.created_at else start
-    effective_start = max(start, user_created_date)
-
-    working_days = []
-    if effective_start <= effective_end:
-        curr = effective_start
-        while curr <= effective_end:
-            if curr.weekday() < 5:
-                working_days.append(curr)
-            curr += timedelta(days=1)
-
     records = db.query(Attendance).filter(
         Attendance.user_id == current_user.id,
         Attendance.date >= start,
         Attendance.date <= end,
     ).all()
     att_map = {r.date: r for r in records}
+
+    user_created_date = current_user.created_at.date() if current_user.created_at else start
+    if records:
+        min_rec_date = min(r.date for r in records)
+        effective_start = max(start, min(user_created_date, min_rec_date))
+    else:
+        effective_start = max(start, min(user_created_date, effective_end))
+    
+    if effective_start > effective_end:
+        effective_start = effective_end
+
+    working_days = []
+    if effective_start <= effective_end:
+        curr = effective_start
+        while curr <= effective_end:
+            if curr.weekday() < 5 or curr in att_map:
+                working_days.append(curr)
+            curr += timedelta(days=1)
 
     present = 0
     late = 0

@@ -216,6 +216,7 @@ export const endpoints = {
     checkOut: '/api/attendance/check-out',
     myHistory: '/api/attendance/my-history',
     stats: '/api/attendance/stats',
+    myStats: '/api/attendance/stats',
     teamToday: '/api/attendance/team-today',
     agentHistory: (id) => `/api/attendance/agent-history/${id}`,
     record: (id) => `/api/attendance/record/${id}`,
@@ -223,6 +224,7 @@ export const endpoints = {
     update: '/api/attendance/manual-update',
     export: '/api/attendance/export',
     lateArrivals: '/api/attendance/late-arrivals',
+    reportLate: '/api/attendance/report-late-arrival',
     reportLateArrival: '/api/attendance/report-late-arrival',
   },
     leaves: {
