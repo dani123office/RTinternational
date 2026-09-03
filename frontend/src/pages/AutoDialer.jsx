@@ -1190,7 +1190,7 @@ export default function AutoDialer() {
                   {activeTab === 'ai-agent' && (
                     <AiVoiceAgentPanel
                       currentLead={currentLead}
-                      onSaveOutcome={handleOutcome}
+                      onSaveOutcome={recordOutcome}
                       onNextLead={handleSkip}
                       autoPilotEnabled={autoPilotEnabled}
                       setAutoPilotEnabled={setAutoPilotEnabled}
