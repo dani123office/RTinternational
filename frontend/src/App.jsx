@@ -94,7 +94,8 @@ export default function App() {
       <Route path="/" element={<ProtectedRoute><AppLayout /></ProtectedRoute>}>
         <Route index element={<RoleRoute allowedRoles={['agent']}><Dashboard /></RoleRoute>} />
         <Route path="attendance" element={<RoleRoute allowedRoles={['agent']}><Attendance /></RoleRoute>} />
-        <Route path="dialer" element={<RoleRoute allowedRoles={['agent', 'admin']}><AutoDialerRoute><AutoDialer /></AutoDialerRoute></RoleRoute>} />
+        <Route path="dialer" element={<RoleRoute allowedRoles={['agent', 'admin']}><AutoDialerRoute><AutoDialer defaultMode="manual" /></AutoDialerRoute></RoleRoute>} />
+        <Route path="ai-agent" element={<RoleRoute allowedRoles={['agent', 'admin']}><AutoDialerRoute><AutoDialer defaultMode="ai" /></AutoDialerRoute></RoleRoute>} />
         <Route path="profile" element={<ProfileSettings />} />
         <Route path="callbacks" element={<RoleRoute allowedRoles={['agent', 'admin']}><Callbacks /></RoleRoute>} />
         <Route path="callbacks/add" element={<RoleRoute allowedRoles={['agent']}><AddCallback /></RoleRoute>} />

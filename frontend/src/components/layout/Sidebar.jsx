@@ -7,7 +7,7 @@ import {
   PoundSterling, Users, ChevronLeft, ChevronRight,
   UsersRound, BarChart3, Bell, Shield,
   Activity, Settings, UserPlus, Clock,
-  DollarSign, CalendarDays, Wallet, CalendarCheck, RefreshCw,
+  DollarSign, CalendarDays, Wallet, CalendarCheck, RefreshCw, Bot,
 } from 'lucide-react'
 
 const NAV_ITEMS = {
@@ -62,10 +62,15 @@ export default function Sidebar({ collapsed, onToggle, mobileOpen, onMobileClose
       navItems = [
         ...navItems.slice(0, attendanceIdx + 1),
         { to: '/dialer', icon: PhoneCall, label: 'Auto Dialer' },
+        { to: '/ai-agent', icon: Bot, label: 'AI Voice Agent' },
         ...navItems.slice(attendanceIdx + 1),
       ]
     } else {
-      navItems = [...navItems, { to: '/dialer', icon: PhoneCall, label: 'Auto Dialer' }]
+      navItems = [
+        ...navItems,
+        { to: '/dialer', icon: PhoneCall, label: 'Auto Dialer' },
+        { to: '/ai-agent', icon: Bot, label: 'AI Voice Agent' },
+      ]
     }
   }
   const [hoveredItem, setHoveredItem] = useState(null)

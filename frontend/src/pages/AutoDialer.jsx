@@ -10,9 +10,15 @@ import {
 import { APP_STYLES } from '@/lib/styles'
 import AiVoiceAgentPanel from '@/components/AiVoiceAgentPanel'
 
-export default function AutoDialer() {
+export default function AutoDialer({ defaultMode = 'ai' }) {
   const navigate = useNavigate()
   const { toast } = useToast()
+
+  const [dialerMode, setDialerMode] = useState(defaultMode)
+
+  useEffect(() => {
+    setDialerMode(defaultMode)
+  }, [defaultMode])
 
   // Campaigns list state
   const [campaigns, setCampaigns] = useState(() => {
@@ -650,11 +656,52 @@ export default function AutoDialer() {
       <div className="rt-page">
         <div style={{ maxWidth: '1200px', margin: '0 auto' }}>
           
+          {/* Top Mode Switcher Tabs */}
+          <div className="flex items-center gap-2 p-1.5 bg-slate-100 rounded-2xl w-fit mb-6 border border-slate-200/80 shadow-sm">
+            <button
+              onClick={() => {
+                setDialerMode('ai')
+                setActiveTab('ai-agent')
+              }}
+              className={`flex items-center gap-2 px-5 py-2.5 rounded-xl text-xs font-bold transition-all border-none cursor-pointer ${
+                dialerMode === 'ai'
+                  ? 'bg-indigo-600 text-white shadow-md shadow-indigo-500/25'
+                  : 'bg-transparent text-slate-600 hover:text-slate-900'
+              }`}
+            >
+              <Bot size={16} />
+              🤖 AI Voice Agent (Auto-Pilot)
+              <span className={`text-[9px] font-extrabold px-2 py-0.5 rounded-md uppercase ${
+                dialerMode === 'ai' ? 'bg-white/20 text-white' : 'bg-indigo-100 text-indigo-700'
+              }`}>
+                Llama 3.3 + Deepgram
+              </span>
+            </button>
+            <button
+              onClick={() => {
+                setDialerMode('manual')
+                setActiveTab('queue')
+              }}
+              className={`flex items-center gap-2 px-5 py-2.5 rounded-xl text-xs font-bold transition-all border-none cursor-pointer ${
+                dialerMode === 'manual'
+                  ? 'bg-white text-slate-900 shadow-sm'
+                  : 'bg-transparent text-slate-600 hover:text-slate-900'
+              }`}
+            >
+              <Phone size={14} />
+              📞 Manual Auto-Dialer
+            </button>
+          </div>
+
           {/* Header */}
           {!activeCampaignId ? (
             <div className="ad-hero rt-fade">
-              <h1>🎯 Auto-Dialer</h1>
-              <p>Manage call campaigns, dial leads via Vonage, and track outcomes in real-time</p>
+              <h1>{dialerMode === 'ai' ? '🤖 Autonomous AI Calling Agent' : '🎯 Manual Auto-Dialer'}</h1>
+              <p>
+                {dialerMode === 'ai'
+                  ? 'Autonomous AI Energy Specialist dials leads, conducts natural voice sales pitches, and logs Callbacks, Sales, & Transfers automatically'
+                  : 'Manage call campaigns, dial leads via Vonage, and track outcomes in real-time'}
+              </p>
               <div className="ad-stat-row">
                 <div className="ad-stat-pill">
                   <div className="val">{dbCampaigns.length}</div>
