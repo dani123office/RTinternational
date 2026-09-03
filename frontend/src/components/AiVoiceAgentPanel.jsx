@@ -85,22 +85,24 @@ export default function AiVoiceAgentPanel({
       }
 
       rec.onerror = (event) => {
-        console.warn('Speech recognition error:', event.error)
+        console.warn('Speech recognition status:', event.error)
         if (event.error === 'not-allowed') {
           setIsListening(false)
-          toast('Microphone access denied. You can still type customer replies.', 'warning')
+          toast('Microphone access blocked. Please allow mic permissions in Chrome and Windows Settings.', 'warning')
+        } else if (event.error === 'network' || event.error === 'no-speech') {
+          // Normal silence/network retry
         }
       }
 
       rec.onend = () => {
-        if (isListening && isSessionActive) {
+        if (isListening && isSessionActive && !isSpeaking) {
           try { rec.start() } catch (e) {}
         }
       }
 
       recognitionRef.current = rec
     }
-  }, [isListening, isSessionActive])
+  }, [isListening, isSessionActive, isSpeaking])
 
   // Play synthesized audio via Deepgram TTS
   const playTTS = async (text) => {
@@ -282,10 +284,19 @@ export default function AiVoiceAgentPanel({
   }
 
   // Start new AI Call Session
-  const startSession = () => {
+  const startSession = async () => {
     if (!currentLead) {
       toast('Please select or upload a campaign lead first', 'warning')
       return
+    }
+
+    // Explicitly request microphone stream
+    try {
+      if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
+        await navigator.mediaDevices.getUserMedia({ audio: true })
+      }
+    } catch (e) {
+      console.warn('Microphone stream error:', e)
     }
 
     // Dial the number
@@ -337,13 +348,21 @@ export default function AiVoiceAgentPanel({
   }
 
   // Toggle Microphone listener
-  const toggleListening = () => {
+  const toggleListening = async () => {
     if (isListening) {
       if (recognitionRef.current) {
         try { recognitionRef.current.stop() } catch (e) {}
       }
       setIsListening(false)
     } else {
+      try {
+        if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
+          await navigator.mediaDevices.getUserMedia({ audio: true })
+        }
+      } catch (e) {
+        console.warn('Microphone stream error:', e)
+      }
+
       if (recognitionRef.current) {
         try {
           recognitionRef.current.start()
