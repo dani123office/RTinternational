@@ -8,8 +8,8 @@ import api, { endpoints } from '@/lib/api'
 import { useToast } from '@/components/ui/toastContext'
 
 const AURA_VOICES = [
+  { id: 'aura-luna-en', name: 'Amy (British Female)', desc: 'Warm, articulate UK business consultant' },
   { id: 'aura-angus-en', name: 'Angus (British Male)', desc: 'Professional, assertive UK broker tone' },
-  { id: 'aura-luna-en', name: 'Luna (British Female)', desc: 'Warm, articulate UK business consultant' },
   { id: 'aura-asteria-en', name: 'Asteria (US Female)', desc: 'Energetic, confident specialist' },
   { id: 'aura-zeus-en', name: 'Zeus (US Male)', desc: 'Authoritative, clear executive voice' },
 ]
@@ -25,7 +25,7 @@ export default function AiVoiceAgentPanel({
   const { toast } = useToast()
   
   // Voice Agent State
-  const [voiceModel, setVoiceModel] = useState('aura-angus-en')
+  const [voiceModel, setVoiceModel] = useState('aura-luna-en')
   const [isSessionActive, setIsSessionActive] = useState(false)
   const [isListening, setIsListening] = useState(false)
   const [isThinking, setIsThinking] = useState(false)
@@ -308,8 +308,8 @@ export default function AiVoiceAgentPanel({
     setLastAction(null)
     setCountdown(null)
 
-    // Initial greeting pitch
-    const greetingText = `Hi, my name is Alex from RT International regarding the commercial energy renewal for ${currentLead.businessName || 'your business'}. Am I speaking with the decision maker?`
+    // Initial greeting pitch (Amy - Business Energy Advisors, Rule 1: No electricity/energy in opener)
+    const greetingText = `Hi, this is Amy calling from Business Energy Advisors regarding the commercial contract review for ${currentLead.businessName || 'your business'}. Am I speaking with the decision maker?`
     
     const initialMsg = {
       role: 'assistant',
@@ -506,7 +506,7 @@ export default function AiVoiceAgentPanel({
               >
                 <div className="flex items-center gap-1.5 mb-1 px-1">
                   <span className="text-[10px] font-bold text-slate-400">
-                    {isAi ? '🤖 AI Specialist (Alex)' : `👤 Customer (${currentLead?.businessName || 'Target'})`}
+                    {isAi ? '🤖 Amy (Business Energy Advisors)' : `👤 Customer (${currentLead?.businessName || 'Target'})`}
                   </span>
                   <span className="text-[9px] text-slate-400">{m.time}</span>
                 </div>
