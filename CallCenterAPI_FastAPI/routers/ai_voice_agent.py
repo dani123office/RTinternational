@@ -138,6 +138,10 @@ TOOLS_SCHEMA = [
 ]
 
 
+# Persistent in-memory cache of call learnings per user
+USER_CALL_LEARNINGS: Dict[int, List[str]] = {}
+
+
 class ChatMessage(BaseModel):
     role: str
     content: Optional[str] = None
@@ -160,6 +164,12 @@ class AutoActionRequest(BaseModel):
     actionType: str  # "callback" | "transfer" | "sale"
     payload: Dict[str, Any]
     campaignLeadId: Optional[int] = None
+
+
+class AnalyzeCallRequest(BaseModel):
+    messages: List[ChatMessage]
+    leadInfo: Optional[Dict[str, Any]] = None
+    outcome: Optional[str] = None
 
 
 import urllib.request
@@ -186,6 +196,12 @@ def ai_converse(
             f"\n- Notes: {req.leadInfo.get('notes', 'None')}"
         )
         system_prompt += lead_context
+
+    # Inject real-time learnings from previous calls
+    user_learnings = USER_CALL_LEARNINGS.get(current_user.id, [])
+    if user_learnings:
+        recent_tips = "\n".join([f"- {tip}" for tip in user_learnings[-3:]])
+        system_prompt += f"\n\nTACTICAL COACHING INSIGHTS FROM PREVIOUS CALLS (Apply these to handle objections better):\n{recent_tips}"
 
     formatted_messages = [{"role": "system", "content": system_prompt}]
     for m in req.messages:
@@ -461,3 +477,97 @@ def execute_auto_action(
 
     else:
         return {"status": "ignored", "action": action_type, "message": "No CRM creation action required"}
+
+
+@router.post("/analyze-call")
+def analyze_call_debrief(
+    req: AnalyzeCallRequest,
+    request: Request,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    """Analyzes completed call transcript with LLM to extract learnings for subsequent calls."""
+    api_key = os.environ.get("GROQ_API_KEY", "") or GROQ_API_KEY
+    if not api_key:
+        return {"status": "skipped", "message": "GROQ_API_KEY not configured"}
+
+    if not req.messages or len(req.messages) <= 1:
+        return {"status": "skipped", "message": "Conversation too short to analyze"}
+
+    transcript_lines = []
+    for m in req.messages:
+        speaker = "Amy (Energy Consultant)" if m.role == "assistant" else "Customer"
+        transcript_lines.append(f"{speaker}: {m.content or ''}")
+    
+    transcript_text = "\n".join(transcript_lines)
+    lead_name = req.leadInfo.get("businessName") if req.leadInfo else "Business Lead"
+
+    analysis_prompt = f"""You are a master UK Energy Sales Coach reviewing a sales call transcript for Business Energy Advisors.
+Analyze this call between Amy (Agent) and the customer ({lead_name}). Outcome: {req.outcome or 'Call ended'}.
+
+Transcript:
+\"\"\"{transcript_text}\"\"\"
+
+Provide your response in this exact JSON format:
+{{
+  "objectionIdentified": "Summary of customer's main objection or reason for not proceeding",
+  "whatWentWell": "1 sentence on positive aspects",
+  "whatToImprove": "1 sentence on what should have been said instead or how to handle this better",
+  "actionableTip": "1 concise tactical rule/tip for Amy to use on the next call to overcome this exact objection"
+}}
+"""
+
+    try:
+        req_data = json.dumps({
+            "model": "openai/gpt-oss-120b",
+            "messages": [
+                {"role": "system", "content": "You are an expert sales performance coach. Always return valid JSON."},
+                {"role": "user", "content": analysis_prompt}
+            ],
+            "temperature": 0.3,
+            "response_format": {"type": "json_object"}
+        }).encode('utf-8')
+
+        http_req = urllib.request.Request(
+            "https://api.groq.com/openai/v1/chat/completions",
+            data=req_data,
+            headers={
+                "Authorization": f"Bearer {api_key}",
+                "Content-Type": "application/json",
+                "User-Agent": "RTInternational/1.0"
+            },
+            method="POST"
+        )
+
+        with urllib.request.urlopen(http_req, timeout=15) as response:
+            res_body = response.read().decode('utf-8')
+            data = json.loads(res_body)
+            raw_json = data["choices"][0]["message"]["content"]
+            analysis_data = json.loads(raw_json)
+
+            tip = analysis_data.get("actionableTip") or analysis_data.get("whatToImprove")
+            if tip:
+                if current_user.id not in USER_CALL_LEARNINGS:
+                    USER_CALL_LEARNINGS[current_user.id] = []
+                USER_CALL_LEARNINGS[current_user.id].append(tip)
+                # Keep last 10 learnings max
+                if len(USER_CALL_LEARNINGS[current_user.id]) > 10:
+                    USER_CALL_LEARNINGS[current_user.id].pop(0)
+
+            log_activity(
+                db, current_user.id, "ai_call_debrief", "campaigns", 0,
+                f"AI evaluated call for {lead_name}: {tip[:120] if tip else 'Debrief saved'}",
+                get_client_ip(request)
+            )
+
+            return {
+                "status": "success",
+                "analysis": analysis_data,
+                "learningTip": tip,
+                "totalLearnings": len(USER_CALL_LEARNINGS.get(current_user.id, []))
+            }
+
+    except Exception as exc:
+        print("Call analysis error:", exc)
+        return {"status": "error", "message": str(exc)}
+

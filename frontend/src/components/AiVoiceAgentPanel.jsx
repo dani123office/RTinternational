@@ -40,6 +40,23 @@ export default function AiVoiceAgentPanel({
     localStorage.setItem('rt_ai_voice_output', voiceOutputEnabled)
   }, [voiceOutputEnabled])
   
+  // Post-Call AI Debrief & Learnings
+  const [lastDebrief, setLastDebrief] = useState(() => {
+    const saved = localStorage.getItem('rt_ai_last_debrief')
+    if (saved) {
+      try { return JSON.parse(saved) } catch (e) {}
+    }
+    return null
+  })
+
+  useEffect(() => {
+    if (lastDebrief) {
+      localStorage.setItem('rt_ai_last_debrief', JSON.stringify(lastDebrief))
+    } else {
+      localStorage.removeItem('rt_ai_last_debrief')
+    }
+  }, [lastDebrief])
+  
   // Conversation History
   const [messages, setMessages] = useState([])
   const [userInput, setUserInput] = useState('')
@@ -341,8 +358,34 @@ export default function AiVoiceAgentPanel({
     }
   }
 
-  // Stop Session
+  // Stop Session (Hang Up, Analyze Call with LLM, and Clear Chat for Next Call)
   const stopSession = () => {
+    // 1. Analyze call transcript with LLM if conversation took place
+    if (messages.length > 1) {
+      const messagesToAnalyze = [...messages]
+      const leadPayload = currentLead ? {
+        businessName: currentLead.businessName,
+        phone: currentLead.phone,
+        postcode: currentLead.postcode
+      } : null
+      const outcomeLabel = lastAction?.title || 'Call ended'
+
+      api.post(endpoints.aiVoice.analyzeCall, {
+        messages: messagesToAnalyze,
+        leadInfo: leadPayload,
+        outcome: outcomeLabel
+      }).then((res) => {
+        if (res.data?.status === 'success' && res.data?.analysis) {
+          setLastDebrief(res.data.analysis)
+          toast('🧠 Call analyzed! AI learned new tactics for subsequent calls.', 'success')
+        }
+      }).catch((err) => {
+        console.warn('Call debrief analysis failed:', err)
+      })
+    }
+
+    // 2. Clear conversation chat teleprompter for next call
+    setMessages([])
     setIsSessionActive(false)
     setIsListening(false)
     setIsSpeaking(false)
@@ -507,6 +550,36 @@ export default function AiVoiceAgentPanel({
               </button>
             </div>
           )}
+        </div>
+      )}
+
+      {/* AI POST-CALL DEBRIEF & LEARNING CARD */}
+      {lastDebrief && (
+        <div className="p-3 rounded-2xl bg-gradient-to-r from-amber-500/10 via-indigo-500/10 to-emerald-500/10 border border-indigo-200/80 flex items-start gap-2.5 animate-fade-in shadow-sm">
+          <div className="w-7 h-7 rounded-xl bg-indigo-600 text-white flex items-center justify-center shrink-0 mt-0.5 shadow-sm">
+            <Sparkles size={14} />
+          </div>
+          <div className="min-w-0 flex-1">
+            <div className="flex items-center justify-between gap-2">
+              <span className="text-[11px] font-extrabold text-indigo-950 uppercase tracking-wider">
+                🧠 AI Learned From Previous Call
+              </span>
+              <button
+                onClick={() => setLastDebrief(null)}
+                className="text-[10px] text-slate-400 hover:text-slate-600 bg-transparent border-0 cursor-pointer font-bold"
+              >
+                Dismiss
+              </button>
+            </div>
+            {lastDebrief.objectionIdentified && (
+              <p className="text-[11px] text-indigo-900 font-semibold mt-0.5">
+                Target Issue: <span className="font-normal text-slate-700">{lastDebrief.objectionIdentified}</span>
+              </p>
+            )}
+            <p className="text-xs text-slate-800 font-medium mt-1 leading-relaxed bg-white/70 p-2 rounded-xl border border-indigo-100">
+              💡 <strong className="text-indigo-700">Tactic for this call:</strong> {lastDebrief.actionableTip || lastDebrief.whatToImprove}
+            </p>
+          </div>
         </div>
       )}
 

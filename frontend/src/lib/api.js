@@ -264,6 +264,7 @@ export const endpoints = {
     converse: '/api/ai/voice/converse',
     tts: '/api/ai/voice/tts',
     autoAction: '/api/ai/voice/auto-action',
+    analyzeCall: '/api/ai/voice/analyze-call',
   },
   admin: {
     users: '/api/admin/users',
