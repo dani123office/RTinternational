@@ -105,11 +105,23 @@ export default function AiVoiceAgentPanel({
   const [lastAction, setLastAction] = useState(null)
   const [countdown, setCountdown] = useState(null)
   
-  // Speech & Audio Refs
+  // Speech & Audio & MediaStream Refs
   const recognitionRef = useRef(null)
+  const mediaStreamRef = useRef(null)
   const audioPlayerRef = useRef(null)
   const chatScrollRef = useRef(null)
   const countdownTimerRef = useRef(null)
+
+  const isSessionActiveRef = useRef(false)
+  const isListeningRef = useRef(false)
+  const isSpeakingRef = useRef(false)
+  const isThinkingRef = useRef(false)
+  const handleCustomerReplyRef = useRef(null)
+
+  useEffect(() => { isSessionActiveRef.current = isSessionActive }, [isSessionActive])
+  useEffect(() => { isListeningRef.current = isListening }, [isListening])
+  useEffect(() => { isSpeakingRef.current = isSpeaking }, [isSpeaking])
+  useEffect(() => { isThinkingRef.current = isThinking }, [isThinking])
 
   // Auto-scroll chat to bottom
   useEffect(() => {
@@ -118,11 +130,15 @@ export default function AiVoiceAgentPanel({
     }
   }, [messages, isThinking, isSpeaking])
 
-  // Clean up timers on unmount
+  // Clean up timers & media streams on unmount
   useEffect(() => {
     return () => {
       if (recognitionRef.current) {
-        try { recognitionRef.current.stop() } catch (e) {}
+        try { recognitionRef.current.abort() } catch (e) {}
+      }
+      if (mediaStreamRef.current) {
+        try { mediaStreamRef.current.getTracks().forEach(t => t.stop()) } catch (e) {}
+        mediaStreamRef.current = null
       }
       if (audioPlayerRef.current) {
         audioPlayerRef.current.pause()
@@ -133,44 +149,52 @@ export default function AiVoiceAgentPanel({
     }
   }, [])
 
-  // Initialize Speech Recognition
+  // Initialize Speech Recognition once on mount with auto-restart resilience
   useEffect(() => {
     const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition
-    if (SpeechRecognition) {
-      const rec = new SpeechRecognition()
-      rec.continuous = true
-      rec.interimResults = false
-      rec.lang = 'en-GB'
+    if (!SpeechRecognition) return
 
-      rec.onresult = (event) => {
-        const lastResult = event.results[event.results.length - 1]
-        if (lastResult.isFinal) {
-          const transcript = lastResult[0].transcript.trim()
-          if (transcript) {
-            handleCustomerReply(transcript)
-          }
+    const rec = new SpeechRecognition()
+    rec.continuous = true
+    rec.interimResults = false
+    rec.lang = 'en-GB'
+
+    rec.onresult = (event) => {
+      const lastResult = event.results[event.results.length - 1]
+      if (lastResult.isFinal) {
+        const transcript = lastResult[0].transcript.trim()
+        if (transcript && handleCustomerReplyRef.current) {
+          handleCustomerReplyRef.current(transcript)
         }
       }
-
-      rec.onerror = (event) => {
-        console.warn('Speech recognition status:', event.error)
-        if (event.error === 'not-allowed') {
-          setIsListening(false)
-          toast('Microphone access blocked. Please allow mic permissions in Chrome and Windows Settings.', 'warning')
-        } else if (event.error === 'network' || event.error === 'no-speech') {
-          // Normal silence/network retry
-        }
-      }
-
-      rec.onend = () => {
-        if (isListening && isSessionActive && !isSpeaking) {
-          try { rec.start() } catch (e) {}
-        }
-      }
-
-      recognitionRef.current = rec
     }
-  }, [isListening, isSessionActive, isSpeaking])
+
+    rec.onerror = (event) => {
+      console.warn('Speech recognition event:', event.error)
+      if (event.error === 'not-allowed' || event.error === 'service-not-allowed') {
+        setIsListening(false)
+        isListeningRef.current = false
+        toast('Microphone access blocked. Please allow mic in browser settings.', 'warning')
+      }
+    }
+
+    rec.onend = () => {
+      // If session is active and listening is enabled, auto-restart smoothly
+      if (isSessionActiveRef.current && isListeningRef.current) {
+        setTimeout(() => {
+          if (isSessionActiveRef.current && isListeningRef.current) {
+            try { rec.start() } catch (e) {}
+          }
+        }, 150)
+      }
+    }
+
+    recognitionRef.current = rec
+
+    return () => {
+      try { rec.abort() } catch (e) {}
+    }
+  }, [])
 
   // Play synthesized audio via Deepgram TTS (Only when voiceOutputEnabled is true)
   const playTTS = async (text) => {
@@ -354,32 +378,39 @@ export default function AiVoiceAgentPanel({
     }, 1000)
   }
 
-  // Start new AI Call Session
+    // Keep handleCustomerReply ref up to date
+    handleCustomerReplyRef.current = handleCustomerReply
+
+  // Start new AI Call Session (Automatically starts microphone & dialer)
   const startSession = async () => {
     if (!currentLead) {
       toast('Please select or upload a campaign lead first', 'warning')
       return
     }
 
-    // Explicitly request microphone stream
+    // 1. Explicitly request & hold microphone hardware stream
     try {
       if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
-        await navigator.mediaDevices.getUserMedia({ audio: true })
+        const stream = await navigator.mediaDevices.getUserMedia({ audio: true })
+        mediaStreamRef.current = stream
       }
     } catch (e) {
-      console.warn('Microphone stream error:', e)
+      console.warn('Microphone hardware stream warning:', e)
     }
 
-    // Dial the number
+    // 2. Trigger telephone dialer
     if (triggerDial && currentLead.phone) {
       triggerDial(currentLead.phone)
     }
 
     setIsSessionActive(true)
+    isSessionActiveRef.current = true
+    setIsListening(true)
+    isListeningRef.current = true
     setLastAction(null)
     setCountdown(null)
 
-    // Initial greeting pitch - dynamically formatted for current active lead
+    // 3. Initial greeting pitch - dynamically formatted for current active lead
     const greetingText = formatLeadGreeting(adaptedOpener, currentLead)
     
     const initialMsg = {
@@ -391,16 +422,17 @@ export default function AiVoiceAgentPanel({
     setMessages([initialMsg])
     playTTS(greetingText)
 
-    // Start listening
+    // 4. Guaranteed start speech recognition listening
     if (recognitionRef.current) {
       try {
         recognitionRef.current.start()
-        setIsListening(true)
-      } catch (e) {}
+      } catch (e) {
+        // If already started, ignore
+      }
     }
   }
 
-  // Stop Session (Hang Up, Analyze Call with LLM, Evolve Script & Clear Chat for Next Call)
+  // Stop Session (Hang Up, Analyze Call with LLM, Evolve Script, Clear Chat & Turn Off Mic)
   const stopSession = () => {
     // 1. Analyze call transcript with LLM if conversation took place
     if (messages.length > 1) {
@@ -435,42 +467,75 @@ export default function AiVoiceAgentPanel({
     // 2. Clear conversation chat teleprompter for next call
     setMessages([])
     setIsSessionActive(false)
+    isSessionActiveRef.current = false
     setIsListening(false)
+    isListeningRef.current = false
     setIsSpeaking(false)
+    isSpeakingRef.current = false
     setIsThinking(false)
+    isThinkingRef.current = false
+
+    // 3. Completely shut down speech recognition listening
     if (recognitionRef.current) {
-      try { recognitionRef.current.stop() } catch (e) {}
+      try {
+        recognitionRef.current.abort()
+      } catch (e) {}
     }
+
+    // 4. Release microphone hardware stream (turns off red browser mic recording light)
+    if (mediaStreamRef.current) {
+      try {
+        mediaStreamRef.current.getTracks().forEach((track) => track.stop())
+      } catch (e) {}
+      mediaStreamRef.current = null
+    }
+
+    // 5. Stop any playing audio
     if (audioPlayerRef.current) {
-      audioPlayerRef.current.pause()
+      try {
+        audioPlayerRef.current.pause()
+      } catch (e) {}
     }
+
     if (countdownTimerRef.current) {
       clearInterval(countdownTimerRef.current)
       setCountdown(null)
     }
   }
 
-  // Toggle Microphone listener
+  // Toggle Microphone listener manually
   const toggleListening = async () => {
     if (isListening) {
-      if (recognitionRef.current) {
-        try { recognitionRef.current.stop() } catch (e) {}
-      }
       setIsListening(false)
+      isListeningRef.current = false
+      if (recognitionRef.current) {
+        try {
+          recognitionRef.current.abort()
+        } catch (e) {}
+      }
+      if (mediaStreamRef.current) {
+        try {
+          mediaStreamRef.current.getTracks().forEach((track) => track.stop())
+        } catch (e) {}
+        mediaStreamRef.current = null
+      }
+      toast('Microphone paused', 'info')
     } else {
       try {
         if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
-          await navigator.mediaDevices.getUserMedia({ audio: true })
+          const stream = await navigator.mediaDevices.getUserMedia({ audio: true })
+          mediaStreamRef.current = stream
         }
       } catch (e) {
-        console.warn('Microphone stream error:', e)
+        console.warn('Microphone hardware stream warning:', e)
       }
 
+      setIsListening(true)
+      isListeningRef.current = true
       if (recognitionRef.current) {
         try {
           recognitionRef.current.start()
-          setIsListening(true)
-          toast('Listening for customer speech...', 'info')
+          toast('🎙️ Microphone active & listening', 'info')
         } catch (e) {}
       } else {
         toast('Speech recognition not supported in this browser. You can type replies.', 'warning')

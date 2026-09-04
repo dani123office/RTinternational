@@ -530,7 +530,7 @@ Provide your response in this exact JSON format:
   "whatWentWell": "1 sentence on positive aspects",
   "whatToImprove": "1 sentence on what should have been said instead or how to handle this better",
   "actionableTip": "1 concise tactical rule/tip for Amy to use on subsequent calls to overcome this exact objection",
-  "adaptedOpener": "A generic, evolved opening greeting for Amy to use for ANY new business on subsequent calls. You MUST use the literal placeholder '{businessName}' for the company name. NEVER write the previous company name '{lead_name}' into this field.",
+  "adaptedOpener": "A generic, evolved opening greeting for Amy to use for ANY new business on subsequent calls. You MUST use the literal placeholder '{{businessName}}' for the company name. NEVER write the previous company name '{lead_name}' into this field.",
   "strategyShift": "1 short sentence explaining how the script strategy was refined for subsequent calls"
 }}
 """
@@ -539,7 +539,7 @@ Provide your response in this exact JSON format:
         req_data = json.dumps({
             "model": "openai/gpt-oss-120b",
             "messages": [
-                {"role": "system", "content": "You are an expert sales performance coach. Always return valid JSON. Always keep {businessName} placeholder in adaptedOpener."},
+                {"role": "system", "content": "You are an expert sales performance coach. Always return valid JSON. Always keep {{businessName}} placeholder in adaptedOpener."},
                 {"role": "user", "content": analysis_prompt}
             ],
             "temperature": 0.3,
