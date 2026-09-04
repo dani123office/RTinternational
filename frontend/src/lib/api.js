@@ -266,6 +266,7 @@ export const endpoints = {
     autoAction: '/api/ai/voice/auto-action',
     analyzeCall: '/api/ai/voice/analyze-call',
     resetScript: '/api/ai/voice/reset-script',
+    evolveScript: '/api/ai/voice/evolve-script',
   },
   admin: {
     users: '/api/admin/users',

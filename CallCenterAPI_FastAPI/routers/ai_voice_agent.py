@@ -524,14 +524,28 @@ Analyze this call between Amy (Agent) and the customer ({lead_name}). Outcome: {
 Transcript:
 \"\"\"{transcript_text}\"\"\"
 
+Generate a fresh, distinctly evolved opening greeting for Amy on subsequent calls that directly addresses or bypasses this objection.
+Choose the best dynamic strategic angle for subsequent calls:
+- TARIFF AUDIT ANGLE (e.g. 30-sec tariff check following recent market wholesale rate drop)
+- OFGEM REGULATION ANGLE (e.g. Ofgem Condition 22 mid-contract rate reduction with zero exit fees)
+- BROKER SURCHARGE AUDIT ANGLE (e.g. checking for hidden broker commissions/surcharges in commercial meters)
+- FAST-TRACK VALUE ANGLE (e.g. brief commercial review for commercial rates)
+
+RULES FOR adaptedOpener:
+1. Never say "electricity" or "energy" in the opening line
+2. Always end with a question asking for the decision maker
+3. MUST use the literal placeholder '{{businessName}}' for the business name
+4. Make it punchy, conversational, and distinctly different from previous standard lines
+
 Provide your response in this exact JSON format:
 {{
-  "objectionIdentified": "Summary of customer's main objection or reason for not proceeding",
+  "objectionIdentified": "Summary of customer's main objection or reason for refusal",
   "whatWentWell": "1 sentence on positive aspects",
-  "whatToImprove": "1 sentence on what should have been said instead or how to handle this better",
-  "actionableTip": "1 concise tactical rule/tip for Amy to use on subsequent calls to overcome this exact objection",
-  "adaptedOpener": "A generic, evolved opening greeting for Amy to use for ANY new business on subsequent calls. You MUST use the literal placeholder '{{businessName}}' for the company name. NEVER write the previous company name '{lead_name}' into this field.",
-  "strategyShift": "1 short sentence explaining how the script strategy was refined for subsequent calls"
+  "whatToImprove": "1 sentence on how to handle this better",
+  "actionableTip": "1 concise tactical rule/tip for Amy to use on subsequent calls",
+  "angleName": "Name of the strategy angle used (e.g. Ofgem Mid-Contract Rights, Tariff Audit, Surcharge Review)",
+  "adaptedOpener": "Your newly crafted, dynamic opening pitch greeting ending with a question and using {{businessName}}",
+  "strategyShift": "1 short sentence explaining why this angle converts better"
 }}
 """
 
@@ -539,10 +553,10 @@ Provide your response in this exact JSON format:
         req_data = json.dumps({
             "model": "openai/gpt-oss-120b",
             "messages": [
-                {"role": "system", "content": "You are an expert sales performance coach. Always return valid JSON. Always keep {{businessName}} placeholder in adaptedOpener."},
+                {"role": "system", "content": "You are an elite UK sales performance coach. Always return valid JSON. Always keep {{businessName}} placeholder."},
                 {"role": "user", "content": analysis_prompt}
             ],
-            "temperature": 0.3,
+            "temperature": 0.7,
             "response_format": {"type": "json_object"}
         }).encode('utf-8')
 
@@ -614,4 +628,89 @@ Provide your response in this exact JSON format:
     except Exception as exc:
         print("Call analysis error:", exc)
         return {"status": "error", "message": str(exc)}
+
+
+class EvolveScriptRequest(BaseModel):
+    preferredAngle: Optional[str] = None
+    notes: Optional[str] = None
+
+
+@router.post("/evolve-script")
+def evolve_script_manually(
+    req: Optional[EvolveScriptRequest] = None,
+    request: Request = None,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    """Generates a fresh dynamic script angle on-demand."""
+    api_key = os.environ.get("GROQ_API_KEY", "") or GROQ_API_KEY
+    if not api_key:
+        return {"status": "error", "message": "GROQ_API_KEY not configured"}
+
+    angle = (req.preferredAngle if req else None) or "Next high-converting UK energy angle"
+    
+    prompt = f"""You are a master UK energy telemarketing scriptwriter for Business Energy Advisors.
+Generate a fresh high-converting opening pitch variation for Amy calling UK businesses.
+Target Strategy Angle: {angle}.
+
+RULES:
+1. Never say "electricity" or "energy" in the opening line
+2. Always end with a crisp question asking for the owner or decision maker
+3. Use the exact placeholder '{{businessName}}' for the business name
+4. Sound natural, friendly, British, and professional
+
+Provide JSON:
+{{
+  "angleName": "Name of Angle (e.g. Tariff Audit, Ofgem Mid-Contract Rights, Surcharge Review, Quick Verification)",
+  "adaptedOpener": "Opening line ending with question and using {{businessName}}",
+  "strategyShift": "1 sentence why this angle hooks decision makers"
+}}
+"""
+    try:
+        req_data = json.dumps({
+            "model": "openai/gpt-oss-120b",
+            "messages": [
+                {"role": "system", "content": "You are a master sales scriptwriter. Return valid JSON only."},
+                {"role": "user", "content": prompt}
+            ],
+            "temperature": 0.8,
+            "response_format": {"type": "json_object"}
+        }).encode('utf-8')
+
+        http_req = urllib.request.Request(
+            "https://api.groq.com/openai/v1/chat/completions",
+            data=req_data,
+            headers={
+                "Authorization": f"Bearer {api_key}",
+                "Content-Type": "application/json",
+                "User-Agent": "RTInternational/1.0"
+            },
+            method="POST"
+        )
+        with urllib.request.urlopen(http_req, timeout=12) as response:
+            res_body = response.read().decode('utf-8')
+            data = json.loads(res_body)
+            result = json.loads(data["choices"][0]["message"]["content"])
+            
+            curr_prompt_data = USER_ADAPTED_PROMPTS.get(current_user.id, {})
+            version = curr_prompt_data.get("version", 1) + 1
+            
+            USER_ADAPTED_PROMPTS[current_user.id] = {
+                "version": version,
+                "adaptedOpener": result.get("adaptedOpener"),
+                "strategyShift": result.get("strategyShift"),
+                "angleName": result.get("angleName"),
+                "lastUpdated": datetime.utcnow().isoformat()
+            }
+            return {
+                "status": "success",
+                "adaptedOpener": result.get("adaptedOpener"),
+                "angleName": result.get("angleName"),
+                "strategyShift": result.get("strategyShift"),
+                "scriptVersion": version
+            }
+    except Exception as exc:
+        print("Evolve script error:", exc)
+        return {"status": "error", "message": str(exc)}
+
 

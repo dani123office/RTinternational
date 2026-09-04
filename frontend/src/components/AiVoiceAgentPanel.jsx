@@ -77,6 +77,8 @@ export default function AiVoiceAgentPanel({
     localStorage.setItem('rt_ai_script_version', scriptVersion.toString())
   }, [scriptVersion])
 
+  const [isEvolvingScript, setIsEvolvingScript] = useState(false)
+
   const formatLeadGreeting = useCallback((template, lead) => {
     const businessName = lead?.businessName?.trim() || 'your business'
     if (!template || !template.trim()) {
@@ -84,6 +86,28 @@ export default function AiVoiceAgentPanel({
     }
     return template.replace(/\{businessName\}|\{lead_name\}|\{company\}|\[Business Name\]|\[Company Name\]|\[businessName\]/gi, businessName)
   }, [])
+
+  const handleEvolveScript = async (preferredAngle) => {
+    setIsEvolvingScript(true)
+    try {
+      const res = await api.post(endpoints.aiVoice.evolveScript, { preferredAngle })
+      if (res.data?.status === 'success') {
+        setAdaptedOpener(res.data.adaptedOpener)
+        setScriptVersion(res.data.scriptVersion)
+        setLastDebrief({
+          objectionIdentified: res.data.angleName || 'Strategic Angle Shift',
+          actionableTip: res.data.strategyShift || 'New pitch angle generated to increase hook rate',
+          adaptedOpener: res.data.adaptedOpener
+        })
+        toast(`✨ Script evolved to v${res.data.scriptVersion}: ${res.data.angleName || 'New Angle'}`, 'success')
+      }
+    } catch (e) {
+      console.error(e)
+      toast('Failed to generate script variation', 'error')
+    } finally {
+      setIsEvolvingScript(false)
+    }
+  }
 
   const handleResetScript = async () => {
     try {
@@ -577,6 +601,16 @@ export default function AiVoiceAgentPanel({
         {/* Action Controls */}
         <div className="flex items-center gap-2">
           <button
+            onClick={() => handleEvolveScript()}
+            disabled={isEvolvingScript || isSessionActive}
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold border bg-indigo-500/20 hover:bg-indigo-500/30 border-indigo-400/40 text-indigo-200 transition-all cursor-pointer disabled:opacity-40"
+            title="Generate a fresh, alternative opening pitch angle (Tariff Audit, Ofgem Rights, Surcharges)"
+          >
+            <Sparkles size={13} className={isEvolvingScript ? 'animate-spin text-amber-300' : 'text-amber-400'} />
+            {isEvolvingScript ? 'Evolving...' : `Evolve Pitch (v${scriptVersion})`}
+          </button>
+
+          <button
             onClick={() => {
               const nextVal = !voiceOutputEnabled
               setVoiceOutputEnabled(nextVal)
@@ -684,11 +718,20 @@ export default function AiVoiceAgentPanel({
               </div>
               <div className="flex items-center gap-2">
                 <button
+                  onClick={() => handleEvolveScript()}
+                  disabled={isEvolvingScript || isSessionActive}
+                  className="text-[10px] text-indigo-700 hover:text-indigo-900 bg-indigo-50 hover:bg-indigo-100 px-2 py-0.5 rounded-md border border-indigo-200 cursor-pointer font-bold flex items-center gap-1 transition-all"
+                  title="Generate another alternative script hook"
+                >
+                  <RefreshCw size={10} className={isEvolvingScript ? 'animate-spin' : ''} />
+                  Rotate Angle
+                </button>
+                <button
                   onClick={handleResetScript}
-                  className="text-[10px] text-indigo-600 hover:text-indigo-800 bg-transparent border-0 cursor-pointer font-bold"
+                  className="text-[10px] text-slate-500 hover:text-slate-700 bg-transparent border-0 cursor-pointer font-bold"
                   title="Reset evolved script to original Amy default"
                 >
-                  Reset to Default
+                  Reset
                 </button>
                 <button
                   onClick={() => setLastDebrief(null)}
