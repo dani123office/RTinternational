@@ -229,7 +229,7 @@ def ai_converse(
         formatted_messages.append(msg_dict)
 
     groq_payload = {
-        "model": "llama-3.3-70b-versatile",
+        "model": "openai/gpt-oss-20b",
         "messages": formatted_messages,
         "tools": TOOLS_SCHEMA,
         "tool_choice": "auto",
@@ -551,7 +551,7 @@ Provide your response in this exact JSON format:
 
     try:
         req_data = json.dumps({
-            "model": "openai/gpt-oss-120b",
+            "model": "openai/gpt-oss-20b",
             "messages": [
                 {"role": "system", "content": "You are an elite UK sales performance coach. Always return valid JSON. Always keep {{businessName}} placeholder."},
                 {"role": "user", "content": analysis_prompt}
@@ -668,7 +668,7 @@ Provide JSON:
 """
     try:
         req_data = json.dumps({
-            "model": "openai/gpt-oss-120b",
+            "model": "openai/gpt-oss-20b",
             "messages": [
                 {"role": "system", "content": "You are a master sales scriptwriter. Return valid JSON only."},
                 {"role": "user", "content": prompt}
