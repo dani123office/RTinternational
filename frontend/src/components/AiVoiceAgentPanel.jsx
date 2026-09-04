@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef, useCallback } from 'react'
 import {
-  Bot, Mic, MicOff, Volume2, Sparkles, Send, RefreshCw,
+  Bot, Mic, MicOff, Volume2, VolumeX, Sparkles, Send, RefreshCw,
   Sliders, Settings2, Headphones, Zap, Play, Square, FastForward,
   CheckCircle2, ArrowRight, PhoneForwarded, Calendar, AlertTriangle
 } from 'lucide-react'
@@ -30,6 +30,15 @@ export default function AiVoiceAgentPanel({
   const [isListening, setIsListening] = useState(false)
   const [isThinking, setIsThinking] = useState(false)
   const [isSpeaking, setIsSpeaking] = useState(false)
+  
+  // Voice Output (Speech vs Text Only) - Default False (Chat Output Only)
+  const [voiceOutputEnabled, setVoiceOutputEnabled] = useState(() => {
+    return localStorage.getItem('rt_ai_voice_output') === 'true' // defaults to false
+  })
+
+  useEffect(() => {
+    localStorage.setItem('rt_ai_voice_output', voiceOutputEnabled)
+  }, [voiceOutputEnabled])
   
   // Conversation History
   const [messages, setMessages] = useState([])
@@ -104,9 +113,12 @@ export default function AiVoiceAgentPanel({
     }
   }, [isListening, isSessionActive, isSpeaking])
 
-  // Play synthesized audio via Deepgram TTS
+  // Play synthesized audio via Deepgram TTS (Only when voiceOutputEnabled is true)
   const playTTS = async (text) => {
-    if (!text) return
+    if (!text || !voiceOutputEnabled) {
+      setIsSpeaking(false)
+      return
+    }
     setIsSpeaking(true)
     try {
       const res = await api.post(
@@ -408,6 +420,23 @@ export default function AiVoiceAgentPanel({
 
         {/* Action Controls */}
         <div className="flex items-center gap-2">
+          <button
+            onClick={() => {
+              const nextVal = !voiceOutputEnabled
+              setVoiceOutputEnabled(nextVal)
+              toast(nextVal ? 'Voice Output (TTS) Enabled' : 'Voice Output Muted (Chat Only Mode)', 'info')
+            }}
+            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold border transition-all cursor-pointer ${
+              voiceOutputEnabled
+                ? 'bg-indigo-500/30 border-indigo-400 text-indigo-200'
+                : 'bg-white/10 border-white/15 text-white/75 hover:text-white'
+            }`}
+            title="When OFF, AI responds instantly in chat teleprompter without speaking audio aloud"
+          >
+            {voiceOutputEnabled ? <Volume2 size={13} className="text-indigo-300" /> : <VolumeX size={13} />}
+            Voice Output: {voiceOutputEnabled ? 'ON (Speech)' : 'OFF (Chat Only)'}
+          </button>
+
           <button
             onClick={() => setAutoPilotEnabled(!autoPilotEnabled)}
             className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold border transition-all cursor-pointer ${
