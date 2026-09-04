@@ -229,12 +229,12 @@ def ai_converse(
         formatted_messages.append(msg_dict)
 
     groq_payload = {
-        "model": "openai/gpt-oss-20b",
+        "model": "openai/gpt-oss-120b",
         "messages": formatted_messages,
         "tools": TOOLS_SCHEMA,
         "tool_choice": "auto",
         "temperature": 0.4,
-        "max_tokens": 160,
+        "max_tokens": 500,
     }
 
     try:
@@ -253,7 +253,7 @@ def ai_converse(
             res_body = response.read().decode('utf-8')
             data = json.loads(res_body)
             choice = data["choices"][0]["message"]
-            reply_text = choice.get("content") or ""
+            reply_text = (choice.get("content") or "").strip()
             tool_calls = choice.get("tool_calls") or []
 
             parsed_tool = None
@@ -282,7 +282,11 @@ def ai_converse(
                     elif fn_name == "transfer_to_agent":
                         reply_text = "Please hold the line for just a moment while I transfer you over to our senior energy specialist."
                     elif fn_name == "mark_not_interested":
-                        reply_text = "No problem at all. Thank you very much for your time today, have a great day!"
+                        reply_text = "Fair enough, I understand. Are you currently on a fixed contract with your existing supplier?"
+
+            # Guarantee that reply_text is never empty
+            if not reply_text:
+                reply_text = "Fair enough, I understand. Are you currently on a fixed commercial contract?"
 
             return {
                 "replyText": reply_text,
@@ -551,12 +555,13 @@ Provide your response in this exact JSON format:
 
     try:
         req_data = json.dumps({
-            "model": "openai/gpt-oss-20b",
+            "model": "openai/gpt-oss-120b",
             "messages": [
                 {"role": "system", "content": "You are an elite UK sales performance coach. Always return valid JSON. Always keep {{businessName}} placeholder."},
                 {"role": "user", "content": analysis_prompt}
             ],
             "temperature": 0.7,
+            "max_tokens": 600,
             "response_format": {"type": "json_object"}
         }).encode('utf-8')
 
@@ -668,12 +673,13 @@ Provide JSON:
 """
     try:
         req_data = json.dumps({
-            "model": "openai/gpt-oss-20b",
+            "model": "openai/gpt-oss-120b",
             "messages": [
                 {"role": "system", "content": "You are a master sales scriptwriter. Return valid JSON only."},
                 {"role": "user", "content": prompt}
             ],
             "temperature": 0.8,
+            "max_tokens": 600,
             "response_format": {"type": "json_object"}
         }).encode('utf-8')
 
