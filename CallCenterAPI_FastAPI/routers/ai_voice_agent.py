@@ -138,8 +138,9 @@ TOOLS_SCHEMA = [
 ]
 
 
-# Persistent in-memory cache of call learnings per user
+# Persistent in-memory cache of call learnings and dynamic evolved scripts per user
 USER_CALL_LEARNINGS: Dict[int, List[str]] = {}
+USER_ADAPTED_PROMPTS: Dict[int, Dict[str, Any]] = {}
 
 
 class ChatMessage(BaseModel):
@@ -175,6 +176,18 @@ class AnalyzeCallRequest(BaseModel):
 import urllib.request
 import urllib.error
 
+@router.post("/reset-script")
+def reset_adapted_script(
+    current_user: User = Depends(get_current_user),
+):
+    """Resets dynamically adapted script and learnings back to initial default."""
+    if current_user.id in USER_CALL_LEARNINGS:
+        USER_CALL_LEARNINGS[current_user.id] = []
+    if current_user.id in USER_ADAPTED_PROMPTS:
+        del USER_ADAPTED_PROMPTS[current_user.id]
+    return {"status": "success", "message": "Script reset to initial default"}
+
+
 @router.post("/converse")
 def ai_converse(
     req: ConverseRequest,
@@ -185,7 +198,10 @@ def ai_converse(
     if not api_key:
         raise HTTPException(status_code=500, detail="GROQ_API_KEY is not configured on the server")
 
-    system_prompt = req.customPitchPrompt or DEFAULT_ENERGY_PITCH
+    # Use dynamically adapted system prompt if available, else request prompt, else default
+    user_prompt_data = USER_ADAPTED_PROMPTS.get(current_user.id, {})
+    system_prompt = req.customPitchPrompt or user_prompt_data.get("adaptedSystemPrompt") or DEFAULT_ENERGY_PITCH
+
     if req.leadInfo:
         lead_context = (
             f"\n\nCurrent Lead Information:"
@@ -200,8 +216,8 @@ def ai_converse(
     # Inject real-time learnings from previous calls
     user_learnings = USER_CALL_LEARNINGS.get(current_user.id, [])
     if user_learnings:
-        recent_tips = "\n".join([f"- {tip}" for tip in user_learnings[-3:]])
-        system_prompt += f"\n\nTACTICAL COACHING INSIGHTS FROM PREVIOUS CALLS (Apply these to handle objections better):\n{recent_tips}"
+        recent_tips = "\n".join([f"- {tip}" for tip in user_learnings[-4:]])
+        system_prompt += f"\n\nDYNAMIC ADAPTATIONS FROM PREVIOUS CALLS (Apply these to improve conversion):\n{recent_tips}"
 
     formatted_messages = [{"role": "system", "content": system_prompt}]
     for m in req.messages:
@@ -513,7 +529,9 @@ Provide your response in this exact JSON format:
   "objectionIdentified": "Summary of customer's main objection or reason for not proceeding",
   "whatWentWell": "1 sentence on positive aspects",
   "whatToImprove": "1 sentence on what should have been said instead or how to handle this better",
-  "actionableTip": "1 concise tactical rule/tip for Amy to use on the next call to overcome this exact objection"
+  "actionableTip": "1 concise tactical rule/tip for Amy to use on the next call to overcome this exact objection",
+  "adaptedOpener": "An evolved, natural opening greeting for Amy on the next call (incorporating {lead_name} placeholder) that pre-empts or bypasses this objection effectively without saying electricity/energy in the first sentence",
+  "strategyShift": "1 short sentence explaining how the script strategy was refined for subsequent calls"
 }}
 """
 
@@ -546,6 +564,9 @@ Provide your response in this exact JSON format:
             analysis_data = json.loads(raw_json)
 
             tip = analysis_data.get("actionableTip") or analysis_data.get("whatToImprove")
+            adapted_opener = analysis_data.get("adaptedOpener")
+            strategy_shift = analysis_data.get("strategyShift")
+
             if tip:
                 if current_user.id not in USER_CALL_LEARNINGS:
                     USER_CALL_LEARNINGS[current_user.id] = []
@@ -554,9 +575,20 @@ Provide your response in this exact JSON format:
                 if len(USER_CALL_LEARNINGS[current_user.id]) > 10:
                     USER_CALL_LEARNINGS[current_user.id].pop(0)
 
+            # Update Adapted Script State
+            curr_prompt_data = USER_ADAPTED_PROMPTS.get(current_user.id, {})
+            version = curr_prompt_data.get("version", 1) + 1
+
+            USER_ADAPTED_PROMPTS[current_user.id] = {
+                "version": version,
+                "adaptedOpener": adapted_opener,
+                "strategyShift": strategy_shift,
+                "lastUpdated": datetime.utcnow().isoformat()
+            }
+
             log_activity(
                 db, current_user.id, "ai_call_debrief", "campaigns", 0,
-                f"AI evaluated call for {lead_name}: {tip[:120] if tip else 'Debrief saved'}",
+                f"AI evolved script (v{version}) for {lead_name}: {strategy_shift or tip[:100]}",
                 get_client_ip(request)
             )
 
@@ -564,6 +596,9 @@ Provide your response in this exact JSON format:
                 "status": "success",
                 "analysis": analysis_data,
                 "learningTip": tip,
+                "adaptedOpener": adapted_opener,
+                "strategyShift": strategy_shift,
+                "scriptVersion": version,
                 "totalLearnings": len(USER_CALL_LEARNINGS.get(current_user.id, []))
             }
 

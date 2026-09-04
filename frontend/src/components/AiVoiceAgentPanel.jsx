@@ -49,6 +49,14 @@ export default function AiVoiceAgentPanel({
     return null
   })
 
+  // Dynamically Evolving Script & Opener
+  const [adaptedOpener, setAdaptedOpener] = useState(() => {
+    return localStorage.getItem('rt_ai_adapted_opener') || ''
+  })
+  const [scriptVersion, setScriptVersion] = useState(() => {
+    return parseInt(localStorage.getItem('rt_ai_script_version') || '1', 10)
+  })
+
   useEffect(() => {
     if (lastDebrief) {
       localStorage.setItem('rt_ai_last_debrief', JSON.stringify(lastDebrief))
@@ -56,6 +64,32 @@ export default function AiVoiceAgentPanel({
       localStorage.removeItem('rt_ai_last_debrief')
     }
   }, [lastDebrief])
+
+  useEffect(() => {
+    if (adaptedOpener) {
+      localStorage.setItem('rt_ai_adapted_opener', adaptedOpener)
+    } else {
+      localStorage.removeItem('rt_ai_adapted_opener')
+    }
+  }, [adaptedOpener])
+
+  useEffect(() => {
+    localStorage.setItem('rt_ai_script_version', scriptVersion.toString())
+  }, [scriptVersion])
+
+  const handleResetScript = async () => {
+    try {
+      await api.post(endpoints.aiVoice.resetScript)
+      setAdaptedOpener('')
+      setScriptVersion(1)
+      setLastDebrief(null)
+      toast('Script & AI learnings reset to original default', 'info')
+    } catch (e) {
+      setAdaptedOpener('')
+      setScriptVersion(1)
+      setLastDebrief(null)
+    }
+  }
   
   // Conversation History
   const [messages, setMessages] = useState([])
@@ -337,8 +371,13 @@ export default function AiVoiceAgentPanel({
     setLastAction(null)
     setCountdown(null)
 
-    // Initial greeting pitch (Amy - Business Energy Advisors, Rule 1: No electricity/energy in opener)
-    const greetingText = `Hi, this is Amy calling from Business Energy Advisors regarding the commercial contract review for ${currentLead.businessName || 'your business'}. Am I speaking with the decision maker?`
+    // Initial greeting pitch - dynamically uses evolved adapted opener if available
+    let greetingText = ''
+    if (adaptedOpener && adaptedOpener.trim()) {
+      greetingText = adaptedOpener.replace(/\{lead_name\}|\{businessName\}/gi, currentLead.businessName || 'your business')
+    } else {
+      greetingText = `Hi, this is Amy calling from Business Energy Advisors regarding the commercial contract review for ${currentLead.businessName || 'your business'}. Am I speaking with the decision maker?`
+    }
     
     const initialMsg = {
       role: 'assistant',
@@ -358,7 +397,7 @@ export default function AiVoiceAgentPanel({
     }
   }
 
-  // Stop Session (Hang Up, Analyze Call with LLM, and Clear Chat for Next Call)
+  // Stop Session (Hang Up, Analyze Call with LLM, Evolve Script & Clear Chat for Next Call)
   const stopSession = () => {
     // 1. Analyze call transcript with LLM if conversation took place
     if (messages.length > 1) {
@@ -377,7 +416,13 @@ export default function AiVoiceAgentPanel({
       }).then((res) => {
         if (res.data?.status === 'success' && res.data?.analysis) {
           setLastDebrief(res.data.analysis)
-          toast('🧠 Call analyzed! AI learned new tactics for subsequent calls.', 'success')
+          if (res.data.adaptedOpener) {
+            setAdaptedOpener(res.data.adaptedOpener)
+          }
+          if (res.data.scriptVersion) {
+            setScriptVersion(res.data.scriptVersion)
+          }
+          toast(`🧠 Call analyzed! Script evolved to v${res.data.scriptVersion || 2} based on customer feedback.`, 'success')
         }
       }).catch((err) => {
         console.warn('Call debrief analysis failed:', err)
@@ -561,24 +606,43 @@ export default function AiVoiceAgentPanel({
           </div>
           <div className="min-w-0 flex-1">
             <div className="flex items-center justify-between gap-2">
-              <span className="text-[11px] font-extrabold text-indigo-950 uppercase tracking-wider">
-                🧠 AI Learned From Previous Call
-              </span>
-              <button
-                onClick={() => setLastDebrief(null)}
-                className="text-[10px] text-slate-400 hover:text-slate-600 bg-transparent border-0 cursor-pointer font-bold"
-              >
-                Dismiss
-              </button>
+              <div className="flex items-center gap-2">
+                <span className="text-[11px] font-extrabold text-indigo-950 uppercase tracking-wider">
+                  🧠 AI Learned From Previous Call
+                </span>
+                <span className="text-[10px] font-extrabold px-1.5 py-0.2 rounded-md bg-indigo-600 text-white shadow-xs">
+                  Script v{scriptVersion}
+                </span>
+              </div>
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={handleResetScript}
+                  className="text-[10px] text-indigo-600 hover:text-indigo-800 bg-transparent border-0 cursor-pointer font-bold"
+                  title="Reset evolved script to original Amy default"
+                >
+                  Reset to Default
+                </button>
+                <button
+                  onClick={() => setLastDebrief(null)}
+                  className="text-[10px] text-slate-400 hover:text-slate-600 bg-transparent border-0 cursor-pointer font-bold"
+                >
+                  Dismiss
+                </button>
+              </div>
             </div>
             {lastDebrief.objectionIdentified && (
               <p className="text-[11px] text-indigo-900 font-semibold mt-0.5">
                 Target Issue: <span className="font-normal text-slate-700">{lastDebrief.objectionIdentified}</span>
               </p>
             )}
-            <p className="text-xs text-slate-800 font-medium mt-1 leading-relaxed bg-white/70 p-2 rounded-xl border border-indigo-100">
+            <p className="text-xs text-slate-800 font-medium mt-1 leading-relaxed bg-white/80 p-2 rounded-xl border border-indigo-100">
               💡 <strong className="text-indigo-700">Tactic for this call:</strong> {lastDebrief.actionableTip || lastDebrief.whatToImprove}
             </p>
+            {adaptedOpener && (
+              <p className="text-[11px] text-slate-600 font-normal mt-1 italic px-1">
+                ✨ <strong className="text-indigo-600 font-semibold">Evolved Opening:</strong> &quot;{adaptedOpener.replace(/\{lead_name\}|\{businessName\}/gi, currentLead?.businessName || 'your business')}&quot;
+              </p>
+            )}
           </div>
         </div>
       )}
