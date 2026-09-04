@@ -529,8 +529,8 @@ Provide your response in this exact JSON format:
   "objectionIdentified": "Summary of customer's main objection or reason for not proceeding",
   "whatWentWell": "1 sentence on positive aspects",
   "whatToImprove": "1 sentence on what should have been said instead or how to handle this better",
-  "actionableTip": "1 concise tactical rule/tip for Amy to use on the next call to overcome this exact objection",
-  "adaptedOpener": "An evolved, natural opening greeting for Amy on the next call (incorporating {lead_name} placeholder) that pre-empts or bypasses this objection effectively without saying electricity/energy in the first sentence",
+  "actionableTip": "1 concise tactical rule/tip for Amy to use on subsequent calls to overcome this exact objection",
+  "adaptedOpener": "A generic, evolved opening greeting for Amy to use for ANY new business on subsequent calls. You MUST use the literal placeholder '{businessName}' for the company name. NEVER write the previous company name '{lead_name}' into this field.",
   "strategyShift": "1 short sentence explaining how the script strategy was refined for subsequent calls"
 }}
 """
@@ -539,7 +539,7 @@ Provide your response in this exact JSON format:
         req_data = json.dumps({
             "model": "openai/gpt-oss-120b",
             "messages": [
-                {"role": "system", "content": "You are an expert sales performance coach. Always return valid JSON."},
+                {"role": "system", "content": "You are an expert sales performance coach. Always return valid JSON. Always keep {businessName} placeholder in adaptedOpener."},
                 {"role": "user", "content": analysis_prompt}
             ],
             "temperature": 0.3,
@@ -566,6 +566,15 @@ Provide your response in this exact JSON format:
             tip = analysis_data.get("actionableTip") or analysis_data.get("whatToImprove")
             adapted_opener = analysis_data.get("adaptedOpener")
             strategy_shift = analysis_data.get("strategyShift")
+
+            # Guarantee that previous business name is replaced with universal placeholder {businessName}
+            if adapted_opener and req.leadInfo and req.leadInfo.get("businessName"):
+                prev_bname = req.leadInfo.get("businessName", "").strip()
+                if prev_bname and len(prev_bname) >= 3 and prev_bname.lower() in adapted_opener.lower():
+                    import re
+                    pattern = re.compile(re.escape(prev_bname), re.IGNORECASE)
+                    adapted_opener = pattern.sub("{businessName}", adapted_opener)
+                    analysis_data["adaptedOpener"] = adapted_opener
 
             if tip:
                 if current_user.id not in USER_CALL_LEARNINGS:

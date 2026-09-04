@@ -77,6 +77,14 @@ export default function AiVoiceAgentPanel({
     localStorage.setItem('rt_ai_script_version', scriptVersion.toString())
   }, [scriptVersion])
 
+  const formatLeadGreeting = useCallback((template, lead) => {
+    const businessName = lead?.businessName?.trim() || 'your business'
+    if (!template || !template.trim()) {
+      return `Hi, this is Amy calling from Business Energy Advisors regarding the commercial contract review for ${businessName}. Am I speaking with the decision maker?`
+    }
+    return template.replace(/\{businessName\}|\{lead_name\}|\{company\}|\[Business Name\]|\[Company Name\]|\[businessName\]/gi, businessName)
+  }, [])
+
   const handleResetScript = async () => {
     try {
       await api.post(endpoints.aiVoice.resetScript)
@@ -371,13 +379,8 @@ export default function AiVoiceAgentPanel({
     setLastAction(null)
     setCountdown(null)
 
-    // Initial greeting pitch - dynamically uses evolved adapted opener if available
-    let greetingText = ''
-    if (adaptedOpener && adaptedOpener.trim()) {
-      greetingText = adaptedOpener.replace(/\{lead_name\}|\{businessName\}/gi, currentLead.businessName || 'your business')
-    } else {
-      greetingText = `Hi, this is Amy calling from Business Energy Advisors regarding the commercial contract review for ${currentLead.businessName || 'your business'}. Am I speaking with the decision maker?`
-    }
+    // Initial greeting pitch - dynamically formatted for current active lead
+    const greetingText = formatLeadGreeting(adaptedOpener, currentLead)
     
     const initialMsg = {
       role: 'assistant',
@@ -640,7 +643,7 @@ export default function AiVoiceAgentPanel({
             </p>
             {adaptedOpener && (
               <p className="text-[11px] text-slate-600 font-normal mt-1 italic px-1">
-                ✨ <strong className="text-indigo-600 font-semibold">Evolved Opening:</strong> &quot;{adaptedOpener.replace(/\{lead_name\}|\{businessName\}/gi, currentLead?.businessName || 'your business')}&quot;
+                ✨ <strong className="text-indigo-600 font-semibold">Evolved Opening (for {currentLead?.businessName || 'next business'}):</strong> &quot;{formatLeadGreeting(adaptedOpener, currentLead)}&quot;
               </p>
             )}
           </div>
