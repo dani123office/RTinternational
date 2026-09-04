@@ -126,6 +126,7 @@ export default function AiVoiceAgentPanel({
   // Conversation History
   const [messages, setMessages] = useState([])
   const [userInput, setUserInput] = useState('')
+  const [interimSpeech, setInterimSpeech] = useState('')
   const [lastAction, setLastAction] = useState(null)
   const [countdown, setCountdown] = useState(null)
   
@@ -135,6 +136,7 @@ export default function AiVoiceAgentPanel({
   const audioPlayerRef = useRef(null)
   const chatScrollRef = useRef(null)
   const countdownTimerRef = useRef(null)
+  const speechDebounceRef = useRef(null)
 
   const isSessionActiveRef = useRef(false)
   const isListeningRef = useRef(false)
@@ -152,7 +154,7 @@ export default function AiVoiceAgentPanel({
     if (chatScrollRef.current) {
       chatScrollRef.current.scrollTop = chatScrollRef.current.scrollHeight
     }
-  }, [messages, isThinking, isSpeaking])
+  }, [messages, isThinking, isSpeaking, interimSpeech])
 
   // Clean up timers & media streams on unmount
   useEffect(() => {
@@ -164,6 +166,9 @@ export default function AiVoiceAgentPanel({
         try { mediaStreamRef.current.getTracks().forEach(t => t.stop()) } catch (e) {}
         mediaStreamRef.current = null
       }
+      if (speechDebounceRef.current) {
+        clearTimeout(speechDebounceRef.current)
+      }
       if (audioPlayerRef.current) {
         audioPlayerRef.current.pause()
       }
@@ -173,23 +178,43 @@ export default function AiVoiceAgentPanel({
     }
   }, [])
 
-  // Initialize Speech Recognition once on mount with auto-restart resilience
+  // Initialize Speech Recognition once on mount with ultra-fast interim processing
   useEffect(() => {
     const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition
     if (!SpeechRecognition) return
 
     const rec = new SpeechRecognition()
     rec.continuous = true
-    rec.interimResults = false
+    rec.interimResults = true
     rec.lang = 'en-GB'
 
     rec.onresult = (event) => {
-      const lastResult = event.results[event.results.length - 1]
-      if (lastResult.isFinal) {
-        const transcript = lastResult[0].transcript.trim()
-        if (transcript && handleCustomerReplyRef.current) {
-          handleCustomerReplyRef.current(transcript)
+      let finalTranscript = ''
+      let interim = ''
+      for (let i = event.resultIndex; i < event.results.length; i++) {
+        const item = event.results[i]
+        if (item.isFinal) {
+          finalTranscript += item[0].transcript + ' '
+        } else {
+          interim += item[0].transcript
         }
+      }
+
+      const combined = (finalTranscript + interim).trim()
+      if (combined) {
+        setInterimSpeech(combined)
+
+        if (speechDebounceRef.current) {
+          clearTimeout(speechDebounceRef.current)
+        }
+
+        // Fast 650ms silence detection - triggers AI reply without waiting for Chrome's 2.5s delay
+        speechDebounceRef.current = setTimeout(() => {
+          if (combined && handleCustomerReplyRef.current && !isThinkingRef.current) {
+            setInterimSpeech('')
+            handleCustomerReplyRef.current(combined)
+          }
+        }, 650)
       }
     }
 
@@ -806,9 +831,22 @@ export default function AiVoiceAgentPanel({
           })
         )}
 
+        {interimSpeech && (
+          <div className="flex flex-col items-end animate-pulse">
+            <div className="flex items-center gap-1.5 mb-1 px-1">
+              <span className="text-[10px] font-bold text-indigo-500 flex items-center gap-1">
+                <Mic size={10} className="animate-bounce" /> Customer speaking...
+              </span>
+            </div>
+            <div className="p-3 rounded-2xl text-xs max-w-[85%] leading-relaxed bg-indigo-500/90 text-white rounded-tr-none font-medium italic shadow-sm">
+              &quot;{interimSpeech}...&quot;
+            </div>
+          </div>
+        )}
+
         {isThinking && (
-          <div className="flex items-center gap-2 p-2 text-xs text-slate-400 font-medium italic">
-            <Bot size={14} className="animate-spin text-indigo-500" /> AI is evaluating response...
+          <div className="flex items-center gap-2 p-2 text-xs text-indigo-600 font-medium italic">
+            <Bot size={14} className="animate-spin text-indigo-600" /> AI is preparing instant reply...
           </div>
         )}
       </div>

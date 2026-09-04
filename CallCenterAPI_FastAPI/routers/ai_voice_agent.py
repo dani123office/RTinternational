@@ -229,12 +229,12 @@ def ai_converse(
         formatted_messages.append(msg_dict)
 
     groq_payload = {
-        "model": "openai/gpt-oss-120b",
+        "model": "llama-3.3-70b-versatile",
         "messages": formatted_messages,
         "tools": TOOLS_SCHEMA,
         "tool_choice": "auto",
-        "temperature": 0.5,
-        "max_tokens": 300,
+        "temperature": 0.4,
+        "max_tokens": 160,
     }
 
     try:
