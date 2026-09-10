@@ -184,6 +184,12 @@ export const useAdminStore = create((set, get) => ({
     return res.data
   },
 
+  permanentDeleteUser: async (userId) => {
+    const res = await api.delete(endpoints.admin.permanentDeleteUser(userId))
+    await get().loadDeletedUsers()
+    return res.data
+  },
+
   approveUser: async (userId, managerId, profileData = {}) => {
     const res = await api.post(endpoints.admin.approveUser(userId), { managerId, ...profileData })
     await get().loadPendingUsers()

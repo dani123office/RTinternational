@@ -8,7 +8,7 @@ from fastapi.responses import Response
 from sqlalchemy.orm import Session
 from sqlalchemy import func, extract, or_
 from ..database import get_db
-from ..models import User, Customer, CallBack, Transfer, Sale, ActivityLog, Attendance, LeaveRequest, LoanRequest, Notification, EmailVerification, StaffOTP, ElectricityMeter, GasMeter
+from ..models import User, Customer, CallBack, Transfer, Sale, ActivityLog, Attendance, LeaveRequest, LoanRequest, Notification, EmailVerification, StaffOTP, ElectricityMeter, GasMeter, Campaign, CampaignLead
 from .auth import require_admin
 from ..utils.logger import log_activity, get_client_ip
 from ..utils.email import generate_otp, send_otp_email, send_salary_slip_email
@@ -616,6 +616,90 @@ def restore_user(user_id: int, request: Request, admin: User = Depends(require_a
     except Exception as e:
         db.rollback()
         raise HTTPException(status_code=400, detail=f"Failed to restore user: {str(e)}")
+
+
+@router.delete("/user/{user_id}/permanent")
+def permanent_delete_user(
+    user_id: int,
+    request: Request,
+    admin: User = Depends(require_admin),
+    db: Session = Depends(get_db),
+):
+    try:
+        user = db.query(User).filter(User.id == user_id).first()
+        if not user:
+            raise HTTPException(status_code=404, detail="User not found")
+        if user.role == "admin":
+            raise HTTPException(status_code=400, detail="Cannot permanently delete an admin account")
+
+        name = user.name
+        email = user.email
+
+        # 1. Clear manager_id from agents who reported to this user
+        db.query(User).filter(User.manager_id == user_id).update({"manager_id": None})
+
+        # 2. Delete email verifications
+        db.query(EmailVerification).filter(EmailVerification.user_id == user_id).delete()
+
+        # 3. Delete attendance
+        db.query(Attendance).filter(Attendance.user_id == user_id).delete()
+
+        # 4. Delete leave requests / clear admin references
+        db.query(LeaveRequest).filter(LeaveRequest.user_id == user_id).delete()
+        db.query(LeaveRequest).filter(LeaveRequest.admin_id == user_id).update({"admin_id": None})
+
+        # 5. Delete loan requests / clear admin references
+        db.query(LoanRequest).filter(LoanRequest.user_id == user_id).delete()
+        db.query(LoanRequest).filter(LoanRequest.admin_id == user_id).update({"admin_id": None})
+
+        # 6. Delete notifications
+        db.query(Notification).filter(Notification.user_id == user_id).delete()
+
+        # 7. Delete campaigns & leads
+        campaigns = db.query(Campaign).filter(
+            or_(Campaign.assigned_to_id == user_id, Campaign.created_by_id == user_id)
+        ).all()
+        for c in campaigns:
+            db.query(CampaignLead).filter(CampaignLead.campaign_id == c.id).delete()
+            db.delete(c)
+
+        # 8. Delete sales, transfers, callbacks
+        db.query(Sale).filter(Sale.employee_id == user_id).delete()
+        db.query(Transfer).filter(Transfer.employee_id == user_id).delete()
+        db.query(CallBack).filter(
+            or_(CallBack.employee_id == user_id, CallBack.created_by_manager_id == user_id)
+        ).delete()
+
+        # Delete customers created by this user and their meters/associated records
+        customers = db.query(Customer).filter(Customer.created_by == user_id).all()
+        for cust in customers:
+            db.query(ElectricityMeter).filter(ElectricityMeter.customer_id == cust.id).delete()
+            db.query(GasMeter).filter(GasMeter.customer_id == cust.id).delete()
+            db.query(CallBack).filter(CallBack.customer_id == cust.id).delete()
+            db.query(Transfer).filter(Transfer.customer_id == cust.id).delete()
+            db.query(Sale).filter(Sale.customer_id == cust.id).delete()
+            db.delete(cust)
+
+        # 9. Delete activity logs
+        db.query(ActivityLog).filter(ActivityLog.user_id == user_id).delete()
+
+        # 10. Finally delete the user record
+        db.delete(user)
+        db.commit()
+
+        log_activity(
+            db, admin.id, "permanently_deleted", "user", user_id,
+            f"Permanently deleted user #{user_id} ({name} - {email}) and all associated data",
+            get_client_ip(request)
+        )
+
+        return {"ok": True, "message": f"Account '{name}' ({email}) has been permanently deleted."}
+    except HTTPException:
+        db.rollback()
+        raise
+    except Exception as e:
+        db.rollback()
+        raise HTTPException(status_code=400, detail=f"Failed to permanently delete user: {str(e)}")
 
 
 @router.get("/deleted-users")

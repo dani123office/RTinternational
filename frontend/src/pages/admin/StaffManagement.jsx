@@ -16,7 +16,7 @@ export default function StaffManagement() {
   const navigate = useNavigate()
   const {
     managers, agents, deletedUsers, loadManagers, loadAgents, loadDeletedUsers,
-    createManager, createAgent, assignAgent, updateUser, deleteUser, restoreUser, resetUserPassword,
+    createManager, createAgent, assignAgent, updateUser, deleteUser, restoreUser, permanentDeleteUser, resetUserPassword,
   } = useAdminStore()
 
   const [showCreateManager, setShowCreateManager] = useState(false)
@@ -130,6 +130,16 @@ export default function StaffManagement() {
     }
   }
 
+  const handlePermanentDeleteUser = async (user) => {
+    if (!confirm(`PERMANENT DELETE: Are you sure you want to permanently delete ${user.name} (${user.email}) from the database? This cannot be undone.`)) return
+    try {
+      await permanentDeleteUser(user.id)
+      await loadDeletedUsers()
+    } catch (e) {
+      alert(e.response?.data?.detail || 'Cannot permanently delete user')
+    }
+  }
+
   const deletedColumns = [
     { header: 'Name', cell: (row) => <span className="font-semibold text-slate-900">{row.name}</span> },
     { header: 'Role', cell: (row) => <span className="capitalize text-slate-600 font-medium">{row.role}</span> },
@@ -138,12 +148,20 @@ export default function StaffManagement() {
     {
       header: 'Actions',
       cell: (row) => (
-        <div className="flex gap-1 justify-end" onClick={(e) => e.stopPropagation()}>
+        <div className="flex items-center gap-2 justify-end" onClick={(e) => e.stopPropagation()}>
           <button
             onClick={() => handleRestoreUser(row)}
-            className="flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-semibold bg-emerald-50 text-emerald-700 hover:bg-emerald-100 transition-colors border-none cursor-pointer"
+            className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-semibold bg-emerald-50 text-emerald-700 hover:bg-emerald-100 transition-colors border-none cursor-pointer"
+            title="Restore Account"
           >
             <RotateCcw size={13} /> Restore Account
+          </button>
+          <button
+            onClick={() => handlePermanentDeleteUser(row)}
+            className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-semibold bg-rose-50 text-rose-600 hover:bg-rose-100 hover:text-rose-700 transition-colors border border-rose-200/60 cursor-pointer"
+            title="Permanently Delete Account"
+          >
+            <Trash2 size={13} /> Permanent Delete
           </button>
         </div>
       ),
