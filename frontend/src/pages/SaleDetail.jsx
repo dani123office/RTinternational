@@ -16,6 +16,7 @@ import MeterDetailsCard from '@/components/shared/MeterDetailsCard'
 import OfferedRatesCard from '@/components/shared/OfferedRatesCard'
 import ProgressTracker from '@/components/shared/ProgressTracker'
 import StatusBadge from '@/components/shared/StatusBadge'
+import CallViaVonageButton from '@/components/shared/CallViaVonageButton'
 import { useAuthStore } from '@/store/authStore'
 
 function Card({ icon: Icon, title, headerRight, children, delay }) {
@@ -235,7 +236,13 @@ export default function SaleDetail() {
               </Card>
             )}
 
-            <div className="rt-actions">
+            <div className="rt-actions flex flex-wrap items-center gap-2">
+              <CallViaVonageButton
+                phone={sale.ownerPhone || sale.businessPhone || customer?.businessPhone}
+                altPhone={customer?.ownerPhone}
+                variant="outline"
+                label="Call via Vonage"
+              />
               {linkedCallback && (
                 <button onClick={() => setShowReschedule(true)} className="rt-btn-outline" style={{ marginRight: '8px' }}>
                   <PhoneCall size={16} /> Reschedule Callback

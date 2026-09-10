@@ -1,7 +1,9 @@
 import { Calendar, Edit, ArrowLeftRight, X, Trash2, Loader2 } from 'lucide-react'
+import CallViaVonageButton from '@/components/shared/CallViaVonageButton'
 
 export default function CallbackActions({ 
   callback, 
+  customer,
   converting,
   onConvert,
   convertLabel = 'Convert to Transfer',
@@ -11,6 +13,8 @@ export default function CallbackActions({
   onDelete
 }) {
   const isDone = callback?.status === 'done'
+  const phone = callback?.customer?.businessPhone || customer?.businessPhone
+  const altPhone = callback?.customer?.ownerPhone || customer?.ownerPhone
 
   return (
     <div
@@ -66,6 +70,14 @@ export default function CallbackActions({
           gap: '10px'
         }}
       >
+        {/* Call via Vonage Button */}
+        <CallViaVonageButton
+          phone={phone}
+          altPhone={altPhone}
+          variant="outline"
+          label="Call via Vonage"
+        />
+
         {/* Reschedule Button — always visible */}
         <button
           type="button"

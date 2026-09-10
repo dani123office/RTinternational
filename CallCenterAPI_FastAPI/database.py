@@ -169,6 +169,16 @@ def _ensure_tables():
             print(f"Warning: Resetting PostgreSQL sequences failed: {seq_ex}")
 
 
+        try:
+            from .routers.hikvision import auto_backfill_device_mappings
+            db_tmp = SessionLocal()
+            try:
+                auto_backfill_device_mappings(db_tmp)
+            finally:
+                db_tmp.close()
+        except Exception as bf_ex:
+            print(f"Notice: Biometric auto-backfill initialization: {bf_ex}")
+
     _db_initialized = True
 
 

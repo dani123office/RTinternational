@@ -1,5 +1,6 @@
 import { Calendar, Clock } from 'lucide-react'
 import StatusBadge from '@/components/shared/StatusBadge'
+import CallViaVonageButton from '@/components/shared/CallViaVonageButton'
 import { formatDate, formatTime } from '@/lib/formatters'
 
 export default function TransferHero({ transfer, customer }) {
@@ -24,12 +25,21 @@ export default function TransferHero({ transfer, customer }) {
   const activeStyle = badgeStyles[statusLower] || { bg: '#f8fafc', text: '#475569', border: '#cbd5e1' }
 
   return (
-    <div className="bg-indigo-600 text-white p-6 rounded-xl flex flex-col gap-3 relative overflow-hidden">
-      <div className="flex gap-2 items-center">
-        <StatusBadge status={transfer.status} type="transfer" />
-        <span className="text-xs font-semibold rounded-full px-3 py-1 bg-indigo-500 capitalize border border-indigo-400">
-          {customer.utilityType}
-        </span>
+    <div className="bg-indigo-600 text-white p-6 rounded-xl flex flex-col gap-4 relative overflow-hidden shadow-sm">
+      <div className="flex flex-wrap items-center justify-between gap-3 pr-32">
+        <div className="flex gap-2 items-center">
+          <StatusBadge status={transfer.status} type="transfer" />
+          <span className="text-xs font-semibold rounded-full px-3 py-1 bg-indigo-500 capitalize border border-indigo-400">
+            {customer.utilityType}
+          </span>
+        </div>
+
+        <CallViaVonageButton
+          phone={customer.businessPhone}
+          altPhone={customer.ownerPhone}
+          variant="hero"
+          label="Call via Vonage"
+        />
       </div>
 
       <div>

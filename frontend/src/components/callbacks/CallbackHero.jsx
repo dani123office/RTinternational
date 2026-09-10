@@ -1,11 +1,13 @@
 import { Calendar, Clock, User } from 'lucide-react'
 import StatusBadge from '@/components/shared/StatusBadge'
+import CallViaVonageButton from '@/components/shared/CallViaVonageButton'
 import { formatDate, formatTime } from '@/lib/formatters'
 
 export default function CallbackHero({ callback, customer }) {
   if (!callback || !customer) return null
 
   const scheduledDate = callback.scheduledDateTime || callback.scheduledDate
+  const phoneToCall = customer.businessPhone || customer.ownerPhone
 
   return (
     <div
@@ -22,26 +24,35 @@ export default function CallbackHero({ callback, customer }) {
         gap: '16px' // Creates clean space between badges, title, and footer
       }}
     >
-      {/* 1. TOP ROW: Badges Container */}
-      <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: '12px' }}>
-        <div style={{ display: 'inline-flex' }}>
-          <StatusBadge status={callback.status} type="callback" />
+      {/* 1. TOP ROW: Badges & Call Button */}
+      <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', justifyContent: 'space-between', gap: '12px' }}>
+        <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: '12px' }}>
+          <div style={{ display: 'inline-flex' }}>
+            <StatusBadge status={callback.status} type="callback" />
+          </div>
+          <span
+            style={{
+              fontSize: '12px',
+              fontWeight: 600,
+              borderRadius: '9999px',
+              padding: '4px 12px',
+              backgroundColor: 'rgba(255, 255, 255, 0.2)',
+              textTransform: 'uppercase',
+              letterSpacing: '0.05em',
+              backdropFilter: 'blur(4px)',
+              border: '1px solid rgba(255, 255, 255, 0.1)'
+            }}
+          >
+            {customer.utilityType || 'Electricity'}
+          </span>
         </div>
-        <span
-          style={{
-            fontSize: '12px',
-            fontWeight: 600,
-            borderRadius: '9999px',
-            padding: '4px 12px',
-            backgroundColor: 'rgba(255, 255, 255, 0.2)',
-            textTransform: 'uppercase',
-            letterSpacing: '0.05em',
-            backdropFilter: 'blur(4px)',
-            border: '1px solid rgba(255, 255, 255, 0.1)'
-          }}
-        >
-          {customer.utilityType || 'Electricity'}
-        </span>
+
+        <CallViaVonageButton
+          phone={customer.businessPhone}
+          altPhone={customer.ownerPhone}
+          variant="hero"
+          label="Call via Vonage"
+        />
       </div>
 
       {/* 2. MIDDLE ROW: Main Business Text Block */}

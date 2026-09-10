@@ -173,6 +173,7 @@ export default function TransferDetail() {
           <div className="rt-fade rt-d6">
             <TransferActions
               transfer={transfer}
+              customer={customer}
               onReschedule={() => setShowReschedule(true)}
               onMarkAsSale={handleMarkAsSale}
               onScheduleCallback={() => setShowSchedule(true)}

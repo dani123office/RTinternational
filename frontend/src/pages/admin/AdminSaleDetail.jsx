@@ -10,6 +10,7 @@ import { formatPaymentMethod } from '@/lib/formatters'
 import StatusBadge from '@/components/shared/StatusBadge'
 import LoadingSpinner from '@/components/shared/LoadingSpinner'
 import MeterDetailsCard from '@/components/shared/MeterDetailsCard'
+import CallViaVonageButton from '@/components/shared/CallViaVonageButton'
 
 function Field({ label, children }) {
   return (
@@ -134,7 +135,13 @@ export default function AdminSaleDetail() {
               <h1 className="text-2xl font-bold">{s.ownerFullName || c?.businessName || 'Sale'}</h1>
               <p className="text-amber-200 text-sm mt-1">{c?.businessName || ''}</p>
             </div>
-            <div className="text-right">
+            <div className="text-right flex flex-col items-end gap-2">
+              <CallViaVonageButton
+                phone={s?.ownerPhone || s?.businessPhone || c?.businessPhone}
+                altPhone={c?.ownerPhone}
+                variant="hero"
+                label="Call via Vonage"
+              />
               <p className="text-xs text-amber-200">#{s.id}</p>
               <p className="text-xs text-amber-200 mt-1">{s.createdAt ? new Date(s.createdAt).toLocaleDateString('en-GB') : ''}</p>
             </div>
@@ -148,8 +155,18 @@ export default function AdminSaleDetail() {
                   <>
                     <Field label="Business">{c.businessName}</Field>
                     <Field label="Owner">{c.ownerName}</Field>
-                    <Field label="Business Phone"><span className="flex items-center gap-1"><Phone size={12} /> {c.businessPhone}</span></Field>
-                    <Field label="Owner Phone">{c.ownerPhone}</Field>
+                    <Field label="Business Phone">
+                      <div className="flex items-center gap-2">
+                        <span className="flex items-center gap-1"><Phone size={12} /> {c.businessPhone || '—'}</span>
+                        {c.businessPhone && <CallViaVonageButton phone={c.businessPhone} variant="inline" label="Call" />}
+                      </div>
+                    </Field>
+                    <Field label="Owner Phone">
+                      <div className="flex items-center gap-2">
+                        <span>{c.ownerPhone || '—'}</span>
+                        {c.ownerPhone && <CallViaVonageButton phone={c.ownerPhone} variant="inline" label="Call" />}
+                      </div>
+                    </Field>
                     <Field label="Email"><span className="flex items-center gap-1"><Mail size={12} /> {c.email}</span></Field>
                     <Field label="Address"><span className="flex items-center gap-1"><MapPin size={12} /> {c.businessAddress}</span></Field>
                     <Field label="Postcode">{c.postcode}</Field>

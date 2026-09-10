@@ -143,6 +143,7 @@ export default function ManagerCallbackDetail() {
           <div className="rt-fade rt-d6 mt-6">
             <CallbackActions
               callback={callback}
+              customer={customer}
               converting={converting}
               onConvert={handleMarkAsTransfer}
               convertLabel={callback?.transferId ? 'Mark as Sale' : 'Convert to Transfer'}

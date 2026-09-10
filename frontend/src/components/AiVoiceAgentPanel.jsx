@@ -81,10 +81,13 @@ export default function AiVoiceAgentPanel({
 
   const formatLeadGreeting = useCallback((template, lead) => {
     const businessName = lead?.businessName?.trim() || 'your business'
+    const area = lead?.postcode?.trim() || lead?.city?.trim() || 'your area'
     if (!template || !template.trim()) {
-      return `Hi, this is Amy calling from Business Energy Advisors regarding the commercial contract review for ${businessName}. Am I speaking with the decision maker?`
+      return `I'm calling regarding an update on your business account for ${businessName}. Basically in the energy market right now, rates are coming down quite significantly. A lot of businesses are still locked into their old contracts at rates like 24, 25 pence per unit. So we're contacting businesses in ${area} just to check on their situation. Can I ask - have you signed an electricity contract at any point?`
     }
-    return template.replace(/\{businessName\}|\{lead_name\}|\{company\}|\[Business Name\]|\[Company Name\]|\[businessName\]/gi, businessName)
+    return template
+      .replace(/\{businessName\}|\{lead_name\}|\{company\}|\[Business Name\]|\[Company Name\]|\[businessName\]/gi, businessName)
+      .replace(/\{area\}|\{postcode\}|\[area\]|\[postcode\]/gi, area)
   }, [])
 
   const handleEvolveScript = async (preferredAngle) => {

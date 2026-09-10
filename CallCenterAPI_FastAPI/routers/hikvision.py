@@ -14,6 +14,85 @@ router = APIRouter(prefix="/api/attendance", tags=["attendance"])
 admin_router = APIRouter(prefix="/api/admin", tags=["admin"])
 
 
+HIK_MAP = {
+    "1": 142,   # Fizzah Zahid
+    "2": 131,   # M Ahsan Shahid / Mustafa
+    "3": 134,   # Boez Tahir
+    "4": 133,   # Aleem Ullah
+    "6": 144,   # ABRAHAM CHOUHAN
+    "7": 110,   # Sunny
+    "8": 1,     # Sana Ishfaq
+    "9": 138,   # Ambreen
+    "10": 121,  # Taimoor
+    "11": 148,  # Umair
+    "12": 122,  # Salman Waris
+    "13": 123,  # Azeem
+    "15": 120,  # Shamoon Waris
+    "16": 151,  # sabir
+    "18": 140,  # AMBER
+    "19": 112,  # Dilshad
+    "20": 131,  # M Ahsan Shahid
+    "22": 118,  # Sarmad
+    "23": 143,  # Zuha Khalid
+    "25": 150,  # Ozain Malik
+    "26": 141,  # Raim chouhan
+    "27": 147,  # khansa
+    "29": 152,  # ADAN
+    "30": 153,  # Murtaza Haider
+}
+
+
+def get_next_available_device_user_id(db: Session) -> str:
+    """
+    Finds the next available numeric biometric device ID.
+    - Preserves all existing legacy HIK_MAP keys.
+    - Preserves all existing assigned User.device_user_id.
+    - Starts searching from 31 upwards to prevent any conflict with legacy IDs.
+    """
+    taken = set()
+    for k in HIK_MAP.keys():
+        if str(k).strip().isdigit():
+            taken.add(int(str(k).strip()))
+
+    assigned = db.query(User.device_user_id).filter(
+        User.device_user_id.isnot(None),
+        User.is_deleted == False
+    ).all()
+    for (val,) in assigned:
+        if val and str(val).strip().isdigit():
+            taken.add(int(str(val).strip()))
+
+    start_candidate = 31
+    if taken:
+        start_candidate = max(31, max(taken) + 1)
+
+    candidate = start_candidate
+    while candidate in taken:
+        candidate += 1
+    return str(candidate)
+
+
+def auto_backfill_device_mappings(db: Session):
+    """
+    Ensures all existing active/approved non-admin users without a biometric ID
+    get assigned the next available sequential ID (e.g. 31, 32, 33...) safely.
+    """
+    try:
+        unassigned_users = db.query(User).filter(
+            User.device_user_id.is_(None),
+            User.is_deleted == False,
+            User.role != "admin"
+        ).order_by(User.id.asc()).all()
+
+        for u in unassigned_users:
+            next_id = get_next_available_device_user_id(db)
+            u.device_user_id = next_id
+            db.commit()
+    except Exception as e:
+        db.rollback()
+        print(f"Notice: auto_backfill_device_mappings error: {e}")
+
+
 @router.get("/hikvision-status")
 def hikvision_status(db: Session = Depends(get_db)):
     total = db.query(func.count(User.id)).filter(User.device_user_id.isnot(None)).scalar() or 0
@@ -108,33 +187,6 @@ async def receive_hikvision_event(request: Request, db: Session = Depends(get_db
     from datetime import datetime, date, timedelta
     from ..models import Attendance
 
-    HIK_MAP = {
-        "1": 142,   # Fizzah Zahid
-        "2": 131,   # M Ahsan Shahid / Mustafa
-        "3": 134,   # Boez Tahir
-        "4": 133,   # Aleem Ullah
-        "6": 144,   # ABRAHAM CHOUHAN
-        "7": 110,   # Sunny
-        "8": 1,     # Sana Ishfaq
-        "9": 138,   # Ambreen
-        "10": 121,  # Taimoor
-        "11": 148,  # Umair
-        "12": 122,  # Salman Waris
-        "13": 123,  # Azeem
-        "15": 120,  # Shamoon Waris
-        "16": 151,  # sabir
-        "18": 140,  # AMBER
-        "19": 112,  # Dilshad
-        "20": 131,  # M Ahsan Shahid
-        "22": 118,  # Sarmad
-        "23": 143,  # Zuha Khalid
-        "25": 150,  # Ozain Malik
-        "26": 141,  # Raim chouhan
-        "27": 147,  # khansa
-        "29": 152,  # ADAN
-        "30": 153,  # Murtaza Haider
-    }
-
     try:
         body_str = ""
         try:
@@ -190,8 +242,14 @@ async def receive_hikvision_event(request: Request, db: Session = Depends(get_db
             mapped_id = HIK_MAP.get(str(emp_id))
             if mapped_id:
                 user = db.query(User).filter(User.id == mapped_id, User.is_deleted.isnot(True)).first()
+                if user and not user.device_user_id:
+                    user.device_user_id = str(emp_id)
+                    db.commit()
         if not user and emp_id.isdigit():
             user = db.query(User).filter(User.id == int(emp_id), User.is_deleted.isnot(True)).first()
+            if user and not user.device_user_id:
+                user.device_user_id = str(emp_id)
+                db.commit()
 
         if not user:
             return {"status": "ignored", "message": f"Biometric ID '{emp_id}' not linked to any portal user"}

@@ -8,6 +8,7 @@ import CustomerInfoCard from '@/components/shared/CustomerInfoCard'
 import AccountDetailsCard from '@/components/shared/AccountDetailsCard'
 import MeterDetailsCard from '@/components/shared/MeterDetailsCard'
 import OfferedRatesCard from '@/components/shared/OfferedRatesCard'
+import CallViaVonageButton from '@/components/shared/CallViaVonageButton'
 
 const dayOptions = [
   { value: 'Monday', label: 'Monday' },
@@ -214,6 +215,12 @@ export default function RecordDetailModal({ isOpen, onClose, record, type, agent
             </button>
           </div>
           <div className="flex items-center gap-3">
+            <CallViaVonageButton
+              phone={record?.customer?.businessPhone || record?.businessPhone}
+              altPhone={record?.customer?.ownerPhone || record?.ownerPhone}
+              variant="outline"
+              label="Call via Vonage"
+            />
             {!rescheduling && (
               <button onClick={() => setRescheduling(true)}
                 className="px-4 py-2.5 text-sm font-semibold text-slate-700 bg-white border border-slate-200 hover:bg-slate-50 active:bg-slate-100 rounded-xl transition-all duration-200 cursor-pointer shadow-sm hover:shadow-slate-100/80 hover:-translate-y-0.5 active:translate-y-0 flex items-center gap-2">

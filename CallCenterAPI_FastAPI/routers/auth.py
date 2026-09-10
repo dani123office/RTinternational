@@ -154,6 +154,9 @@ def login(request: LoginRequest, fastapi_req: Request, db: Session = Depends(get
         role=user.role,
         userId=user.id,
         managerId=user.manager_id,
+        autoDialerEnabled=bool(user.auto_dialer_enabled),
+        shiftStartTime=user.shift_start_time or "14:00",
+        shiftEndTime=user.shift_end_time or "22:00",
     )
 
 
@@ -189,7 +192,25 @@ def refresh_token(db: Session = Depends(get_db), authorization: str = Header(Non
         role=user.role,
         userId=user.id,
         managerId=user.manager_id,
+        autoDialerEnabled=bool(user.auto_dialer_enabled),
+        shiftStartTime=user.shift_start_time or "14:00",
+        shiftEndTime=user.shift_end_time or "22:00",
     )
+
+
+@router.get("/me")
+def get_me(current_user: User = Depends(get_current_user)):
+    return {
+        "id": current_user.id,
+        "userId": current_user.id,
+        "name": current_user.name,
+        "email": current_user.email,
+        "role": current_user.role,
+        "managerId": current_user.manager_id,
+        "autoDialerEnabled": bool(current_user.auto_dialer_enabled),
+        "shiftStartTime": current_user.shift_start_time or "14:00",
+        "shiftEndTime": current_user.shift_end_time or "22:00",
+    }
 
 
 @router.post("/register")
@@ -210,6 +231,9 @@ def register(request: RegisterRequest, fastapi_req: Request, db: Session = Depen
             except ValueError:
                 dob = None
 
+    from .hikvision import get_next_available_device_user_id
+    assigned_device_id = get_next_available_device_user_id(db) if request.role in ("agent", "manager", None) else None
+
     user = User(
         name=request.name,
         email=email,
@@ -226,6 +250,7 @@ def register(request: RegisterRequest, fastapi_req: Request, db: Session = Depen
         bank_name=request.bankName,
         bank_account_number=request.bankAccountNumber,
         job_cadre=request.jobCadre or "Full time",
+        device_user_id=assigned_device_id,
     )
     db.add(user)
     db.flush()

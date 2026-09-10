@@ -8,6 +8,7 @@ import TransferHero from '@/components/transfer/TransferHero'
 import CustomerInfoCard from '@/components/shared/CustomerInfoCard'
 import MeterDetailsCard from '@/components/shared/MeterDetailsCard'
 import OfferedRatesCard from '@/components/shared/OfferedRatesCard'
+import CallViaVonageButton from '@/components/shared/CallViaVonageButton'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogClose, DialogFooter } from '@/components/ui/dialog'
 import { Button } from '@/components/ui/button'
 import { Calendar, PhoneCall, Trash2, Edit3 } from 'lucide-react'
@@ -304,6 +305,12 @@ export default function ManagerTransferDetail() {
               </div>
             </div>
             <div style={{ display: 'flex', alignItems: 'center', flexWrap: 'wrap', gap: '10px' }}>
+              <CallViaVonageButton
+                phone={customer?.businessPhone || transfer?.customer?.businessPhone}
+                altPhone={customer?.ownerPhone || transfer?.customer?.ownerPhone}
+                variant="outline"
+                label="Call via Vonage"
+              />
               <button type="button" onClick={openScheduleCallback}
                 style={{
                   display: 'flex', alignItems: 'center', gap: '8px', padding: '10px 16px',

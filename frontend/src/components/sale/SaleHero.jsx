@@ -1,6 +1,7 @@
 import { useMemo } from 'react'
 import { Calendar, Building2 } from 'lucide-react'
 import StatusBadge from '@/components/shared/StatusBadge'
+import CallViaVonageButton from '@/components/shared/CallViaVonageButton'
 import { formatDate } from '@/lib/formatters'
 
 export default function SaleHero({ sale, customer }) {
@@ -22,14 +23,23 @@ export default function SaleHero({ sale, customer }) {
       <div className="absolute -top-8 -right-8 w-48 h-48 rounded-full opacity-15 bg-radial-gradient from-white to-transparent blur-3xl" />
       
       <div className="relative z-10">
-        <div className="flex items-center gap-3 mb-4">
-          <StatusBadge status={sale.cotStatus} type="sale" />
-          <span className="text-xs font-semibold rounded-full px-3 py-1 bg-white/20 capitalize backdrop-blur-sm">
-            {saleTypeLabel}
-          </span>
-          <span className="text-xs font-semibold rounded-full px-3 py-1 bg-white/20 capitalize backdrop-blur-sm">
-            {customer?.utilityType || 'N/A'}
-          </span>
+        <div className="flex flex-wrap items-center justify-between gap-3 mb-4">
+          <div className="flex items-center gap-3">
+            <StatusBadge status={sale.cotStatus} type="sale" />
+            <span className="text-xs font-semibold rounded-full px-3 py-1 bg-white/20 capitalize backdrop-blur-sm">
+              {saleTypeLabel}
+            </span>
+            <span className="text-xs font-semibold rounded-full px-3 py-1 bg-white/20 capitalize backdrop-blur-sm">
+              {customer?.utilityType || 'N/A'}
+            </span>
+          </div>
+
+          <CallViaVonageButton
+            phone={sale.ownerPhone || sale.businessPhone || customer?.businessPhone}
+            altPhone={customer?.ownerPhone}
+            variant="hero"
+            label="Call via Vonage"
+          />
         </div>
         
         <h2 className="text-2xl md:text-3xl font-extrabold tracking-tight mb-1">

@@ -1,4 +1,5 @@
 import { User } from 'lucide-react'
+import CallViaVonageButton from '@/components/shared/CallViaVonageButton'
 
 export default function CustomerInfoCard({ customer, agentName }) {
   if (!customer) return null
@@ -34,11 +35,21 @@ export default function CustomerInfoCard({ customer, agentName }) {
 
         <div>
           <span className="text-slate-500">Business Phone</span>
-          <p className="font-semibold text-slate-900 mt-1">{customer.businessPhone || 'N/A'}</p>
+          <div className="flex items-center gap-2 mt-1">
+            <p className="font-semibold text-slate-900">{customer.businessPhone || 'N/A'}</p>
+            {customer.businessPhone && customer.businessPhone !== 'N/A' && (
+              <CallViaVonageButton phone={customer.businessPhone} variant="inline" label="Call Vonage" />
+            )}
+          </div>
         </div>
         <div>
           <span className="text-slate-500">Owner Phone</span>
-          <p className="font-semibold text-slate-900 mt-1">{customer.ownerPhone || 'N/A'}</p>
+          <div className="flex items-center gap-2 mt-1">
+            <p className="font-semibold text-slate-900">{customer.ownerPhone || 'N/A'}</p>
+            {customer.ownerPhone && customer.ownerPhone !== 'N/A' && (
+              <CallViaVonageButton phone={customer.ownerPhone} variant="inline" label="Call Vonage" />
+            )}
+          </div>
         </div>
 
         {customer.email && (

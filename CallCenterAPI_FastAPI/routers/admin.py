@@ -56,6 +56,8 @@ def create_manager(data: CreateManagerRequest, request: Request, admin: User = D
         if existing:
             raise HTTPException(status_code=400, detail="Email already exists")
         hashed = bcrypt.hashpw(data.password.encode("utf-8"), bcrypt.gensalt()).decode("utf-8")
+        from .hikvision import get_next_available_device_user_id
+        bio_id = data.deviceUserId.strip() if getattr(data, "deviceUserId", None) and data.deviceUserId.strip() else get_next_available_device_user_id(db)
         user = User(
             name=data.name,
             email=email,
@@ -63,6 +65,7 @@ def create_manager(data: CreateManagerRequest, request: Request, admin: User = D
             role="manager",
             is_active=1,
             is_approved=1,
+            device_user_id=bio_id,
         )
         db.add(user)
         db.flush()
@@ -74,7 +77,7 @@ def create_manager(data: CreateManagerRequest, request: Request, admin: User = D
         log_activity(db, admin.id, "created", "manager", user.id,
                      f"Created manager {user.email}",
                      get_client_ip(request))
-        return {"id": user.id, "name": user.name, "email": user.email, "role": user.role}
+        return {"id": user.id, "name": user.name, "email": user.email, "role": user.role, "deviceUserId": user.device_user_id}
     except HTTPException:
         db.rollback()
         raise
@@ -96,6 +99,8 @@ def create_agent(data: CreateAgentRequest, request: Request, admin: User = Depen
         if not manager:
             raise HTTPException(status_code=400, detail="Manager not found or inactive")
         hashed = bcrypt.hashpw(data.password.encode("utf-8"), bcrypt.gensalt()).decode("utf-8")
+        from .hikvision import get_next_available_device_user_id
+        bio_id = data.deviceUserId.strip() if data.deviceUserId and data.deviceUserId.strip() else get_next_available_device_user_id(db)
         user = User(
             name=data.name,
             email=email,
@@ -120,7 +125,7 @@ def create_agent(data: CreateAgentRequest, request: Request, admin: User = Depen
             shift_start_time=data.shiftStartTime or "14:00",
             shift_end_time=data.shiftEndTime or "22:00",
             auto_dialer_enabled=bool(data.autoDialerEnabled),
-            device_user_id=data.deviceUserId.strip() if data.deviceUserId else None,
+            device_user_id=bio_id,
         )
         db.add(user)
         db.flush()
@@ -748,6 +753,11 @@ def approve_user(
         user.shift_end_time = data.shiftEndTime or "22:00"
     if data.autoDialerEnabled is not None:
         user.auto_dialer_enabled = bool(data.autoDialerEnabled)
+    if getattr(data, "deviceUserId", None) and data.deviceUserId.strip():
+        user.device_user_id = data.deviceUserId.strip()
+    elif not user.device_user_id:
+        from .hikvision import get_next_available_device_user_id
+        user.device_user_id = get_next_available_device_user_id(db)
 
     user.manager_id = mgr_id
     user.is_active = True

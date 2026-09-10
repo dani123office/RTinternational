@@ -1,7 +1,9 @@
 import { Check, Edit3, PhoneCall, Trash2, X } from 'lucide-react'
+import CallViaVonageButton from '@/components/shared/CallViaVonageButton'
 
 export default function TransferActions({ 
   transfer, 
+  customer,
   onMarkAsSale, 
   onScheduleCallback, 
   onDelete,
@@ -9,6 +11,8 @@ export default function TransferActions({
   onNotInterested,
 }) {
   const isSaleComplete = transfer?.status === 'saleComplete' || transfer?.status === 'not_interested'
+  const phone = transfer?.customer?.businessPhone || customer?.businessPhone
+  const altPhone = transfer?.customer?.ownerPhone || customer?.ownerPhone
 
   return (
     <div
@@ -63,6 +67,14 @@ export default function TransferActions({
           gap: '10px'
         }}
       >
+        {/* Call via Vonage Button */}
+        <CallViaVonageButton
+          phone={phone}
+          altPhone={altPhone}
+          variant="outline"
+          label="Call via Vonage"
+        />
+
         <button
           type="button"
           onClick={onEdit}

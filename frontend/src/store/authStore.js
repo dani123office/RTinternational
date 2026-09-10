@@ -55,8 +55,8 @@ export const useAuthStore = create((set, get) => ({
     set({ isLoading: true, error: null })
     try {
       const res = await api.post(endpoints.auth.login, { email, password })
-      const { token, refreshToken, userId, name, role, managerId } = res.data
-      const user = { id: userId, name, email, role, managerId }
+      const { token, refreshToken, userId, name, role, managerId, autoDialerEnabled, shiftStartTime, shiftEndTime } = res.data
+      const user = { id: userId, name, email, role, managerId, autoDialerEnabled: !!autoDialerEnabled, shiftStartTime, shiftEndTime }
       storage.set('token', token, rememberMe)
       storage.set('refreshToken', refreshToken, rememberMe)
       storage.set('user', JSON.stringify(user), rememberMe)
@@ -132,6 +132,26 @@ export const useAuthStore = create((set, get) => ({
       return res.data?.ok === true
     } catch {
       return false
+    }
+  },
+
+  fetchMe: async () => {
+    try {
+      const res = await api.get('/api/auth/me')
+      if (res.data) {
+        const u = res.data
+        const currentUser = get().user || {}
+        const updated = {
+          ...currentUser,
+          ...u,
+          autoDialerEnabled: !!u.autoDialerEnabled,
+        }
+        const rememberMe = localStorage.getItem('rememberMe') === 'true'
+        storage.set('user', JSON.stringify(updated), rememberMe)
+        set({ user: updated })
+      }
+    } catch {
+      // ignore
     }
   },
 

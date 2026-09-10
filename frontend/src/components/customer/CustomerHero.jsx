@@ -1,4 +1,5 @@
 import { Building2, MapPin } from 'lucide-react'
+import CallViaVonageButton from '@/components/shared/CallViaVonageButton'
 import { formatDate } from '@/lib/formatters'
 
 const FALLBACK_DATE = new Date().toISOString()
@@ -40,8 +41,8 @@ export default function CustomerHero({ customer }) {
       
       {/* Content wrapper */}
       <div style={{ position: 'relative', zIndex: 10, display: 'flex', flexDirection: 'column', gap: '16px' }}>
-        {/* Top row: Utility Badge */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+        {/* Top row: Utility Badge & Call Action */}
+        <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', justifyContent: 'space-between', gap: '12px' }}>
           <span
             style={{
               fontSize: '12px',
@@ -57,6 +58,13 @@ export default function CustomerHero({ customer }) {
           >
             {customer.utilityType}
           </span>
+
+          <CallViaVonageButton
+            phone={customer.businessPhone}
+            altPhone={customer.ownerPhone}
+            variant="hero"
+            label="Call via Vonage"
+          />
         </div>
         
         {/* Middle row: Customer business info */}

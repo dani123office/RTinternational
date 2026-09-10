@@ -230,6 +230,9 @@ class LoginResponse(BaseModel):
     role: str
     userId: int
     managerId: Optional[int] = None
+    autoDialerEnabled: Optional[bool] = False
+    shiftStartTime: Optional[str] = "14:00"
+    shiftEndTime: Optional[str] = "22:00"
 
 
 class RegisterRequest(BaseModel):
@@ -383,6 +386,7 @@ class ApproveUserRequest(BaseModel):
     shiftStartTime: Optional[str] = "14:00"
     shiftEndTime: Optional[str] = "22:00"
     autoDialerEnabled: Optional[bool] = False
+    deviceUserId: Optional[str] = None
 
     @field_validator('cnic')
     @classmethod
@@ -399,6 +403,7 @@ class CreateManagerRequest(BaseModel):
     name: str
     email: str
     password: str
+    deviceUserId: Optional[str] = None
 
 
 class CreateAgentRequest(BaseModel):
