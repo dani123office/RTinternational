@@ -23,6 +23,7 @@ def _safe_date(val):
 
 
 def _customer_out(c) -> CustomerOut:
+    creator_name = c.creator.name if (hasattr(c, 'creator') and c.creator) else None
     return CustomerOut(
         id=c.id,
         businessName=c.business_name,
@@ -34,6 +35,7 @@ def _customer_out(c) -> CustomerOut:
         postcode=c.postcode,
         utilityType=c.utility_type,
         employeeId=c.created_by,
+        createdByName=creator_name,
         createdAt=c.created_at,
         electricityMeters=[ElectricityMeterOut(
             id=m.id,
@@ -73,7 +75,14 @@ def get_customers(
     skip: int = Query(0, ge=0),
     limit: int = Query(100, ge=1, le=500),
 ):
-    query = db.query(Customer).filter(Customer.created_by == current_user.id)
+    if current_user.role == "admin":
+        query = db.query(Customer)
+    elif current_user.role == "manager":
+        agent_ids = [u.id for u in db.query(User.id).filter(User.manager_id == current_user.id).all()]
+        agent_ids.append(current_user.id)
+        query = db.query(Customer).filter(Customer.created_by.in_(agent_ids))
+    else:
+        query = db.query(Customer).filter(Customer.created_by == current_user.id)
     customers = query.order_by(Customer.created_at.desc()).offset(skip).limit(limit).all()
     return [_customer_out(c) for c in customers]
 
@@ -107,6 +116,13 @@ def check_duplicate(
     creator = existing.creator
     is_creator_deactive = not creator or not creator.is_active or getattr(creator, 'is_deleted', False)
     
+    # Check if this customer is an orphan (has 0 callbacks, 0 transfers, and 0 sales)
+    from ..models import CallBack, Transfer, Sale
+    has_cb = db.query(CallBack.id).filter(CallBack.customer_id == existing.id).first() is not None
+    has_tr = db.query(Transfer.id).filter(Transfer.customer_id == existing.id).first() is not None
+    has_sale = db.query(Sale.id).filter(Sale.customer_id == existing.id).first() is not None
+    is_orphan = (not has_cb and not has_tr and not has_sale)
+
     # Check if belongs to current user or accessible
     is_auth = (existing.created_by == current_user.id)
     if not is_auth and current_user.role == "manager":
@@ -115,12 +131,22 @@ def check_duplicate(
     if not is_auth and current_user.role == "admin":
         is_auth = True
         
+    if is_orphan:
+        # Orphan customer with no callbacks/transfers/sales can be claimed by any agent
+        return {
+            "isDuplicate": False,
+            "reassignable": True,
+            "businessName": existing.business_name,
+            "customerId": existing.id,
+            "message": "Customer profile is unassigned and will be linked to your record."
+        }
+
     if is_creator_deactive:
-        has_sale = db.query(Sale).filter(
+        has_sale_creator = db.query(Sale).filter(
             Sale.customer_id == existing.id,
             Sale.employee_id == existing.created_by
         ).first() is not None
-        if not has_sale:
+        if not has_sale_creator:
             # Re-assignable lead
             return {
                 "isDuplicate": False,
@@ -159,6 +185,8 @@ def get_customer(id: int, current_user: User = Depends(get_current_user), db: Se
         creator = db.query(User).filter(User.id == c.created_by).first()
         if creator and creator.manager_id == current_user.id:
             is_auth = True
+    if not is_auth and current_user.role == "admin":
+        is_auth = True
             
     if not is_auth:
         raise HTTPException(status_code=403, detail="Not authorized to access this customer")
@@ -176,7 +204,18 @@ def create_customer(dto: CustomerCreate, request: Request, current_user: User = 
                 creator = existing.creator
                 is_creator_deactive = not creator or not creator.is_active or getattr(creator, 'is_deleted', False)
                 
-                if is_creator_deactive:
+                # Check if this existing customer is an orphan profile (0 callbacks, 0 transfers, 0 sales)
+                from ..models import CallBack, Transfer, Sale
+                has_cb = db.query(CallBack.id).filter(CallBack.customer_id == existing.id).first() is not None
+                has_tr = db.query(Transfer.id).filter(Transfer.customer_id == existing.id).first() is not None
+                has_sale = db.query(Sale.id).filter(Sale.customer_id == existing.id).first() is not None
+                is_orphan = (not has_cb and not has_tr and not has_sale)
+
+                if is_orphan:
+                    # Reassign orphan customer to current user
+                    existing.created_by = current_user.id
+                    is_auth = True
+                elif is_creator_deactive:
                     has_sale = db.query(Sale).filter(
                         Sale.customer_id == existing.id,
                         Sale.employee_id == existing.created_by
@@ -393,6 +432,8 @@ def delete_customer(id: int, request: Request, current_user: User = Depends(get_
         creator = db.query(User).filter(User.id == customer.created_by).first()
         if creator and creator.manager_id == current_user.id:
             is_auth = True
+    if not is_auth and current_user.role == "admin":
+        is_auth = True
             
     if not is_auth:
         raise HTTPException(status_code=403, detail="Not authorized to delete this customer")

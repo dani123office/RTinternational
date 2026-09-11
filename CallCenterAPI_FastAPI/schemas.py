@@ -361,6 +361,7 @@ class AgentDetail(BaseModel):
     callbacks: List['CallBackOut']
     transfers: List['TransferOut']
     sales: List['SaleOut']
+    customers: List['CustomerOut'] = []
     stats: AgentStats
 
 
@@ -887,6 +888,7 @@ class CustomerOut(BaseModel):
     postcode: Optional[str] = None
     utilityType: str
     employeeId: Optional[int] = None
+    createdByName: Optional[str] = None
     createdAt: datetime
     electricityMeters: List[ElectricityMeterOut] = []
     gasMeters: List[GasMeterOut] = []

@@ -380,8 +380,18 @@ export default function AddCallback() {
           }).catch(() => {})
         }
       } else {
-        const customer = await createCustomer(customerPayload)
-        await createCallback({ customerId:customer.id, ...callbackPayload })
+        let createdCustomerId = null
+        try {
+          const customer = await createCustomer(customerPayload)
+          createdCustomerId = customer?.id
+          await createCallback({ customerId: customer.id, ...callbackPayload })
+        } catch (subErr) {
+          // If customer was newly created in this transaction but callback creation failed, rollback and delete the orphan customer
+          if (createdCustomerId) {
+            await api.delete(`/api/customers/${createdCustomerId}`).catch(() => {})
+          }
+          throw subErr
+        }
       }
 
       await loadCallbacks()

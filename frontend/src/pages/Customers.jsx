@@ -1,12 +1,13 @@
 import { APP_STYLES } from '@/lib/styles'
-import { useMemo, useState } from 'react'
+import { useMemo, useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useDataStore } from '@/store/dataStore'
+import { useAuthStore } from '@/store/authStore'
 import DataTable from '@/components/shared/DataTable'
 import { Button } from '@/components/ui/button'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter, DialogClose } from '@/components/ui/dialog'
 import { useLoadingToast } from '@/hooks/useLoadingToast'
-import { Users, Loader2, Bolt, Flame, Gauge, Trash2, Eye, X } from 'lucide-react'
+import { Users, Loader2, Bolt, Flame, Gauge, Trash2, Eye, X, User } from 'lucide-react'
 
 const FILTERS = [
   { key: 'all', label: 'All' },
@@ -31,11 +32,16 @@ function Card({ icon: Icon, iconColor, iconBg, title, headerRight, children, del
 }
 
 export default function Customers() {
-  const { customers, callbacks, transfers, isLoading, deleteCustomer } = useDataStore()
+  const { customers, callbacks, transfers, isLoading, deleteCustomer, loadCustomers } = useDataStore()
+  const { user } = useAuthStore()
   const navigate = useNavigate()
   const withToast = useLoadingToast()
   const [deleteId, setDeleteId] = useState(null)
   const [activeFilter, setActiveFilter] = useState('all')
+
+  useEffect(() => {
+    loadCustomers()
+  }, [loadCustomers])
 
   const notInterestedCustomerIds = useMemo(() => {
     const ids = new Set()
@@ -55,16 +61,29 @@ export default function Customers() {
     return customers
   }, [customers, activeFilter, notInterestedCustomerIds])
 
+  const isStaff = user?.role === 'admin' || user?.role === 'manager'
+
   const columns = useMemo(() => [
     {
       header: 'Business',
       cell: (row) => (
         <div className="min-w-0">
           <p className="font-semibold text-sm text-gray-900 truncate">{row.businessName || 'N/A'}</p>
-          <p className="text-xs text-gray-500 truncate">{row.ownerName}</p>
+          <p className="text-xs text-gray-500 truncate">{row.ownerName || row.postcode || '-'}</p>
         </div>
       ),
     },
+    ...(isStaff ? [{
+      header: 'Agent / Created By',
+      cell: (row) => (
+        <div className="flex items-center gap-1.5 min-w-0">
+          <User size={13} className="text-indigo-500 shrink-0" />
+          <span className="text-xs font-semibold text-indigo-900 truncate">
+            {row.createdByName || 'Unknown'}
+          </span>
+        </div>
+      ),
+    }] : []),
     {
       header: 'Contact',
       cell: (row) => (
@@ -119,17 +138,19 @@ export default function Customers() {
       cell: (row) => (
         <div className="flex gap-2">
           <button onClick={(e) => { e.stopPropagation(); navigate('/customers/' + row.id) }}
-            className="w-8 h-8 rounded-lg flex items-center justify-center cursor-pointer border border-gray-200 bg-white text-indigo-500 shadow-sm transition-all duration-200 hover:bg-indigo-50 hover:border-indigo-200 hover:shadow-indigo-100 hover:-translate-y-0.5 active:translate-y-0">
+            className="w-8 h-8 rounded-lg flex items-center justify-center cursor-pointer border border-gray-200 bg-white text-indigo-500 shadow-sm transition-all duration-200 hover:bg-indigo-50 hover:border-indigo-200 hover:shadow-indigo-100 hover:-translate-y-0.5 active:translate-y-0"
+            title="View Details">
             <Eye size={14} />
           </button>
           <button onClick={(e) => { e.stopPropagation(); setDeleteId(row.id) }}
-            className="w-8 h-8 rounded-lg flex items-center justify-center cursor-pointer border border-red-200 bg-red-50 text-red-500 shadow-sm transition-all duration-200 hover:bg-red-100 hover:border-red-300 hover:shadow-red-100 hover:-translate-y-0.5 active:translate-y-0">
+            className="w-8 h-8 rounded-lg flex items-center justify-center cursor-pointer border border-red-200 bg-red-50 text-red-500 shadow-sm transition-all duration-200 hover:bg-red-100 hover:border-red-300 hover:shadow-red-100 hover:-translate-y-0.5 active:translate-y-0"
+            title="Delete Customer">
             <Trash2 size={13} />
           </button>
         </div>
       ),
     },
-  ], [navigate, notInterestedCustomerIds])
+  ], [navigate, notInterestedCustomerIds, isStaff])
 
   const handleDelete = () => {
     if (!deleteId) return

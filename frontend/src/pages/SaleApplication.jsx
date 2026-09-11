@@ -349,93 +349,108 @@ export default function SaleApplication() {
       }
 
       let finalCustomerId = editIds.customerId || state.customerId || prefill.id || null
+      let createdCustomerId = null
+      let createdTransferId = null
+
       if (finalCustomerId) {
         await updateCustomer(finalCustomerId, customerPayload)
       } else {
         const newCustomer = await createCustomer({ ...customerPayload, employeeId: uid })
         finalCustomerId = newCustomer.id
+        createdCustomerId = newCustomer.id
       }
 
-      // 2. Prepare Transfer Payload
-      const firstMeter = form.utilityType !== 'gas' ? form.elecMeters?.[0] : form.gasMeters?.[0]
-      const firstMpan = form.utilityType !== 'gas' ? form.elecMeters?.[0]?.supplyNumber : null
-      const firstMprn = form.utilityType !== 'electricity' ? form.gasMeters?.[0]?.mprn : null
-      const firstMsn = firstMeter?.meterSerial || null
-      const firstAccountNumber = firstMeter?.accountNumber || null
+      try {
+        // 2. Prepare Transfer Payload
+        const firstMeter = form.utilityType !== 'gas' ? form.elecMeters?.[0] : form.gasMeters?.[0]
+        const firstMpan = form.utilityType !== 'gas' ? form.elecMeters?.[0]?.supplyNumber : null
+        const firstMprn = form.utilityType !== 'electricity' ? form.gasMeters?.[0]?.mprn : null
+        const firstMsn = firstMeter?.meterSerial || null
+        const firstAccountNumber = firstMeter?.accountNumber || null
 
-      const transferPayload = {
-        utilityType: form.utilityType,
-        accountNumber: firstAccountNumber,
-        notes: form.transferNotes || null,
-        mpan: firstMpan,
-        mprn: firstMprn,
-        msn: firstMsn,
-        scheduledDateTime: form.date ? `${form.date}T${form.time || '10:00'}:00` : null,
-        createdAt: form.saleDate ? `${form.saleDate}T12:00:00` : null,
-      }
-
-      let finalTransferId = editIds.transferId || state.transferId
-      if (finalTransferId) {
-        await updateTransfer(finalTransferId, transferPayload)
-      } else {
-        const newTransfer = await createTransfer({
-          ...transferPayload,
-          customerId: finalCustomerId,
-          employeeId: uid,
-        })
-        finalTransferId = newTransfer.id
-      }
-
-      // 3. Submit or Update Sale Application
-      const salePayload = {
-        saleType: form.saleType,
-        ownerFullName: form.ownerFullName.trim(),
-        homeAddress: form.homeAddress.trim(),
-        dateOfBirth: form.dateOfBirth ? new Date(form.dateOfBirth).toISOString().split('T')[0] : null,
-        businessType: form.businessType,
-        billFrequency: form.billFrequency,
-        notes: form.notes || null,
-        createdAt: form.saleDate ? `${form.saleDate}T12:00:00` : null,
-      }
-
-      if (isEdit) {
-        if (isManager) {
-          await managerStore.updateSale(saleId, salePayload)
-          await managerStore.loadSales()
-          toast('Sale updated successfully', 'success')
-          navigate(`/sales/${saleId}`)
-        } else {
-          await updateSale(saleId, salePayload)
-          await loadSales()
-          toast('Sale updated successfully', 'success')
-          navigate(`/sales/${saleId}`)
+        const transferPayload = {
+          utilityType: form.utilityType,
+          accountNumber: firstAccountNumber,
+          notes: form.transferNotes || null,
+          mpan: firstMpan,
+          mprn: firstMprn,
+          msn: firstMsn,
+          scheduledDateTime: form.date ? `${form.date}T${form.time || '10:00'}:00` : null,
+          createdAt: form.saleDate ? `${form.saleDate}T12:00:00` : null,
         }
-      } else {
-        if (isManager) {
-          const targetAgentId = prefill.employeeId || customer.employeeId || state.employeeId || null
-          if (!targetAgentId) {
-            throw new Error('Could not determine agent for this sale')
-          }
-          await managerStore.createSale({
-            employeeId: targetAgentId,
-            customerId: finalCustomerId,
-            transferId: finalTransferId,
-            ...salePayload,
-          })
-          await managerStore.loadSales()
-          toast('Sale application submitted successfully', 'success')
-          navigate('/manager/sales')
+
+        let finalTransferId = editIds.transferId || state.transferId
+        if (finalTransferId) {
+          await updateTransfer(finalTransferId, transferPayload)
         } else {
-          await createSale({
+          const newTransfer = await createTransfer({
+            ...transferPayload,
+            customerId: finalCustomerId,
             employeeId: uid,
-            customerId: finalCustomerId,
-            transferId: finalTransferId,
-            ...salePayload,
           })
-          await loadSales()
-          toast('Sale application submitted successfully', 'success')
-          navigate('/sales')
+          finalTransferId = newTransfer.id
+          createdTransferId = newTransfer.id
         }
+
+        // 3. Submit or Update Sale Application
+        const salePayload = {
+          saleType: form.saleType,
+          ownerFullName: form.ownerFullName.trim(),
+          homeAddress: form.homeAddress.trim(),
+          dateOfBirth: form.dateOfBirth ? new Date(form.dateOfBirth).toISOString().split('T')[0] : null,
+          businessType: form.businessType,
+          billFrequency: form.billFrequency,
+          notes: form.notes || null,
+          createdAt: form.saleDate ? `${form.saleDate}T12:00:00` : null,
+        }
+
+        if (isEdit) {
+          if (isManager) {
+            await managerStore.updateSale(saleId, salePayload)
+            await managerStore.loadSales()
+            toast('Sale updated successfully', 'success')
+            navigate(`/sales/${saleId}`)
+          } else {
+            await updateSale(saleId, salePayload)
+            await loadSales()
+            toast('Sale updated successfully', 'success')
+            navigate(`/sales/${saleId}`)
+          }
+        } else {
+          if (isManager) {
+            const targetAgentId = prefill.employeeId || customer.employeeId || state.employeeId || null
+            if (!targetAgentId) {
+              throw new Error('Could not determine agent for this sale')
+            }
+            await managerStore.createSale({
+              employeeId: targetAgentId,
+              customerId: finalCustomerId,
+              transferId: finalTransferId,
+              ...salePayload,
+            })
+            await managerStore.loadSales()
+            toast('Sale application submitted successfully', 'success')
+            navigate('/manager/sales')
+          } else {
+            await createSale({
+              employeeId: uid,
+              customerId: finalCustomerId,
+              transferId: finalTransferId,
+              ...salePayload,
+            })
+            await loadSales()
+            toast('Sale application submitted successfully', 'success')
+            navigate('/sales')
+          }
+        }
+      } catch (subErr) {
+        if (createdTransferId) {
+          await api.delete(`/api/transfers/${createdTransferId}`).catch(() => {})
+        }
+        if (createdCustomerId) {
+          await api.delete(`/api/customers/${createdCustomerId}`).catch(() => {})
+        }
+        throw subErr
       }
     } catch (err) {
       const d = err.response?.data?.detail

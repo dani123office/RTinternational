@@ -21,6 +21,7 @@ from ..schemas import (
 from .callbacks import _build_callback_out
 from .transfers import _transfer_out
 from .sales import _sale_out
+from .customers import _customer_out
 from .salary import _SalaryPDF, _employee_id, _month_name, _attendance_summary, _fmt, _num_to_words
 import openpyxl
 from openpyxl.styles import Font, PatternFill, Alignment, Border, Side
@@ -332,6 +333,7 @@ def get_agent_detail(
     callbacks = db.query(CallBack).filter(CallBack.employee_id == agent.id).all()
     transfers = db.query(Transfer).filter(Transfer.employee_id == agent.id).all()
     sales = db.query(Sale).filter(Sale.employee_id == agent.id).all()
+    agent_customers = db.query(Customer).filter(Customer.created_by == agent.id).order_by(Customer.created_at.desc()).all()
 
     ac = len(callbacks)
     at = len(transfers)
@@ -363,6 +365,7 @@ def get_agent_detail(
         callbacks=[_build_callback_out(c, c.customer) for c in callbacks],
         transfers=[_transfer_out(t, t.customer) for t in transfers],
         sales=[_sale_out(s, s.customer) for s in sales],
+        customers=[_customer_out(c) for c in agent_customers],
         stats=AgentStats(
             agent=AgentOut(
                 id=agent.id, name=agent.name, email=agent.email,

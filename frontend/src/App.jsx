@@ -110,8 +110,8 @@ export default function App() {
         <Route path="sales/apply" element={<RoleRoute allowedRoles={['agent', 'manager']}><SaleApplication /></RoleRoute>} />
         <Route path="sales/:id" element={<RoleRoute allowedRoles={['agent', 'manager']}><SaleDetail /></RoleRoute>} />
         <Route path="sales/:id/edit" element={<RoleRoute allowedRoles={['agent', 'manager']}><SaleApplication /></RoleRoute>} />
-        <Route path="customers" element={<RoleRoute allowedRoles={['agent']}><Customers /></RoleRoute>} />
-        <Route path="customers/:id" element={<RoleRoute allowedRoles={['agent']}><CustomerDetail /></RoleRoute>} />
+        <Route path="customers" element={<RoleRoute allowedRoles={['agent', 'manager', 'admin']}><Customers /></RoleRoute>} />
+        <Route path="customers/:id" element={<RoleRoute allowedRoles={['agent', 'manager', 'admin']}><CustomerDetail /></RoleRoute>} />
         <Route path="loans" element={<RoleRoute allowedRoles={['agent', 'manager']}><Loans /></RoleRoute>} />
         <Route path="leaves" element={<RoleRoute allowedRoles={['agent']}><LeaveRequests /></RoleRoute>} />
       </Route>

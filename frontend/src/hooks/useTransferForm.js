@@ -166,6 +166,7 @@ export function useTransferForm(locationState, navigate) {
       const gasRates = form.utilityType !== 'electricity' ? form.gasMeters.map(mapGasMeter) : []
 
       let customerId
+      let createdCustomerId = null
       if (existingCustomerId) {
         customerId = existingCustomerId
         try {
@@ -193,35 +194,41 @@ export function useTransferForm(locationState, navigate) {
         }
         const customer = await createCustomer(customerData)
         customerId = customer.id
+        createdCustomerId = customer.id
       }
 
-      const firstMeter = form.utilityType !== 'gas' ? form.elecMeters?.[0] : form.gasMeters?.[0]
-      const firstMpan = form.utilityType !== 'gas' ? form.elecMeters?.[0]?.supplyNumber : null
-      const firstMprn = form.utilityType !== 'electricity' ? form.gasMeters?.[0]?.mprn : null
-      const firstMsn = firstMeter?.meterSerial || null
-      const firstAccountNumber = firstMeter?.accountNumber || null
+      try {
+        const firstMeter = form.utilityType !== 'gas' ? form.elecMeters?.[0] : form.gasMeters?.[0]
+        const firstMpan = form.utilityType !== 'gas' ? form.elecMeters?.[0]?.supplyNumber : null
+        const firstMprn = form.utilityType !== 'electricity' ? form.gasMeters?.[0]?.mprn : null
+        const firstMsn = firstMeter?.meterSerial || null
+        const firstAccountNumber = firstMeter?.accountNumber || null
 
-      await createTransfer({
-        customerId,
-        accountNumber: firstAccountNumber,
-        mpan: firstMpan,
-        mprn: firstMprn,
-        msn: firstMsn,
-        notes: form.notes || null,
-        employeeId: uid,
-        scheduledDateTime: null,
-        callBackId: form.callbackId || form.callBackId || null,
-      })
-
-      if (form.scheduleAsCallback && form.scheduledDate) {
-        await createCallback({
+        await createTransfer({
           customerId,
-          scheduledDateTime: `${form.scheduledDate}T${form.scheduledTime || '10:00'}:00`,
-          notes: form.notes || null,
+          accountNumber: firstAccountNumber,
           mpan: firstMpan,
           mprn: firstMprn,
           msn: firstMsn,
+          notes: form.notes || null,
+          employeeId: uid,
+          scheduledDateTime: null,
+          callBackId: form.callbackId || form.callBackId || null,
         })
+
+        if (form.scheduleAsCallback && form.scheduledDate) {
+          await createCallback({
+            customerId,
+            scheduledDateTime: `${form.scheduledDate}T${form.scheduledTime || '10:00'}:00`,
+            notes: form.notes || null,
+            employeeId: uid,
+          })
+        }
+      } catch (subErr) {
+        if (createdCustomerId) {
+          await api.delete(`/api/customers/${createdCustomerId}`).catch(() => {})
+        }
+        throw subErr
       }
 
       await loadTransfers()
