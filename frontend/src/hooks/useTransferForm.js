@@ -35,7 +35,7 @@ const mapGasMeter = (m, i) => ({
 })
 
 export function useTransferForm(locationState, navigate) {
-  const { createTransfer, loadTransfers, createCustomer, createCallback } = useDataStore()
+  const { createTransfer, loadTransfers, createCustomer, updateCustomer, createCallback } = useDataStore()
   const { getCurrentUserId } = useAuthStore()
   const { toast } = useToast()
   const [isLoading, setIsLoading] = useState(false)
@@ -168,6 +168,22 @@ export function useTransferForm(locationState, navigate) {
       let customerId
       if (existingCustomerId) {
         customerId = existingCustomerId
+        try {
+          await updateCustomer(existingCustomerId, {
+            businessName: form.businessName.trim(),
+            businessPhone: form.businessPhone.trim(),
+            businessAddress: form.businessAddress.trim(),
+            postcode: form.postcode.trim().toUpperCase(),
+            ownerName: form.ownerName.trim(),
+            ownerPhone: form.ownerPhone.trim(),
+            email: form.email.trim(),
+            utilityType: form.utilityType,
+            electricityRates: elecRates,
+            gasRates,
+          })
+        } catch (e) {
+          console.warn('Customer update during transfer creation:', e)
+        }
       } else {
         const customerData = {
           businessName: form.businessName.trim(), businessPhone: form.businessPhone.trim(),

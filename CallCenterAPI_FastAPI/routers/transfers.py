@@ -27,16 +27,16 @@ def _customer_out(customer) -> CustomerOut:
             id=m.id, customerId=m.customer_id, meterNumber=m.meter_number,
             currentSupplier=m.current_supplier, supplyNumber=m.supply_number,
             meterSerial=m.meter_serial, accountNumber=m.account_number,
-            dayUnitRate=m.day_unit_rate, night_unit_rate=m.night_unit_rate,
+            dayUnitRate=m.day_unit_rate, nightUnitRate=m.night_unit_rate,
             eveningUnitRate=m.evening_unit_rate, standingRate=m.standing_rate,
-            monthly_bill=m.monthly_bill, contractEndDate=m.contract_end_date,
+            monthlyBill=m.monthly_bill, contractEndDate=m.contract_end_date,
         ) for m in customer.electricity_meters],
         gasMeters=[GasMeterOut(
             id=m.id, customerId=m.customer_id, meterNumber=m.meter_number,
             currentSupplier=m.current_supplier, mprn=m.mprn,
             meterSerial=m.meter_serial, accountNumber=m.account_number,
             unitRate=m.unit_rate, standingRate=m.standing_rate,
-            monthly_bill=m.monthly_bill, contractEndDate=m.contract_end_date,
+            monthlyBill=m.monthly_bill, contractEndDate=m.contract_end_date,
         ) for m in customer.gas_meters],
     )
 
