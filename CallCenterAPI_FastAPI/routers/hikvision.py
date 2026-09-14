@@ -34,11 +34,13 @@ HIK_MAP = {
     "20": 131,  # M Ahsan Shahid
     "22": 118,  # Sarmad
     "23": 143,  # Zuha Khalid
+    "24": 156,  # aleeza abbas
     "25": 150,  # Ozain Malik
     "26": 141,  # Raim chouhan
     "27": 147,  # khansa
     "29": 152,  # ADAN
     "30": 153,  # Murtaza Haider
+    "36": 155,  # Hafsa
 }
 
 
@@ -214,12 +216,14 @@ async def receive_hikvision_event(request: Request, db: Session = Depends(get_db
         emp_id = None
         event_time_str = None
 
+        dev_name = ""
         if body_str:
             try:
                 data = json.loads(body_str)
                 acs = data.get("AccessControllerEvent", {}) or data.get("AcsEvent", {}) or data
                 emp_id = str(acs.get("employeeNoString") or acs.get("employeeNo") or acs.get("EmployeeNo") or "")
                 event_time_str = str(acs.get("eventTime") or acs.get("time") or "")
+                dev_name = str(acs.get("name") or data.get("name") or "")
             except Exception:
                 pass
 
@@ -227,6 +231,11 @@ async def receive_hikvision_event(request: Request, db: Session = Depends(get_db
             m_emp = re.search(r'(?:employeeNoString|employeeNo|EmployeeNo)[^0-9>]*([0-9]+)', full_text, re.IGNORECASE)
             if m_emp:
                 emp_id = m_emp.group(1).strip()
+
+        if not dev_name and full_text:
+            m_name = re.search(r'"name":\s*"([^"]+)"', full_text, re.IGNORECASE)
+            if m_name:
+                dev_name = m_name.group(1).strip()
 
         if not event_time_str and full_text:
             m_time = re.search(r'(?:eventTime|time)[^0-9>]*(\d{4}-\d{2}-\d{2}[ T]\d{2}:\d{2}:\d{2})', full_text, re.IGNORECASE)
@@ -237,7 +246,9 @@ async def receive_hikvision_event(request: Request, db: Session = Depends(get_db
             return {"status": "ok", "message": "Received payload without employee ID"}
 
         # 4-Step Smart Matching:
+        # 1. Exact device_user_id match
         user = db.query(User).filter(User.device_user_id == str(emp_id), User.is_deleted.isnot(True)).first()
+        # 2. HIK_MAP legacy lookup
         if not user:
             mapped_id = HIK_MAP.get(str(emp_id))
             if mapped_id:
@@ -245,9 +256,17 @@ async def receive_hikvision_event(request: Request, db: Session = Depends(get_db
                 if user and not user.device_user_id:
                     user.device_user_id = str(emp_id)
                     db.commit()
+        # 3. Direct user id match
         if not user and emp_id.isdigit():
             user = db.query(User).filter(User.id == int(emp_id), User.is_deleted.isnot(True)).first()
             if user and not user.device_user_id:
+                user.device_user_id = str(emp_id)
+                db.commit()
+        # 4. Smart Name Fallback Match
+        if not user and dev_name and len(dev_name.strip()) >= 3:
+            clean_name = dev_name.strip()
+            user = db.query(User).filter(User.name.ilike(f"%{clean_name}%"), User.is_deleted.isnot(True)).first()
+            if user:
                 user.device_user_id = str(emp_id)
                 db.commit()
 
