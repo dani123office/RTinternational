@@ -167,7 +167,6 @@ export default function Register() {
 
         {/* Footer */}
         <p style={{ position: 'relative', zIndex: 2, fontSize: '11px', color: '#cbd5e1' }}>&copy; 2026 RT International. All rights reserved.</p>
-        <p style={{ position: 'relative', zIndex: 2, fontSize: '11px', color: '#cbd5e1' }}>Credit: M Ahsan Shahid</p>
       </div>
 
       {/* ── RIGHT FORM PANEL ── */}

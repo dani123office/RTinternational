@@ -340,7 +340,6 @@ export default function Login() {
           </div>
 
           <p className="brand-footer">&copy; 2026 RT International. All rights reserved.</p>
-          <p className="brand-footer">Credit: M Ahsan Shahid</p>
         </div>
 
         {/* ── RIGHT FORM PANEL ── */}
