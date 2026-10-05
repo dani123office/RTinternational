@@ -404,6 +404,21 @@ class CreateManagerRequest(BaseModel):
     name: str
     email: str
     password: str
+    fatherName: Optional[str] = None
+    monthlySalary: Optional[int] = 0
+    cnic: Optional[str] = None
+    phone: Optional[str] = None
+    department: Optional[str] = None
+    designation: Optional[str] = None
+    dateOfBirth: Optional[date] = None
+    dateOfJoining: Optional[date] = None
+    emergContactName: Optional[str] = None
+    emergContactNumber: Optional[str] = None
+    bankName: Optional[str] = None
+    bankAccountNumber: Optional[str] = None
+    jobCadre: Optional[str] = "Full time"
+    shiftStartTime: Optional[str] = "14:00"
+    shiftEndTime: Optional[str] = "22:00"
     deviceUserId: Optional[str] = None
 
 

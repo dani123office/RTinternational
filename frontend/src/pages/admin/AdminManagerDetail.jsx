@@ -1,9 +1,13 @@
-import { useEffect, useState, useMemo } from 'react'
+import { useEffect, useState, useMemo, useCallback } from 'react'
 import { useParams, useNavigate, Link } from 'react-router-dom'
 import { useAdminStore } from '@/store/adminStore'
+import { useToast } from '@/components/ui/toastContext'
+import api, { endpoints } from '@/lib/api'
+import EditStaffModal from '@/components/admin/EditStaffModal'
 import {
   ArrowLeft, UserCog, Users, ArrowLeftRight,
-  PoundSterling, TrendingUp, Mail,
+  PoundSterling, TrendingUp, Mail, UserSquare2,
+  FileText, Clock, CreditCard, Briefcase, Building2,
 } from 'lucide-react'
 import { APP_STYLES } from '@/lib/styles'
 import DataTable from '@/components/shared/DataTable'
@@ -12,7 +16,9 @@ import LoadingSpinner from '@/components/shared/LoadingSpinner'
 export default function AdminManagerDetail() {
   const { id } = useParams()
   const navigate = useNavigate()
+  const { toast } = useToast()
   const { selectedManager, loadAdminManagerDetail, isLoading, error } = useAdminStore()
+  const [showEditModal, setShowEditModal] = useState(false)
 
   const [selectedMonth, setSelectedMonth] = useState(() => {
     const saved = localStorage.getItem('adminSelectedMonth')
@@ -52,6 +58,13 @@ export default function AdminManagerDetail() {
     }
   }, [id, loadAdminManagerDetail, filterYear, filterMonth])
 
+  const handleSaveStaff = useCallback(async (payload) => {
+    const res = await api.put(endpoints.admin.updateAgentStaff(Number(id)), payload)
+    await loadAdminManagerDetail(Number(id), filterYear, filterMonth)
+    toast('Manager profile updated successfully', 'success')
+    return res.data
+  }, [id, loadAdminManagerDetail, filterYear, filterMonth, toast])
+
   const manager = selectedManager?.manager
   const agents  = selectedManager?.agents || []
 
@@ -71,7 +84,7 @@ export default function AdminManagerDetail() {
         <div className="rt-page">
           <div className="rt-card p-10 text-center">
             <p className="text-slate-400 text-sm">{error || 'Manager not found.'}</p>
-            <Link to="/admin/managers" className="mt-4 text-indigo-600 text-sm font-medium inline-block">← Back to Managers</Link>
+            <Link to="/admin/staff" className="mt-4 text-indigo-600 text-sm font-medium inline-block">← Back to Staff</Link>
           </div>
         </div>
       </>
@@ -138,9 +151,109 @@ export default function AdminManagerDetail() {
                 </p>
               </div>
               <div className="flex items-center gap-2 shrink-0">
+                <Link
+                  to={`/admin/payroll?userId=${manager.id}`}
+                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold bg-indigo-50 text-indigo-700 hover:bg-indigo-100 transition-colors no-underline"
+                >
+                  <FileText size={14} /> Generate Salary Slip
+                </Link>
                 <span className="px-2.5 py-1 rounded-full text-xs font-semibold" style={{ background: manager.isActive ? '#d1fae5' : '#fee2e2', color: manager.isActive ? '#065f46' : '#991b1b' }}>
                   {manager.isActive ? 'Active' : 'Disabled'}
                 </span>
+              </div>
+            </div>
+          </div>
+
+          {/* Staff Profile Info */}
+          <div className="rt-card rt-fade rt-d1" style={{ marginBottom: '20px' }}>
+            <div className="rt-card-header">
+              <div className="rt-card-header-left">
+                <div className="rt-card-icon" style={{ background: 'rgba(139,92,246,0.1)' }}>
+                  <UserSquare2 size={16} color="#8b5cf6" />
+                </div>
+                <span className="rt-card-title">Manager Profile &amp; Employment Details</span>
+              </div>
+              <button onClick={() => setShowEditModal(true)} className="text-xs font-bold text-purple-700 bg-purple-50 hover:bg-purple-100 px-3 py-1.5 rounded-lg border-none cursor-pointer transition-colors flex items-center gap-1">
+                Edit Profile
+              </button>
+            </div>
+            <div className="rt-card-body" style={{ padding: '20px 24px' }}>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '16px 24px' }}>
+                {manager.fatherName && (
+                  <div>
+                    <p style={{ fontSize: '10px', fontWeight: 700, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.5px', margin: '0 0 3px' }}>Father's Name</p>
+                    <p style={{ fontSize: '13px', fontWeight: 600, color: '#0f172a', margin: 0 }}>{manager.fatherName}</p>
+                  </div>
+                )}
+                {manager.cnic && (
+                  <div>
+                    <p style={{ fontSize: '10px', fontWeight: 700, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.5px', margin: '0 0 3px' }}>CNIC</p>
+                    <p style={{ fontSize: '13px', fontWeight: 600, color: '#0f172a', margin: 0 }}>{manager.cnic}</p>
+                  </div>
+                )}
+                {manager.phone && (
+                  <div>
+                    <p style={{ fontSize: '10px', fontWeight: 700, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.5px', margin: '0 0 3px' }}>Telephone</p>
+                    <p style={{ fontSize: '13px', fontWeight: 600, color: '#0f172a', margin: 0 }}>{manager.phone}</p>
+                  </div>
+                )}
+                <div>
+                  <p style={{ fontSize: '10px', fontWeight: 700, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.5px', margin: '0 0 3px' }}>Designation</p>
+                  <p style={{ fontSize: '13px', fontWeight: 600, color: '#0f172a', margin: 0 }}>{manager.designation || 'Manager'}</p>
+                </div>
+                <div>
+                  <p style={{ fontSize: '10px', fontWeight: 700, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.5px', margin: '0 0 3px' }}>Department</p>
+                  <p style={{ fontSize: '13px', fontWeight: 600, color: '#0f172a', margin: 0 }}>{manager.department || 'Management'}</p>
+                </div>
+                <div>
+                  <p style={{ fontSize: '10px', fontWeight: 700, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.5px', margin: '0 0 3px' }}>Monthly Salary</p>
+                  <p style={{ fontSize: '13px', fontWeight: 700, color: '#16a34a', margin: 0 }}>
+                    Rs. {Number(manager.monthlySalary || 0).toLocaleString()}
+                  </p>
+                </div>
+                {manager.dateOfBirth && (
+                  <div>
+                    <p style={{ fontSize: '10px', fontWeight: 700, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.5px', margin: '0 0 3px' }}>Date of Birth</p>
+                    <p style={{ fontSize: '13px', fontWeight: 600, color: '#0f172a', margin: 0 }}>{new Date(manager.dateOfBirth).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}</p>
+                  </div>
+                )}
+                {manager.dateOfJoining && (
+                  <div>
+                    <p style={{ fontSize: '10px', fontWeight: 700, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.5px', margin: '0 0 3px' }}>Date of Joining</p>
+                    <p style={{ fontSize: '13px', fontWeight: 600, color: '#0f172a', margin: 0 }}>{new Date(manager.dateOfJoining).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}</p>
+                  </div>
+                )}
+                {manager.emergContactName && (
+                  <div>
+                    <p style={{ fontSize: '10px', fontWeight: 700, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.5px', margin: '0 0 3px' }}>Emergency Contact</p>
+                    <p style={{ fontSize: '13px', fontWeight: 600, color: '#0f172a', margin: 0 }}>
+                      {manager.emergContactName}{manager.emergContactNumber ? ` (${manager.emergContactNumber})` : ''}
+                    </p>
+                  </div>
+                )}
+                {manager.bankName && (
+                  <div>
+                    <p style={{ fontSize: '10px', fontWeight: 700, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.5px', margin: '0 0 3px' }}>Bank Name</p>
+                    <p style={{ fontSize: '13px', fontWeight: 600, color: '#0f172a', margin: 0 }}>{manager.bankName}</p>
+                  </div>
+                )}
+                {manager.bankAccountNumber && (
+                  <div>
+                    <p style={{ fontSize: '10px', fontWeight: 700, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.5px', margin: '0 0 3px' }}>Bank Account Number</p>
+                    <p style={{ fontSize: '13px', fontWeight: 600, color: '#0f172a', margin: 0 }}>{manager.bankAccountNumber}</p>
+                  </div>
+                )}
+                <div>
+                  <p style={{ fontSize: '10px', fontWeight: 700, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.5px', margin: '0 0 3px' }}>Job Cadre</p>
+                  <p style={{ fontSize: '13px', fontWeight: 600, color: '#0f172a', margin: 0 }}>{manager.jobCadre || 'Full time'}</p>
+                </div>
+                <div>
+                  <p style={{ fontSize: '10px', fontWeight: 700, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.5px', margin: '0 0 3px' }}>Shift Timing (PKT)</p>
+                  <p style={{ fontSize: '13px', fontWeight: 700, color: '#7c3aed', margin: 0, display: 'flex', alignItems: 'center', gap: '5px' }}>
+                    <Clock size={13} className="text-purple-600 inline shrink-0" />
+                    <span>{manager.shiftStartTime || '14:00'} — {manager.shiftEndTime || '22:00'}</span>
+                  </p>
+                </div>
               </div>
             </div>
           </div>
@@ -205,6 +318,12 @@ export default function AdminManagerDetail() {
 
         </div>
       </div>
+      <EditStaffModal
+        isOpen={showEditModal}
+        onClose={() => setShowEditModal(false)}
+        onSave={handleSaveStaff}
+        agent={manager}
+      />
     </>
   )
 }

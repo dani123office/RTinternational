@@ -1,7 +1,7 @@
 import { useEffect, useState, useMemo } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useNavigate, Link } from 'react-router-dom'
 import { useAdminStore } from '@/store/adminStore'
-import { Users, UserCog, Plus, Ban, Trash2, KeyRound, UserRoundCog, AlertTriangle, Eye, EyeOff, RotateCcw } from 'lucide-react'
+import { Users, UserCog, Plus, Ban, Trash2, KeyRound, UserRoundCog, AlertTriangle, Eye, EyeOff, RotateCcw, FileText } from 'lucide-react'
 import { APP_STYLES } from '@/lib/styles'
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs'
 import DataTable from '@/components/shared/DataTable'
@@ -190,6 +190,12 @@ export default function StaffManagement() {
       header: 'Actions',
       cell: (row) => (
         <div className="flex gap-1 justify-end" onClick={(e) => e.stopPropagation()}>
+          <span className="rt-tooltip-wrap">
+            <Link to={`/admin/payroll?userId=${row.id}`} className="p-1.5 rounded-lg border-none bg-transparent text-indigo-600 hover:bg-indigo-50 transition-colors flex items-center justify-center no-underline">
+              <FileText size={14} />
+            </Link>
+            <span className="rt-tooltip">Salary slip</span>
+          </span>
           <span className="rt-tooltip-wrap">
             <button onClick={() => setShowResetPwd(row)} className="p-1.5 rounded-lg border-none bg-transparent text-amber-500 cursor-pointer hover:bg-amber-50 transition-colors">
               <KeyRound size={14} />

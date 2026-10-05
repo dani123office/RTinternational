@@ -1,4 +1,5 @@
 import { useEffect, useState, useCallback } from 'react'
+import { useSearchParams } from 'react-router-dom'
 import api, { endpoints } from '@/lib/api'
 import { APP_STYLES } from '@/lib/styles'
 import { FileText, DollarSign, Mail, Download, Loader2 } from 'lucide-react'
@@ -13,36 +14,44 @@ const CURRENT_YEAR = new Date().getFullYear()
 const YEARS = Array.from({ length: 7 }, (_, i) => CURRENT_YEAR - 3 + i)
 
 export default function PayrollPage() {
-  const [agents, setAgents] = useState([])
-  const [selectedAgentId, setSelectedAgentId] = useState('')
+  const [searchParams] = useSearchParams()
+  const urlUserId = searchParams.get('userId')
+
+  const [staff, setStaff] = useState([])
+  const [selectedAgentId, setSelectedAgentId] = useState(urlUserId || '')
   const [month, setMonth] = useState(String(new Date().getMonth() + 1))
   const [year, setYear] = useState(String(CURRENT_YEAR))
   const [commission, setCommission] = useState('0.00')
   const [loanDeduction, setLoanDeduction] = useState('0.00')
   const [loading, setLoading] = useState(false)
   const [emailing, setEmailing] = useState(false)
-  const [agentsLoading, setAgentsLoading] = useState(true)
+  const [staffLoading, setStaffLoading] = useState(true)
   const { toast } = useToast()
 
-  const loadAgents = useCallback(async () => {
-    setAgentsLoading(true)
+  const loadStaff = useCallback(async () => {
+    setStaffLoading(true)
     try {
-      const res = await api.get(endpoints.admin.agents)
-      const list = Array.isArray(res.data) ? res.data : res.data?.items || res.data?.agents || []
-      setAgents(list)
-      if (list.length > 0 && !selectedAgentId) {
-        setSelectedAgentId(String(list[0].id))
+      const res = await api.get(endpoints.admin.users)
+      const list = Array.isArray(res.data) ? res.data : res.data?.items || res.data?.users || []
+      const activeStaff = list.filter(u => u.isActive !== 0 && (u.role === 'manager' || u.role === 'agent'))
+      setStaff(activeStaff)
+      if (activeStaff.length > 0) {
+        if (urlUserId && activeStaff.some(u => String(u.id) === String(urlUserId))) {
+          setSelectedAgentId(String(urlUserId))
+        } else if (!selectedAgentId || !activeStaff.some(u => String(u.id) === String(selectedAgentId))) {
+          setSelectedAgentId(String(activeStaff[0].id))
+        }
       }
     } catch (err) { console.error(err) }
-    setAgentsLoading(false)
-  }, [selectedAgentId])
+    setStaffLoading(false)
+  }, [selectedAgentId, urlUserId])
 
   useEffect(() => {
     const timer = setTimeout(() => {
-      loadAgents()
+      loadStaff()
     }, 0)
     return () => clearTimeout(timer)
-  }, [loadAgents])
+  }, [loadStaff])
 
   const handleGenerate = async () => {
     if (!selectedAgentId) return
@@ -66,7 +75,9 @@ export default function PayrollPage() {
       const url = URL.createObjectURL(blob)
       const a = document.createElement('a')
       a.href = url
-      a.download = `Salary_Slip_${MONTHS[Number(month) - 1]}_${year}.pdf`
+      const selectedEmp = staff.find(s => String(s.id) === String(selectedAgentId))
+      const empName = selectedEmp ? `_${selectedEmp.name.replace(/\s+/g, '_')}` : ''
+      a.download = `Salary_Slip_${MONTHS[Number(month) - 1]}_${year}${empName}.pdf`
       a.click()
       URL.revokeObjectURL(url)
       toast('Salary slip downloaded successfully', 'success')
@@ -96,7 +107,9 @@ export default function PayrollPage() {
     }
   }
 
-  const selectedAgent = agents.find(a => String(a.id) === selectedAgentId)
+  const selectedStaffMember = staff.find(a => String(a.id) === selectedAgentId)
+  const managers = staff.filter(u => u.role === 'manager')
+  const agents = staff.filter(u => u.role === 'agent')
 
   return (
     <>
@@ -105,7 +118,7 @@ export default function PayrollPage() {
         <div style={{ maxWidth: '1000px', margin: '0 auto' }}>
           <div className="rt-fade" style={{ marginBottom: '28px' }}>
             <h1 className="rt-page-title">Payroll &amp; Salary Slips</h1>
-            <p className="rt-page-subtitle">Generate and print employee salary slips.</p>
+            <p className="rt-page-subtitle">Generate and print employee salary slips for Managers and Agents.</p>
           </div>
 
           <div className="rt-card-flat rt-fade">
@@ -118,7 +131,7 @@ export default function PayrollPage() {
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4 mb-5">
                 <div>
                   <label className="block text-xs font-semibold uppercase tracking-wider mb-1.5" style={{ color: '#64748b' }}>
-                    Employee
+                    Staff Member
                   </label>
                   <select
                     value={selectedAgentId}
@@ -129,13 +142,28 @@ export default function PayrollPage() {
                       borderColor: '#e2e8f0',
                       color: '#0f172a',
                     }}
-                    disabled={agentsLoading}
+                    disabled={staffLoading}
                   >
-                    {agentsLoading && <option value="">Loading...</option>}
-                    {!agentsLoading && agents.length === 0 && <option value="">No agents found</option>}
-                    {agents.map(a => (
-                      <option key={a.id} value={a.id}>{a.name}</option>
-                    ))}
+                    {staffLoading && <option value="">Loading staff...</option>}
+                    {!staffLoading && staff.length === 0 && <option value="">No staff members found</option>}
+                    {managers.length > 0 && (
+                      <optgroup label="👔 Managers">
+                        {managers.map(m => (
+                          <option key={m.id} value={m.id}>
+                            👔 {m.name} {m.designation ? `(${m.designation})` : ''}
+                          </option>
+                        ))}
+                      </optgroup>
+                    )}
+                    {agents.length > 0 && (
+                      <optgroup label="🎧 Agents">
+                        {agents.map(a => (
+                          <option key={a.id} value={a.id}>
+                            🎧 {a.name} {a.designation ? `(${a.designation})` : ''}
+                          </option>
+                        ))}
+                      </optgroup>
+                    )}
                   </select>
                 </div>
 
@@ -209,23 +237,42 @@ export default function PayrollPage() {
               </div>
 
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pt-2">
-                {selectedAgent && (
-                  <div className="text-xs font-medium" style={{ color: '#64748b' }}>
-                    Monthly Salary: <span className="font-bold" style={{ color: '#0f172a' }}>Rs. {selectedAgent.monthlySalary?.toLocaleString() || '0'}</span>
-                    {selectedAgent.email && <span className="text-[11px] text-slate-400 block mt-0.5">Email: {selectedAgent.email}</span>}
+                {selectedStaffMember && (
+                  <div className="flex items-center gap-3 flex-wrap">
+                    <span className={`text-xs font-bold px-2.5 py-1 rounded-full ${selectedStaffMember.role === 'manager' ? 'bg-purple-100 text-purple-700' : 'bg-blue-100 text-blue-700'}`}>
+                      {selectedStaffMember.role === 'manager' ? '👔 Manager' : '🎧 Agent'}
+                    </span>
+                    <div className="text-xs font-medium" style={{ color: '#64748b' }}>
+                      Monthly Salary: <span className="font-bold" style={{ color: '#0f172a' }}>Rs. {Number(selectedStaffMember.monthlySalary || 0).toLocaleString()}</span>
+                    </div>
+                    {selectedStaffMember.designation && (
+                      <div className="text-xs text-slate-500">
+                        Designation: <span className="font-semibold text-slate-700">{selectedStaffMember.designation}</span>
+                      </div>
+                    )}
+                    {selectedStaffMember.department && (
+                      <div className="text-xs text-slate-500">
+                        Dept: <span className="font-semibold text-slate-700">{selectedStaffMember.department}</span>
+                      </div>
+                    )}
+                    {selectedStaffMember.email && (
+                      <div className="text-[11px] text-slate-400">
+                        Email: {selectedStaffMember.email}
+                      </div>
+                    )}
                   </div>
                 )}
                 <div className="flex items-center gap-2 sm:ml-auto flex-wrap">
                   <button
                     type="button"
                     onClick={handleEmail}
-                    disabled={emailing || !selectedAgentId || !selectedAgent?.email}
+                    disabled={emailing || !selectedAgentId || !selectedStaffMember?.email}
                     className="flex items-center gap-1.5 px-4 py-2.5 rounded-xl text-sm font-semibold cursor-pointer transition-all duration-200"
                     style={{
                       background: '#ffffff',
                       color: '#4f46e5',
                       border: '1.5px solid #e0e7ff',
-                      opacity: emailing || !selectedAgentId || !selectedAgent?.email ? 0.6 : 1,
+                      opacity: emailing || !selectedAgentId || !selectedStaffMember?.email ? 0.6 : 1,
                     }}
                   >
                     {emailing ? <Loader2 size={16} className="animate-spin" /> : <Mail size={16} />}

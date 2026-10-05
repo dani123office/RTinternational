@@ -3,8 +3,15 @@ import { useAuthStore } from '@/store/authStore'
 import { useToast } from '@/components/ui/toastContext'
 import api from '@/lib/api'
 import { APP_STYLES } from '@/lib/styles'
-import { Loader2, User, Mail, Shield, Calendar, Save, Building2, Percent, UserSquare2 } from 'lucide-react'
+import { Loader2, User, Mail, Shield, Calendar, Save, Building2, Percent, UserSquare2, FileText, Download } from 'lucide-react'
 import ResetPasswordModal from '@/components/admin/ResetPasswordModal'
+
+const MONTHS = [
+  'January', 'February', 'March', 'April', 'May', 'June',
+  'July', 'August', 'September', 'October', 'November', 'December',
+]
+const CURRENT_YEAR = new Date().getFullYear()
+const YEARS = Array.from({ length: 5 }, (_, i) => CURRENT_YEAR - 2 + i)
 
 export default function ProfileSettings() {
   const { user } = useAuthStore()
@@ -19,6 +26,10 @@ export default function ProfileSettings() {
   const [email, setEmail] = useState('')
   const [bankName, setBankName] = useState('')
   const [bankAccountNumber, setBankAccountNumber] = useState('')
+
+  const [slipMonth, setSlipMonth] = useState(String(new Date().getMonth() + 1))
+  const [slipYear, setSlipYear] = useState(String(CURRENT_YEAR))
+  const [downloadingSlip, setDownloadingSlip] = useState(false)
 
   const isManager = user?.role === 'manager'
   const isAdmin = user?.role === 'admin'
@@ -64,6 +75,36 @@ export default function ProfileSettings() {
       toast(msg, 'error')
     } finally {
       setSaving(false)
+    }
+  }
+
+  const handleDownloadMySlip = async () => {
+    setDownloadingSlip(true)
+    try {
+      const token = localStorage.getItem('token') || sessionStorage.getItem('token')
+      const params = new URLSearchParams({
+        month: slipMonth,
+        year: slipYear,
+      })
+      const res = await fetch(`/api/salary/slip?${params}`, {
+        headers: token ? { Authorization: `Bearer ${token}` } : {},
+      })
+      if (!res.ok) {
+        const errJson = await res.json().catch(() => ({}))
+        throw new Error(errJson.detail || 'Failed to generate salary slip')
+      }
+      const blob = await res.blob()
+      const url = URL.createObjectURL(blob)
+      const a = document.createElement('a')
+      a.href = url
+      a.download = `Salary_Slip_${MONTHS[Number(slipMonth) - 1]}_${slipYear}.pdf`
+      a.click()
+      URL.revokeObjectURL(url)
+      toast('Salary slip downloaded successfully', 'success')
+    } catch (err) {
+      toast(err.message || 'Failed to download salary slip', 'error')
+    } finally {
+      setDownloadingSlip(false)
     }
   }
 
@@ -316,6 +357,75 @@ export default function ProfileSettings() {
                       <p style={{ fontSize: '14px', fontWeight: 600, color: '#0f172a', margin: 0 }}>{profile.jobCadre}</p>
                     </div>
                   )}
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Monthly Salary Slip Download */}
+          {profile && (profile.monthlySalary || isManager || user?.role === 'agent') && (
+            <div className="rt-card rt-fade rt-d3" style={{ marginBottom: '24px' }}>
+              <div className="rt-card-header">
+                <div className="rt-card-header-left">
+                  <div className="rt-card-icon" style={{ background: 'rgba(99,102,241,0.1)' }}>
+                    <FileText size={16} color="#6366f1" />
+                  </div>
+                  <span className="rt-card-title">My Monthly Salary Slip</span>
+                </div>
+              </div>
+              <div className="rt-card-body" style={{ padding: '20px 28px' }}>
+                <p style={{ fontSize: '13px', color: '#64748b', margin: '0 0 16px' }}>
+                  Select the payroll period to download your official salary slip PDF.
+                </p>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flexWrap: 'wrap' }}>
+                  <div style={{ flex: '1 1 140px' }}>
+                    <label style={{ fontSize: '11px', fontWeight: 700, color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.5px', display: 'block', marginBottom: '4px' }}>Month</label>
+                    <select
+                      value={slipMonth}
+                      onChange={e => setSlipMonth(e.target.value)}
+                      style={{
+                        width: '100%', padding: '9px 12px', border: '1px solid #e2e6ec', borderRadius: '10px',
+                        fontSize: '13px', fontWeight: 600, color: '#0f172a', background: '#f8fafc', outline: 'none',
+                      }}
+                    >
+                      {MONTHS.map((m, i) => (
+                        <option key={i + 1} value={i + 1}>{m}</option>
+                      ))}
+                    </select>
+                  </div>
+                  <div style={{ flex: '1 1 120px' }}>
+                    <label style={{ fontSize: '11px', fontWeight: 700, color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.5px', display: 'block', marginBottom: '4px' }}>Year</label>
+                    <select
+                      value={slipYear}
+                      onChange={e => setSlipYear(e.target.value)}
+                      style={{
+                        width: '100%', padding: '9px 12px', border: '1px solid #e2e6ec', borderRadius: '10px',
+                        fontSize: '13px', fontWeight: 600, color: '#0f172a', background: '#f8fafc', outline: 'none',
+                      }}
+                    >
+                      {YEARS.map(y => (
+                        <option key={y} value={y}>{y}</option>
+                      ))}
+                    </select>
+                  </div>
+                  <div style={{ alignSelf: 'flex-end' }}>
+                    <button
+                      type="button"
+                      onClick={handleDownloadMySlip}
+                      disabled={downloadingSlip}
+                      style={{
+                        display: 'flex', alignItems: 'center', gap: '6px',
+                        padding: '10px 20px', borderRadius: '10px', border: 'none',
+                        background: downloadingSlip ? '#94a3b8' : 'linear-gradient(135deg, #6366f1, #4f46e5)',
+                        color: 'white', fontWeight: 600, fontSize: '13px', cursor: downloadingSlip ? 'not-allowed' : 'pointer',
+                        boxShadow: downloadingSlip ? 'none' : '0 2px 8px rgba(99,102,241,0.25)',
+                        transition: 'opacity 0.15s',
+                      }}
+                    >
+                      {downloadingSlip ? <Loader2 size={15} className="animate-spin" /> : <Download size={15} />}
+                      {downloadingSlip ? 'Generating Slip...' : 'Download Slip (PDF)'}
+                    </button>
+                  </div>
                 </div>
               </div>
             </div>

@@ -66,6 +66,21 @@ def create_manager(data: CreateManagerRequest, request: Request, admin: User = D
             role="manager",
             is_active=1,
             is_approved=1,
+            father_name=data.fatherName or None,
+            monthly_salary=data.monthlySalary or 0,
+            cnic=data.cnic or None,
+            phone=data.phone or None,
+            department=data.department or None,
+            designation=data.designation or None,
+            date_of_birth=data.dateOfBirth,
+            date_of_joining=data.dateOfJoining,
+            emerg_contact_name=data.emergContactName or None,
+            emerg_contact_number=data.emergContactNumber or None,
+            bank_name=data.bankName or None,
+            bank_account_number=data.bankAccountNumber or None,
+            job_cadre=data.jobCadre or "Full time",
+            shift_start_time=data.shiftStartTime or "14:00",
+            shift_end_time=data.shiftEndTime or "22:00",
             device_user_id=bio_id,
         )
         db.add(user)
@@ -78,7 +93,11 @@ def create_manager(data: CreateManagerRequest, request: Request, admin: User = D
         log_activity(db, admin.id, "created", "manager", user.id,
                      f"Created manager {user.email}",
                      get_client_ip(request))
-        return {"id": user.id, "name": user.name, "email": user.email, "role": user.role, "deviceUserId": user.device_user_id}
+        return {
+            "id": user.id, "name": user.name, "email": user.email, "role": user.role,
+            "deviceUserId": user.device_user_id, "monthlySalary": user.monthly_salary,
+            "department": user.department, "designation": user.designation,
+        }
     except HTTPException:
         db.rollback()
         raise
@@ -313,6 +332,22 @@ def get_manager_detail(
         "manager": {
             "id": manager.id, "name": manager.name, "email": manager.email,
             "role": manager.role, "isActive": 1 if manager.is_active else 0,
+            "phone": manager.phone,
+            "fatherName": manager.father_name,
+            "monthlySalary": manager.monthly_salary,
+            "cnic": manager.cnic,
+            "department": manager.department,
+            "designation": manager.designation,
+            "dateOfBirth": manager.date_of_birth.isoformat() if manager.date_of_birth else None,
+            "dateOfJoining": manager.date_of_joining.isoformat() if manager.date_of_joining else None,
+            "emergContactName": manager.emerg_contact_name,
+            "emergContactNumber": manager.emerg_contact_number,
+            "bankName": manager.bank_name,
+            "bankAccountNumber": manager.bank_account_number,
+            "jobCadre": manager.job_cadre,
+            "shiftStartTime": manager.shift_start_time or "14:00",
+            "shiftEndTime": manager.shift_end_time or "22:00",
+            "deviceUserId": manager.device_user_id,
             "createdAt": manager.created_at.isoformat() if manager.created_at else None,
         },
         "agents": agent_list,
@@ -401,9 +436,9 @@ def update_agent_staff(
     db: Session = Depends(get_db),
 ):
     try:
-        agent = db.query(User).filter(User.id == agent_id, User.role == "agent").first()
+        agent = db.query(User).filter(User.id == agent_id, User.role.in_(["agent", "manager"])).first()
         if not agent:
-            raise HTTPException(status_code=404, detail="Agent not found")
+            raise HTTPException(status_code=404, detail="Staff member not found")
         if data.name is not None:
             agent.name = data.name
         if data.email is not None:
