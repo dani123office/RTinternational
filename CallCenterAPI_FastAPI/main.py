@@ -46,11 +46,14 @@ class InMemoryRateLimiter:
 
 
 _rate_limiter = InMemoryRateLimiter(max_requests=300, window_seconds=60)
-_auth_rate_limiter = InMemoryRateLimiter(max_requests=15, window_seconds=60)
+_auth_rate_limiter = InMemoryRateLimiter(max_requests=60, window_seconds=60)
 
 
 def _parse_trusted_proxies() -> list[str]:
-    raw = os.environ.get("RT_TRUSTED_PROXIES", "127.0.0.1,::1")
+    raw = os.environ.get(
+        "RT_TRUSTED_PROXIES",
+        "127.0.0.1,::1,10.0.0.0/8,172.16.0.0/12,192.168.0.0/16"
+    )
     return [x.strip() for x in raw.split(",") if x.strip()]
 
 
@@ -69,30 +72,43 @@ def _get_client_identifier(request: Request) -> str:
 
     is_trusted_proxy = False
     if remote_ip is not None:
-        for entry in TRUSTED_PROXIES:
-            try:
-                if "/" in entry:
-                    if remote_ip in ipaddress.ip_network(entry, strict=False):
+        if remote_ip.is_private or remote_ip.is_loopback:
+            is_trusted_proxy = True
+        else:
+            for entry in TRUSTED_PROXIES:
+                try:
+                    if "/" in entry:
+                        if remote_ip in ipaddress.ip_network(entry, strict=False):
+                            is_trusted_proxy = True
+                            break
+                    elif remote_ip == ipaddress.ip_address(entry):
                         is_trusted_proxy = True
                         break
-                elif remote_ip == ipaddress.ip_address(entry):
-                    is_trusted_proxy = True
-                    break
-            except ValueError:
-                continue
+                except ValueError:
+                    continue
 
-    xff = request.headers.get("x-forwarded-for", "")
-    if is_trusted_proxy and xff:
-        hops = [h.strip() for h in xff.split(",") if h.strip()]
-        if len(hops) < TRUST_PROXY_HOPS:
-            return remote
-        idx = len(hops) - TRUST_PROXY_HOPS
-        candidate = hops[idx]
-        try:
-            ipaddress.ip_address(candidate)
-            return candidate
-        except ValueError:
-            pass
+    if is_trusted_proxy:
+        # Check X-Real-IP first (direct client IP set by Nginx reverse proxy)
+        x_real_ip = request.headers.get("x-real-ip", "").strip()
+        if x_real_ip:
+            try:
+                ipaddress.ip_address(x_real_ip)
+                return x_real_ip
+            except ValueError:
+                pass
+
+        # Check X-Forwarded-For next
+        xff = request.headers.get("x-forwarded-for", "")
+        if xff:
+            hops = [h.strip() for h in xff.split(",") if h.strip()]
+            if hops:
+                candidate = hops[0]
+                try:
+                    ipaddress.ip_address(candidate)
+                    return candidate
+                except ValueError:
+                    pass
+
     return remote
 
 
@@ -101,7 +117,6 @@ class RateLimitMiddleware(BaseHTTPMiddleware):
         client_id = _get_client_identifier(request)
         is_auth_endpoint = request.url.path in {
             "/api/auth/login",
-            "/api/auth/refresh",
             "/api/auth/forgot-password",
             "/api/auth/reset-password",
             "/api/auth/send-otp",

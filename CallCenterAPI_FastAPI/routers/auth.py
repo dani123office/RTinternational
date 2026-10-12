@@ -24,7 +24,7 @@ if not SECRET_KEY:
     if not _is_production:
         SECRET_KEY = secrets.token_urlsafe(64)
 ALGORITHM = "HS256"
-TOKEN_EXPIRE_MINUTES = 15
+TOKEN_EXPIRE_MINUTES = 60
 REFRESH_EXPIRE_DAYS = 7
 
 
@@ -264,8 +264,8 @@ def register(request: RegisterRequest, fastapi_req: Request, db: Session = Depen
                  get_client_ip(fastapi_req))
 
     if request.role == "manager":
-        return {"message": "Manager account created successfully. You can now log in."}
-    return {"message": "Account created successfully. Waiting for admin approval. You will be able to log in once an admin approves your account."}
+        return {"message": "Manager account created successfully. You can now log in.", "name": user.name}
+    return {"message": "Account created successfully. Waiting for admin approval. You will be able to log in once an admin approves your account.", "name": user.name}
 
 
 @router.post("/send-otp")

@@ -93,7 +93,9 @@ api.interceptors.request.use(async (config) => {
         } catch (refreshError) {
           processQueue(refreshError, null)
           isRefreshing = false
-          if (!redirecting) {
+          // Only redirect to /login if the refresh token is genuinely invalid or expired (HTTP 401).
+          // Transient issues like rate limits (429) or network hiccups must not log the user out.
+          if (refreshError?.response?.status === 401 && !redirecting) {
             redirecting = true
             clearAuthStorage()
             window.location.href = '/login'
@@ -147,7 +149,9 @@ api.interceptors.response.use(
       } catch (refreshError) {
         processQueue(refreshError, null)
         isRefreshing = false
-        if (!redirecting) {
+        // Only redirect to /login if the refresh token is genuinely invalid or expired (HTTP 401).
+        // Transient issues like rate limits (429) or network hiccups must not log the user out.
+        if (refreshError?.response?.status === 401 && !redirecting) {
           redirecting = true
           clearAuthStorage()
           window.location.href = '/login'
