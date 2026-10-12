@@ -212,6 +212,15 @@ def check_cnic(v):
     return f"{digits[:5]}-{digits[5:12]}-{digits[12]}"
 
 
+def check_email(v):
+    if not v:
+        return v
+    v = v.strip().lower()
+    if not EMAIL_RE.match(v) or '..' in v:
+        raise ValueError('Invalid email format. Must contain a valid username, "@" symbol, and domain name (e.g. user@example.com)')
+    return v
+
+
 # ─── Auth ───────────────────────────────────────────────
 
 class LoginRequest(BaseModel):
@@ -263,6 +272,16 @@ class RegisterRequest(BaseModel):
     jobCadre: Optional[str] = "Full time"
     shiftStartTime: Optional[str] = "14:00"
     shiftEndTime: Optional[str] = "22:00"
+
+    @field_validator('email')
+    @classmethod
+    def validate_email(cls, v):
+        return check_email(v)
+
+    @field_validator('cnic')
+    @classmethod
+    def validate_cnic(cls, v):
+        return check_cnic(v)
 
 
 class ForgotPasswordRequest(BaseModel):
@@ -421,6 +440,11 @@ class CreateManagerRequest(BaseModel):
     shiftEndTime: Optional[str] = "22:00"
     deviceUserId: Optional[str] = None
 
+    @field_validator('email')
+    @classmethod
+    def validate_email(cls, v):
+        return check_email(v)
+
 
 class CreateAgentRequest(BaseModel):
     name: str
@@ -444,6 +468,11 @@ class CreateAgentRequest(BaseModel):
     shiftEndTime: Optional[str] = "22:00"
     autoDialerEnabled: Optional[bool] = False
     deviceUserId: Optional[str] = None
+
+    @field_validator('email')
+    @classmethod
+    def validate_email(cls, v):
+        return check_email(v)
 
     @field_validator('cnic')
     @classmethod
@@ -479,6 +508,11 @@ class UpdateUserRequest(BaseModel):
     autoDialerEnabled: Optional[bool] = None
     deviceUserId: Optional[str] = None
 
+    @field_validator('email')
+    @classmethod
+    def validate_email(cls, v):
+        return check_email(v)
+
 
 class UpdateAgentStaffRequest(BaseModel):
     name: Optional[str] = None
@@ -499,6 +533,11 @@ class UpdateAgentStaffRequest(BaseModel):
     shiftStartTime: Optional[str] = None
     shiftEndTime: Optional[str] = None
     autoDialerEnabled: Optional[bool] = None
+
+    @field_validator('email')
+    @classmethod
+    def validate_email(cls, v):
+        return check_email(v)
 
     @field_validator('cnic')
     @classmethod

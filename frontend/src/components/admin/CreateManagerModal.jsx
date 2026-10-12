@@ -18,6 +18,11 @@ export default function CreateManagerModal({ isOpen, onClose, onSave }) {
 
   const handleSave = async () => {
     if (!form.name || !form.email || !form.password) { setError('Name, email, and password are required'); return }
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+    if (!emailRegex.test(form.email.trim())) {
+      setError('Please enter a valid email address with @ (e.g. name@domain.com)')
+      return
+    }
     setLoading(true); setError('')
     try {
       await onSave({

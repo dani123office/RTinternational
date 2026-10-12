@@ -31,6 +31,11 @@ export default function CreateAgentModal({ isOpen, onClose, onSave, managers }) 
 
   const handleSave = async () => {
     if (!form.name || !form.email || !form.password) { setError('Name, email and password required'); return }
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+    if (!emailRegex.test(form.email.trim())) {
+      setError('Please enter a valid email address with @ (e.g. name@domain.com)')
+      return
+    }
     if (!form.managerId) { setError('Please assign a manager'); return }
     setLoading(true); setError('')
     try {

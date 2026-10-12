@@ -1,27 +1,16 @@
 import bcrypt
-from datetime import datetime, timedelta
-from fastapi import APIRouter, Depends, HTTPException, Request
-from sqlalchemy.orm import Session
-from sqlalchemy import func
-from ..database import get_db
-from ..models import User, EmailVerification
-from .auth import get_current_user
-from ..utils.logger import log_activity, get_client_ip
-from ..utils.email import generate_otp, send_otp_email
-from pydantic import BaseModel, Field
-import bcrypt
-from datetime import datetime, timedelta
-from fastapi import APIRouter, Depends, HTTPException, Request
-from sqlalchemy.orm import Session
-from sqlalchemy import func
-from ..database import get_db
-from ..models import User, EmailVerification
-from .auth import get_current_user
-from ..utils.logger import log_activity, get_client_ip
-from ..utils.email import generate_otp, send_otp_email
-from pydantic import BaseModel, Field
+from datetime import datetime, timedelta, date
 from typing import Optional
-from datetime import date
+from fastapi import APIRouter, Depends, HTTPException, Request
+from sqlalchemy.orm import Session
+from sqlalchemy import func
+from pydantic import BaseModel, Field, field_validator
+from ..database import get_db
+from ..models import User, EmailVerification
+from .auth import get_current_user
+from ..utils.logger import log_activity, get_client_ip
+from ..utils.email import generate_otp, send_otp_email
+from ..schemas import check_email
 
 router = APIRouter(prefix="/api/profile", tags=["profile"])
 
@@ -51,8 +40,6 @@ class ProfileOut(BaseModel):
     jobCadre: Optional[str] = "Full time"
 
 
-
-
 class ProfileUpdate(BaseModel):
     name: Optional[str] = Field(None, max_length=100)
     email: Optional[str] = Field(None, max_length=150)
@@ -62,6 +49,11 @@ class ProfileUpdate(BaseModel):
     bankName: Optional[str] = None
     bankAccountNumber: Optional[str] = None
     jobCadre: Optional[str] = None
+
+    @field_validator('email')
+    @classmethod
+    def validate_email(cls, v):
+        return check_email(v)
 
 
 @router.get("")
@@ -95,10 +87,20 @@ def get_profile(current_user: User = Depends(get_current_user)):
 class SendNewEmailOTPRequest(BaseModel):
     newEmail: str
 
+    @field_validator('newEmail')
+    @classmethod
+    def validate_email(cls, v):
+        return check_email(v)
+
 
 class VerifyNewEmailOTPRequest(BaseModel):
     newEmail: str
     otp: str
+
+    @field_validator('newEmail')
+    @classmethod
+    def validate_email(cls, v):
+        return check_email(v)
 
 
 @router.post("/send-new-email-otp")
@@ -107,7 +109,7 @@ def send_new_email_otp(
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
-    new_email = dto.newEmail.strip().lower()
+    new_email = check_email(dto.newEmail)
     existing = db.query(User).filter(func.lower(User.email) == new_email, User.id != current_user.id).first()
     if existing:
         raise HTTPException(status_code=400, detail="Email already in use")
@@ -132,7 +134,7 @@ def verify_new_email(
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
-    new_email = dto.newEmail.strip().lower()
+    new_email = check_email(dto.newEmail)
 
     ev = db.query(EmailVerification).filter(EmailVerification.user_id == current_user.id).first()
     if not ev or not ev.otp_code or not ev.otp_expiry:
@@ -151,6 +153,7 @@ def verify_new_email(
 
     return {"ok": True, "email": new_email}
 
+
 @router.put("")
 def update_profile(
     dto: ProfileUpdate,
@@ -161,7 +164,7 @@ def update_profile(
     if dto.name is not None:
         current_user.name = dto.name.strip()
     if dto.email is not None:
-        clean = dto.email.strip().lower()
+        clean = check_email(dto.email)
         existing = db.query(User).filter(func.lower(User.email) == clean, User.id != current_user.id).first()
         if existing:
             raise HTTPException(status_code=400, detail="Email already in use")

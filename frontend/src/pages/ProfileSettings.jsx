@@ -56,11 +56,17 @@ export default function ProfileSettings() {
   }, [toast])
 
   const handleSave = async () => {
+    const cleanEmail = email.trim()
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+    if (cleanEmail && !emailRegex.test(cleanEmail)) {
+      toast('Please enter a valid email address with @ (e.g. name@example.com)', 'error')
+      return
+    }
     setSaving(true)
     try {
       const body = {
         name: name.trim(),
-        email: email.trim(),
+        email: cleanEmail,
         bankName: bankName.trim(),
         bankAccountNumber: bankAccountNumber.trim(),
       }

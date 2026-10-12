@@ -46,6 +46,13 @@ export default function EditStaffModal({ isOpen, onClose, onSave, agent }) {
   if (!isOpen) return null
 
   const handleSave = async () => {
+    if (form.email) {
+      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+      if (!emailRegex.test(form.email.trim())) {
+        setError('Please enter a valid email address with @ (e.g. name@domain.com)')
+        return
+      }
+    }
     setLoading(true); setError('')
     try {
       const payload = { autoDialerEnabled: !!form.autoDialerEnabled }

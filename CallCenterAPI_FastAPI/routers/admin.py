@@ -13,6 +13,7 @@ from .auth import require_admin
 from ..utils.logger import log_activity, get_client_ip
 from ..utils.email import generate_otp, send_otp_email, send_salary_slip_email
 from ..schemas import (
+    EMAIL_RE,
     CreateManagerRequest, CreateAgentRequest, AssignAgentRequest,
     UpdateUserRequest, UpdateAgentStaffRequest, ApproveUserRequest, ResetUserPasswordRequest,
     OverallStats, ManagerKpi, AgentKpi, AgentDetail, AgentStats, AgentOut,
@@ -53,6 +54,8 @@ def _get_sale_count_by_meters(db: Session, sale_query) -> int:
 def create_manager(data: CreateManagerRequest, request: Request, admin: User = Depends(require_admin), db: Session = Depends(get_db)):
     try:
         email = data.email.strip().lower()
+        if not EMAIL_RE.match(email) or '..' in email:
+            raise HTTPException(status_code=400, detail="Invalid email format. Must contain a valid username, '@' symbol, and domain extension.")
         existing = db.query(User).filter(func.lower(User.email) == email).first()
         if existing:
             raise HTTPException(status_code=400, detail="Email already exists")
@@ -110,6 +113,8 @@ def create_manager(data: CreateManagerRequest, request: Request, admin: User = D
 def create_agent(data: CreateAgentRequest, request: Request, admin: User = Depends(require_admin), db: Session = Depends(get_db)):
     try:
         email = data.email.strip().lower()
+        if not EMAIL_RE.match(email) or '..' in email:
+            raise HTTPException(status_code=400, detail="Invalid email format. Must contain a valid username, '@' symbol, and domain extension.")
         existing = db.query(User).filter(func.lower(User.email) == email).first()
         if existing:
             raise HTTPException(status_code=400, detail="Email already exists")
@@ -443,6 +448,8 @@ def update_agent_staff(
             agent.name = data.name
         if data.email is not None:
             clean = data.email.strip().lower()
+            if not EMAIL_RE.match(clean) or '..' in clean:
+                raise HTTPException(status_code=400, detail="Invalid email format. Must contain a valid username, '@' symbol, and domain extension.")
             existing = db.query(User).filter(func.lower(User.email) == clean, User.id != agent_id).first()
             if existing:
                 raise HTTPException(status_code=400, detail="Email already in use")
@@ -536,6 +543,8 @@ def update_user(
             user.name = data.name
         if data.email is not None:
             clean = data.email.strip().lower()
+            if not EMAIL_RE.match(clean) or '..' in clean:
+                raise HTTPException(status_code=400, detail="Invalid email format. Must contain a valid username, '@' symbol, and domain extension.")
             existing = db.query(User).filter(func.lower(User.email) == clean, User.id != user_id).first()
             if existing:
                 raise HTTPException(status_code=400, detail="Email already in use")
